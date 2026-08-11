@@ -10,7 +10,8 @@
 - 新增分阶段计划 `task_plan.md`。
 - 新增本次发现记录 `findings.md`。
 - 新增本次会话进度 `progress.md`。
-- 已完成：更新 `TASK_PROGRESS.md`、运行验证和脚本语法检查；待暂存源码并创建首次本地提交。
+- 已完成：更新 `TASK_PROGRESS.md`、运行验证、脚本语法检查、源码暂存和首次本地提交。
+- 首次本地提交：`41b8980 Initialize Codex Dream Skin repository baseline`；提交包含 221 个文件，未包含 `.codegraph/`。
 
 ## Verification Notes
 
