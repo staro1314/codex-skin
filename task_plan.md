@@ -8,7 +8,7 @@
 
 - 当前代码版本：`1.5.12`。
 - Windows、macOS 和 `runtime/` 共享资产已经存在。
-- 当前主题协议以静态图片、主题元数据和 Safe CSS 为主。
+- 当前主题协议支持静态图片、可选本地视频、主题元数据和 Safe CSS。
 - 当前项目包含安装器、托盘/菜单栏、CDP 注入、验证、恢复和大量跨平台测试。
 - 仓库已完成首次本地 Git 提交；本阶段在该基线之上增加共享运行时契约和 Doctor。
 
@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | Phase 0 | 建立项目文档和可追溯基线 | completed | 根 README、计划、发现记录、首次本地提交 | 源码范围清晰，文档与版本一致，现有检查可运行 |
 | Phase 1 | 固化跨平台运行基线 | completed | 版本矩阵、环境 Doctor、测试入口和同步检查 | Windows/macOS/runtime 的共享契约可验证，失败状态可诊断 |
-| Phase 2 | 动态媒体运行时 | pending | 视频背景、poster 降级、媒体生命周期和性能档位 | 视频可切换、可暂停、可恢复，不遮挡原生控件 |
+| Phase 2 | 动态媒体运行时 | completed | 视频背景、poster 降级、媒体生命周期和性能档位 | 视频可切换、可暂停、可恢复，不遮挡原生控件 |
 | Phase 3 | Codex 状态可视化 | pending | 状态归一化、视觉状态机、事件到动效映射 | 空闲、思考、执行、审批、成功、失败状态稳定呈现 |
 | Phase 4 | 主题协议与创作工具 | pending | 主题 schema、编辑器字段、预览、主题包版本化 | 主题可创建、预览、导入、校验、切换和回滚 |
 | Phase 5 | 安全与兼容性强化 | pending | CDP 会话策略、选择器矩阵、回滚和安全回归 | Codex 更新、异常启动、恶意主题和资源超限均 fail-closed |
@@ -47,6 +47,14 @@
 - 不把大视频编码成 Base64；使用受控本地资源或本机 HTTP 资源。
 - 提供 `eco`、`balanced`、`immersive` 三档性能策略。
 - 窗口最小化、失焦、电池供电和 `prefers-reduced-motion` 时降级。
+
+## Phase 2 结果
+
+- `runtime/theme-package-validator.mjs` 和双端生成副本支持可选 `background.mp4|webm`，要求图片 poster、静音循环、`eco`/`balanced`/`immersive` 档位和 32 MiB 上限。
+- macOS/Windows 导入、暂存、发布、指纹和 payload 链路均传递受控本地 `file://` URL，不把视频字节编码进注入 payload。
+- 共享渲染器已覆盖页面隐藏、窗口失焦、减少动态效果、低电量和播放错误回退；视频层不接收指针事件，原生 Codex 控件优先。
+- `node --test tools/*.test.mjs` 聚焦测试 8/8 通过；完整便携 Node 回归 99 项中 91 项通过、2 项按平台跳过、6 项因 Windows 主机缺少 Unix/macOS 前置条件失败，详见 `progress.md`。
+- 真实 macOS/Windows Codex 播放、宿主 CSP 兼容性和性能采样仍属于下一阶段的真实平台验收，不影响本阶段代码契约和 fail-closed 回退实现。
 
 ## Phase 3 重点
 

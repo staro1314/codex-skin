@@ -17,10 +17,17 @@
 - 同步检查、三份 Doctor 语法检查、Selector Doctor 和新增 Runtime Doctor 均通过。
 - Phase 1 验收：Windows/shared Node 测试 26/26 通过；Windows 和 macOS 模式 Doctor 均返回 `ready`，包含版本矩阵、共享同步、稳定错误码和下一步动作；Phase 1 已完成。
 
+## Phase 2 media runtime
+
+- Extended the shared theme package contract with an optional local `video` object. The image remains the required poster, video is limited to `background.mp4` or `background.webm`, and `muted`/`loop` cannot be disabled.
+- Added `eco`, `balanced`, and `immersive` renderer behavior. Video bytes are never embedded in the payload; platform loaders pass a validated local `file://` URL and retain the static poster fallback.
+- Added visibility, blur/focus, reduced-motion, playback-error, package staging, and renderer regression coverage. Shared tools and focused media tests pass.
+- Generated runtime copies are synchronized and `node tools/sync-runtime-assets.mjs --check` passes. The focused media suite passes 8/8; the full portable Node suite reports 99 tests, 91 passed, 2 skipped, and 6 known macOS/Unix environment failures. Phase 2 implementation is complete; real platform playback and performance sampling remain explicit follow-up validation.
+
 ## Verification Notes
 
-- Node test runner (elevated): 93 tests ran, 85 passed, 2 skipped by platform requirements, and 6 macOS-only tests failed because this Windows checkout lacks `.github/workflows/release.yml`, Unix `/tmp` test directories, and the macOS window command environment. Windows and shared-runtime tests passed.
-- Node syntax checks passed for the Windows injector, Windows renderer injection, and macOS injector; no implementation files were changed by this documentation task.
+- Node test runner (elevated): focused `node --test tools/*.test.mjs` passed 8/8. Full `node --test macos/tests/*.test.mjs windows/tests/*.test.mjs tools/*.test.mjs` ran 99 tests: 91 passed, 2 skipped by platform requirements, and 6 macOS-only tests failed because this Windows checkout lacks `.github/workflows/release.yml`, Unix `/tmp` test directories, and the macOS window command environment. Windows and shared-runtime tests passed.
+- `node tools/sync-runtime-assets.mjs --check` passed. Node syntax checks passed for the shared and generated renderer/validator assets plus the macOS and Windows payload/import scripts. PowerShell execution remains blocked by the local AuthorizationManager policy, so Windows script execution is recorded as an environment gap rather than bypassed.
 
 ## Errors Encountered
 

@@ -41,14 +41,15 @@ Node.js 或执行 PowerShell 脚本。
 运行 `.ps1` 文件。
 
 下载到 `.zip` 主题包后，选择“导入主题 ZIP…”。只接受普通 `.zip`，不接受 `.dreamskin`。正式 Studio
-包包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选带
+包包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选一个
+`background.mp4|webm`，以及
 `LICENSE.txt`、`manifest.sig`；这些文件可直接位于根目录或只包一层主题目录。导入器会核对平台、最低
 客户端版本以及清单中每个负载文件的大小和 SHA-256。`theme.css` 会在本机导入和应用时复验，通过后只
-作用于注册部件；预留签名当前不验证。本地简化包也必须恰好包含 `theme.json`、`theme.css` 与引用图片。
+作用于注册部件；预留签名当前不验证。本地简化包也必须包含 `theme.json`、`theme.css` 与引用图片，并可选一个视频。
 导入只加入主题库，不会自动应用。ZIP 最大 32 MiB、最多 32 个条目、解压后最多 64 MiB；路径穿越、
 链接/reparse、嵌套压缩包、Windows 保留路径及不符合主题/图片约束的内容会在写入前被拒绝。
 
-手动方式：从托盘选择“打开主题文件夹”，把已经解压且直接包含 `theme.json`、`theme.css` 与背景图的完整目录放入
+手动方式：从托盘选择“打开主题文件夹”，把已经解压且直接包含 `theme.json`、`theme.css`、背景图和可选视频的完整目录放入
 `%LOCALAPPDATA%\CodexDreamSkin\themes\`，再重新打开托盘菜单。不要只移动图片，也不要让目录里再套
 一层主题目录。手动目录不经过 ZIP 导入器的归档校验，请只移动可信内容。
 

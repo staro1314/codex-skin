@@ -14,6 +14,7 @@ const LIMITS = Object.freeze({
   simpleTheme: 1_048_576,
   css: 262_144,
   image: 10_485_760,
+  video: 32 * 1024 * 1024,
   license: 65_536,
   signature: 4_096,
 });
@@ -23,9 +24,14 @@ const BACKGROUND_MEDIA = new Map([
   ["background.jpg", "image/jpeg"],
   ["background.png", "image/png"],
 ]);
+const VIDEO_MEDIA = new Map([
+  ["background.mp4", "video/mp4"],
+  ["background.webm", "video/webm"],
+]);
 const PAYLOAD_MEDIA = new Map([
   ["theme.json", "application/json"],
   ...BACKGROUND_MEDIA,
+  ...VIDEO_MEDIA,
   ["theme.css", "text/css"],
   ["LICENSE.txt", "text/plain"],
 ]);
@@ -207,6 +213,7 @@ function expectedLimit(name, simple = false) {
   if (name === "LICENSE.txt") return LIMITS.license;
   if (name === "manifest.sig") return LIMITS.signature;
   if (BACKGROUND_MEDIA.has(name) || /\.(?:png|jpe?g|webp)$/i.test(name)) return LIMITS.image;
+  if (VIDEO_MEDIA.has(name) || /\.(?:mp4|webm)$/i.test(name)) return LIMITS.video;
   return 0;
 }
 
@@ -287,12 +294,34 @@ function validateTimestamp(value) {
   }
 }
 
+export function normalizeThemeVideo(value, label = "theme.video") {
+  if (value === undefined) return null;
+  const video = assertObject(value, label);
+  assertExactKeys(video, ["src"], ["poster", "performance", "muted", "loop"], label);
+  assertString(video.src, `${label}.src`, { min: 1, max: 32, controls: null });
+  if (!VIDEO_MEDIA.has(video.src)) fail(`${label}.src must name one registered video file`);
+  if (video.poster !== undefined) {
+    assertString(video.poster, `${label}.poster`, { min: 1, max: 32, controls: null });
+    if (!BACKGROUND_MEDIA.has(video.poster)) fail(`${label}.poster must name a registered image file`);
+  }
+  if (video.performance !== undefined && !new Set(["eco", "balanced", "immersive"]).has(video.performance)) {
+    fail(`${label}.performance is unsupported`);
+  }
+  if (video.muted !== undefined && video.muted !== true) fail(`${label}.muted must remain true`);
+  if (video.loop !== undefined && video.loop !== true) fail(`${label}.loop must remain true`);
+  return {
+    src: video.src,
+    ...(video.poster !== undefined ? { poster: video.poster } : {}),
+    performance: video.performance ?? "balanced",
+  };
+}
+
 function validateOfficialTheme(value) {
   const theme = assertObject(value, "theme.json");
   assertExactKeys(
     theme,
     THEME_REQUIRED,
-    [...THEME_COPY_KEYS, "promoUrl", "appearance", "art", "colors"],
+    [...THEME_COPY_KEYS, "promoUrl", "appearance", "art", "colors", "video"],
     "theme.json",
   );
   if (theme.schemaVersion !== 1) fail("theme.json must use schemaVersion 1");
@@ -300,6 +329,10 @@ function validateOfficialTheme(value) {
   assertString(theme.name, "theme.json.name", { min: 1, max: 80 });
   assertString(theme.image, "theme.json.image", { min: 1, max: 32, controls: null });
   if (!BACKGROUND_MEDIA.has(theme.image)) fail("theme.json.image must name one registered background file");
+  const video = normalizeThemeVideo(theme.video);
+  if (video && video.poster !== undefined && video.poster !== theme.image) {
+    fail("theme.json.video.poster must match theme.json.image");
+  }
   for (const key of THEME_COPY_KEYS) {
     if (theme[key] !== undefined) assertString(theme[key], `theme.json.${key}`, { max: 120 });
   }
@@ -362,8 +395,8 @@ function validateManifest(value, platform, clientVersion) {
   if (!platforms.has(platform)) fail(`Theme package does not support ${platform}`);
   const capabilities = assertStringSet(manifest.capabilities, "manifest.capabilities", {
     min: 1,
-    max: 3,
-    allowed: new Set(["background", "tokens", "safe-css"]),
+    max: 4,
+    allowed: new Set(["background", "video", "tokens", "safe-css"]),
   });
 
   const publisher = assertObject(manifest.publisher, "manifest.publisher");
@@ -423,6 +456,11 @@ function validateManifest(value, platform, clientVersion) {
     files.set(entry.path, entry);
   }
   const backgrounds = [...files.keys()].filter((name) => BACKGROUND_MEDIA.has(name));
+  const videos = [...files.keys()].filter((name) => VIDEO_MEDIA.has(name));
+  if (videos.length > 1) fail("manifest.files may contain at most one video file");
+  if (Boolean(videos.length) !== capabilities.has("video")) {
+    fail("video capability must match the manifest video payload");
+  }
   if (!files.has("theme.json") || backgrounds.length !== 1) {
     fail("manifest.files must contain theme.json and exactly one background file");
   }
@@ -432,7 +470,7 @@ function validateManifest(value, platform, clientVersion) {
   if (!files.has("theme.css")) {
     fail("New official theme imports require theme.css and the safe-css capability");
   }
-  return { manifest, files, background: backgrounds[0] };
+  return { manifest, files, background: backgrounds[0], video: videos[0] ?? null };
 }
 
 function setsEqual(left, right) {
@@ -459,6 +497,13 @@ function detectedImageMedia(bytes) {
   return "";
 }
 
+export function detectedVideoMedia(bytes) {
+  if (bytes.length >= 12 && bytes.subarray(4, 8).toString() === "ftyp") return "video/mp4";
+  if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45
+    && bytes[2] === 0xdf && bytes[3] === 0xa3) return "video/webm";
+  return "";
+}
+
 async function validateOfficial(root, names, platform, clientVersion) {
   for (const name of names) {
     if (!PACKAGE_FILES.has(name)) fail(`Official theme package contains unregistered file ${name}`);
@@ -466,7 +511,7 @@ async function validateOfficial(root, names, platform, clientVersion) {
   if (!names.includes("manifest.json")) fail("Official theme package is missing manifest.json");
   const bytes = new Map();
   for (const name of names) bytes.set(name, await readStableFile(root, name, expectedLimit(name)));
-  const { manifest, files, background } = validateManifest(
+  const { manifest, files, background, video: manifestVideo } = validateManifest(
     decodeJson(bytes.get("manifest.json"), "manifest.json"),
     platform,
     clientVersion,
@@ -484,13 +529,24 @@ async function validateOfficial(root, names, platform, clientVersion) {
   const theme = validateOfficialTheme(decodeJson(bytes.get("theme.json"), "theme.json"));
   if (manifest.themeId !== theme.id) fail("manifest.themeId does not match theme.json id");
   if (theme.image !== background) fail("theme.json image does not match the manifest background file");
+  const themeVideo = normalizeThemeVideo(theme.video);
+  if (Boolean(themeVideo) !== Boolean(manifestVideo)) {
+    fail("theme.json video presence does not match the manifest payload");
+  }
+  if (themeVideo && themeVideo.src !== manifestVideo) {
+    fail("theme.json video does not match the manifest video file");
+  }
   if (detectedImageMedia(bytes.get(background)) !== BACKGROUND_MEDIA.get(background)) {
     fail(`${background} content does not match its extension and mediaType`);
+  }
+  if (manifestVideo && detectedVideoMedia(bytes.get(manifestVideo)) !== VIDEO_MEDIA.get(manifestVideo)) {
+    fail(`${manifestVideo} content does not match its extension and mediaType`);
   }
   decodeAndValidateSafeCss(bytes.get("theme.css"));
   return {
     format: "official",
     image: background,
+    video: manifestVideo,
     safeCssStatus: "validated",
     signatureIgnored: bytes.has("manifest.sig"),
     bytes,
@@ -498,7 +554,7 @@ async function validateOfficial(root, names, platform, clientVersion) {
 }
 
 async function validateSimple(root, names) {
-  if (names.length !== 3 || !names.includes("theme.json") || !names.includes("theme.css")) {
+  if (names.length < 3 || names.length > 4 || !names.includes("theme.json") || !names.includes("theme.css")) {
     fail("Local simplified ZIP must contain exactly theme.json, theme.css, and its image");
   }
   const themeBytes = await readStableFile(root, "theme.json", LIMITS.simpleTheme);
@@ -512,6 +568,12 @@ async function validateSimple(root, names) {
     || !/\.(?:png|jpe?g|webp)$/i.test(theme.image)
     || !names.includes(theme.image)
   ) fail("Local simplified theme image must be beside theme.json");
+  const video = normalizeThemeVideo(theme.video);
+  const expectedNames = new Set(["theme.json", "theme.css", theme.image]);
+  if (video) expectedNames.add(video.src);
+  if (names.length !== expectedNames.size || names.some((name) => !expectedNames.has(name))) {
+    fail("Local simplified theme files do not match theme.json media references");
+  }
   const [imageBytes, cssBytes] = await Promise.all([
     readStableFile(root, theme.image, LIMITS.image),
     readStableFile(root, "theme.css", LIMITS.css),
@@ -522,16 +584,22 @@ async function validateSimple(root, names) {
   if (detectedImageMedia(imageBytes) !== expectedMedia) {
     fail(`${theme.image} content does not match its extension`);
   }
+  const videoBytes = video ? await readStableFile(root, video.src, LIMITS.video) : null;
+  if (video && detectedVideoMedia(videoBytes) !== VIDEO_MEDIA.get(video.src)) {
+    fail(`${video.src} content does not match its extension`);
+  }
   decodeAndValidateSafeCss(cssBytes);
   return {
     format: "simple",
     image: theme.image,
+    video: video?.src ?? null,
     safeCssStatus: "validated",
     signatureIgnored: false,
     bytes: new Map([
       ["theme.json", themeBytes],
       [theme.image, imageBytes],
       ["theme.css", cssBytes],
+      ...(video ? [[video.src, videoBytes]] : []),
     ]),
   };
 }
@@ -551,6 +619,7 @@ async function main() {
   return {
     format: result.format,
     image: result.image,
+    video: result.video ?? null,
     safeCssStatus: result.safeCssStatus,
     signatureIgnored: result.signatureIgnored,
   };

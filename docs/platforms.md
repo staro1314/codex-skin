@@ -84,11 +84,17 @@ Windows 普通启动、失败回滚与恢复重开均从已注册的 `OpenAI.Cod
 
 ### 主题 ZIP 与手动目录
 
-- 两端只接受普通 `.zip`，明确不兼容 `.dreamskin` 后缀。新的正式 Studio 包必须包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选带 `LICENSE.txt`、`manifest.sig`；文件位于 ZIP 根目录或唯一一层顶级主题目录。仅供本机可信工作流使用的简化格式也必须恰好包含 `theme.json`、`theme.css` 与其引用图片。
+- 两端只接受普通 `.zip`，明确不兼容 `.dreamskin` 后缀。新的正式 Studio 包必须包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选带一个 `background.mp4|webm`、`LICENSE.txt`、`manifest.sig`；文件位于 ZIP 根目录或唯一一层顶级主题目录。仅供本机可信工作流使用的简化格式也必须包含 `theme.json`、`theme.css` 与其引用图片，视频为可选单文件。
 - 导入前限制为 32 MiB 压缩文件、32 个条目和 64 MiB 解压总量，并拒绝路径穿越、链接/reparse、嵌套压缩包、未注册负载以及未通过主题/图片校验的内容。正式包还会核对平台、最低客户端版本及清单中每个负载文件的大小与 SHA-256。
 - `theme.css` 必须通过同一份 Safe CSS allowlist，本机在导入和每次应用时都会复验；通过后只作用于 12 个注册 `data-ds-part` 部件。升级前已经保存且没有 CSS 的 legacy 主题仍可使用，但不会注入额外 CSS。`manifest.sig` 是预留文件，当前不验证签名也不写入主题库；`LICENSE.txt` 随主题保留。
 - 导入目标始终是 saved themes；不会自动覆盖或应用 active / last-known-good。完全相同的内容返回重复结果。同 ID 的新版本会在确认旧目录身份后原地更新，并仅清理语义指纹完全一致、已确认属于同一主题的旧版 `-2`/`-3` 重复目录；无法确认身份时拒绝覆盖，名称不作为删除其他主题的依据。
 - 手动解压时，把直接包含 `theme.json`、`theme.css` 与背景图的完整目录放到 macOS `~/Library/Application Support/CodexDreamSkinStudio/themes/` 或 Windows `%LOCALAPPDATA%\CodexDreamSkin\themes\`。两端控制菜单均提供“打开主题文件夹”；该路径绕过归档校验，只应用于可信内容。
+
+### 动态视频背景
+
+- `theme.json` 的 `video.src` 只能引用主题目录内的 `background.mp4` 或 `background.webm`，必须继续提供图片作为 poster；视频上限为 32 MiB，不能使用远程 URL 或 Base64。
+- `video.performance` 支持 `eco`、`balanced`、`immersive`。播放器固定静音、循环和行内播放；页面隐藏、窗口失焦、减少动态效果、低电量或播放错误时回退到图片 poster。
+- macOS 和 Windows 都把视频作为受控本地文件 URL 传给渲染器，不把视频字节放进注入 payload。若宿主 CSP 或运行时拒绝本地视频资源，仍保留图片主题，不阻断 Codex 原生界面。
 
 ## 预设与图片类型
 

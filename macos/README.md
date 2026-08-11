@@ -137,10 +137,10 @@ To contribute a preset, see [`presets/README.md`](./presets/README.md).
 The native menu-bar app has **导入主题 ZIP…**. It accepts ordinary `.zip`
 files only; `.dreamskin` is deliberately unsupported. An official Studio pack
 contains `manifest.json`, non-empty `theme.json`, non-empty `theme.css`, and exactly one
-`background.webp|jpg|png`, with optional `LICENSE.txt` and the
+`background.webp|jpg|png`, with an optional single `background.mp4|webm`, `LICENSE.txt` and the
 reserved `manifest.sig`. Put them at archive root or inside one top-level theme
-folder. A local simplified pack must contain exactly `theme.json`, `theme.css`, and its
-referenced image; because it lacks manifest integrity and compatibility data,
+folder. A local simplified pack must contain `theme.json`, `theme.css`, its
+referenced image and optionally one local `background.mp4|webm`; because it lacks manifest integrity and compatibility data,
 use that format only for trusted local content.
 
 The importer allows at most 32 MiB compressed, 32 entries, and 64 MiB expanded.
@@ -159,10 +159,16 @@ identity is confirmed. Only a legacy suffix directory (`-2`, `-3`, and so on)
 with an identical semantic fingerprint is consolidated; names alone never prove
 that a directory is a duplicate, so ambiguous entries are preserved.
 
+Video backgrounds require the referenced image as a poster. `video.performance` accepts
+`eco`, `balanced`, or `immersive`; playback is muted and looping. Hidden windows,
+window blur, reduced-motion preferences, low battery, or playback errors fall back to
+the static poster. Video bytes stay on disk and are loaded through a controlled local
+file URL rather than being embedded in the injection payload.
+
 Manual fallback: choose **打开主题文件夹**, or open
 `~/Library/Application Support/CodexDreamSkinStudio/themes/`, then move in the
-complete extracted directory whose immediate children are `theme.json`, `theme.css`, and the
-referenced image. Reopen the menu afterward. Do not add another wrapper folder;
+complete extracted directory whose immediate children are `theme.json`, `theme.css`, the
+referenced image and, optionally, one video. Reopen the menu afterward. Do not add another wrapper folder;
 manual placement bypasses archive checks, so use trusted content only.
 
 ## Image guidelines

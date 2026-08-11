@@ -9,6 +9,7 @@
   const PART_ATTR = "data-ds-part";
   const ROOT_ATTRS = [
     "data-dream-skin", SHELL_ATTR,
+    "data-dream-media",
     "data-dream-art-wide", "data-dream-art-safe", "data-dream-task-mode",
     "data-dream-art-safe-area", "data-dream-art-task-mode", "data-dream-art-aspect",
     "data-dream-art-ready",
@@ -17,6 +18,7 @@
   const STYLE_REVISION = __DREAM_SKIN_STYLE_REVISION_JSON__;
   const PAYLOAD_REVISION = __DREAM_SKIN_PAYLOAD_REVISION_JSON__;
   const THEME = themeConfig && typeof themeConfig === "object" ? themeConfig : {};
+  const VIDEO = THEME.video && typeof THEME.video === "object" ? THEME.video : null;
   const ART = THEME.art && typeof THEME.art === "object" ? THEME.art : {};
   const ART_METADATA = THEME.artMetadata && typeof THEME.artMetadata === "object"
     ? THEME.artMetadata : null;
@@ -61,6 +63,17 @@
   let styleMode = null;
   let styleNode = null;
   let styleSheet = null;
+  let videoNode = null;
+  let videoFailed = false;
+  let motionQuery = null;
+  let motionHandler = null;
+  let visibilityHandler = null;
+  let blurHandler = null;
+  let focusHandler = null;
+  let windowFocused = true;
+  let batteryManager = null;
+  let batteryHandler = null;
+  let batterySaver = false;
   const now = () => typeof performance === "object" && typeof performance.now === "function"
     ? performance.now() : Date.now();
   const metrics = {
@@ -96,6 +109,64 @@
     for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
     return URL.createObjectURL(new Blob([bytes], { type: mime }));
   })();
+
+  const videoPerformance = ["eco", "balanced", "immersive"].includes(VIDEO?.performance)
+    ? VIDEO.performance : "balanced";
+  const documentIsVisible = () => windowFocused
+    && document.visibilityState !== "hidden" && !document.hidden;
+  const reducedMotion = () => Boolean(motionQuery?.matches);
+  const setVideoStyle = (name, value) => {
+    if (videoNode?.style?.setProperty) videoNode.style.setProperty(name, value);
+  };
+  const setPosterMedia = (root) => {
+    setAttribute(root, "data-dream-media", "poster");
+    setStyleProperty(root, "--dream-skin-art", `url("${artUrl}")`);
+    videoNode?.pause?.();
+    setVideoStyle("display", "none");
+  };
+  const markVideoFallback = (root) => {
+    videoFailed = true;
+    setPosterMedia(root);
+  };
+  const ensureVideoLayer = (root) => {
+    if (!VIDEO?.src || videoPerformance === "eco" || batterySaver || reducedMotion()
+      || !documentIsVisible() || videoFailed) {
+      setPosterMedia(root);
+      return;
+    }
+    if (!videoNode) {
+      if (!document?.createElement) {
+        markVideoFallback(root);
+        return;
+      }
+      videoNode = document.createElement("video");
+      videoNode.setAttribute?.("data-dream-skin-video", "true");
+      videoNode.setAttribute?.("aria-hidden", "true");
+      videoNode.muted = true;
+      videoNode.defaultMuted = true;
+      videoNode.loop = true;
+      videoNode.playsInline = true;
+      videoNode.preload = videoPerformance === "immersive" ? "auto" : "metadata";
+      videoNode.poster = artUrl;
+      videoNode.src = VIDEO.src;
+      videoNode.addEventListener?.("error", () => markVideoFallback(root), { once: true });
+      (document.body || document.documentElement)?.appendChild?.(videoNode);
+    }
+    setVideoStyle("display", "block");
+    setAttribute(root, "data-dream-media", "video");
+    // Keep the static image as the poster until the first frame is available;
+    // the CSS variable is removed only after the browser accepts playback.
+    setStyleProperty(root, "--dream-skin-art", "none");
+    try {
+      const playback = videoNode.play?.();
+      Promise.resolve(playback).then(() => {
+        if (!videoNode || videoFailed || !documentIsVisible() || reducedMotion()) return;
+        setStyleProperty(root, "--dream-skin-art", "none");
+      }).catch(() => markVideoFallback(root));
+    } catch {
+      markVideoFallback(root);
+    }
+  };
 
   const cssString = (value) => JSON.stringify(String(value ?? ""));
 
@@ -553,6 +624,7 @@
     setStyleProperty(root, "--dream-skin-art", `url("${artUrl}")`);
     applyTheme(root, shell);
     applyArtMetadata(root);
+    ensureVideoLayer(root);
     return shell;
   };
 
@@ -743,6 +815,24 @@
     if (state?.mediaHandler && state?.mediaQuery) {
       try { state.mediaQuery.removeEventListener("change", state.mediaHandler); } catch {}
     }
+    if (state?.motionHandler && state?.motionQuery) {
+      try { state.motionQuery.removeEventListener("change", state.motionHandler); } catch {}
+    }
+    if (batteryManager && batteryHandler) {
+      try {
+        batteryManager.removeEventListener("chargingchange", batteryHandler);
+        batteryManager.removeEventListener("levelchange", batteryHandler);
+      } catch {}
+    }
+    if (visibilityHandler && typeof document.removeEventListener === "function") {
+      document.removeEventListener("visibilitychange", visibilityHandler);
+    }
+    if (blurHandler && typeof window.removeEventListener === "function") {
+      window.removeEventListener("blur", blurHandler);
+    }
+    if (focusHandler && typeof window.removeEventListener === "function") {
+      window.removeEventListener("focus", focusHandler);
+    }
     if (state?.navigationHandler && state?.navigation) {
       try { state.navigation.removeEventListener("navigate", state.navigationHandler); } catch {}
     }
@@ -757,6 +847,9 @@
     if (document.getElementById(STYLE_ID) === styleNode) document.getElementById(STYLE_ID)?.remove();
     if (styleRegistry.size === 0) delete window[STYLE_REGISTRY_KEY];
     if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
+    videoNode?.pause?.();
+    videoNode?.remove?.();
+    videoNode = null;
     delete window[STATE_KEY];
     return true;
   };
@@ -793,6 +886,21 @@
     mediaHandler = () => scheduleEnsure({ root: true });
   } catch {}
 
+  try {
+    motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    motionHandler = () => ensure({ root: true });
+  } catch {}
+  visibilityHandler = () => ensure({ root: true });
+  blurHandler = () => {
+    windowFocused = false;
+    videoNode?.pause?.();
+    ensure({ root: true });
+  };
+  focusHandler = () => {
+    windowFocused = true;
+    ensure({ root: true });
+  };
+
   const navigationApi = window.navigation && typeof window.navigation.addEventListener === "function"
     ? window.navigation : null;
   const navigationHandler = navigationApi ? () => {
@@ -809,6 +917,9 @@
     scheduler,
     mediaQuery,
     mediaHandler,
+    motionQuery,
+    motionHandler,
+    videoNode,
     navigation: navigationApi,
     navigationHandler,
     artUrl,
@@ -865,6 +976,29 @@
   window[STATE_KEY].timer = timer;
   if (mediaHandler && mediaQuery && typeof mediaQuery.addEventListener === "function") {
     mediaQuery.addEventListener("change", mediaHandler);
+  }
+  if (motionHandler && motionQuery && typeof motionQuery.addEventListener === "function") {
+    motionQuery.addEventListener("change", motionHandler);
+  }
+  if (typeof document.addEventListener === "function") {
+    document.addEventListener("visibilitychange", visibilityHandler);
+  }
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("blur", blurHandler);
+    window.addEventListener("focus", focusHandler);
+  }
+  if (typeof navigator === "object" && typeof navigator.getBattery === "function") {
+    Promise.resolve(navigator.getBattery()).then((battery) => {
+      if (!battery || window[DISABLED_KEY]) return;
+      batteryManager = battery;
+      batteryHandler = () => {
+        batterySaver = battery.charging === false && Number(battery.level) <= 0.2;
+        ensure({ root: true });
+      };
+      batteryHandler();
+      battery.addEventListener?.("chargingchange", batteryHandler);
+      battery.addEventListener?.("levelchange", batteryHandler);
+    }).catch(() => {});
   }
   if (navigationHandler && navigationApi) {
     navigationApi.addEventListener("navigate", navigationHandler);

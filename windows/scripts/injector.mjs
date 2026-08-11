@@ -2,11 +2,13 @@ import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { readImageMetadata } from "./image-metadata.mjs";
 import {
+  detectedVideoMedia,
   normalizeThemeColor,
   normalizeThemeText,
+  normalizeThemeVideo,
 } from "../assets/theme-package-validator.mjs";
 import { decodeAndValidateSafeCss } from "../assets/safe-css-validator.mjs";
 
@@ -45,6 +47,7 @@ const SKIN_VERSION = "1.5.12";
 // statement rather than an inline `export const`.
 export { SKIN_VERSION };
 const MAX_ART_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 const MAX_SAFE_CSS_BYTES = 256 * 1024;
 const STRONG_THEME_AUDIT_MS = 30000;
 const MIN_RENDERER_VIEWPORT_WIDTH = 320;
@@ -56,6 +59,25 @@ const OPERATION_UI_HOST_ID = "chatgpt-dream-skin-operation";
 const OPERATION_UI_REGISTRY_KEY = "__CHATGPT_DREAM_SKIN_OPERATION_UI__";
 const OPERATION_KINDS = new Set(["apply", "pause", "switch"]);
 const OPERATION_UI_STATES = new Set(["success", "error", "cancelled"]);
+
+async function validateVideoAsset(videoPath, extension) {
+  const stat = await fs.stat(videoPath);
+  if (!stat.isFile() || stat.size < 1 || stat.size > MAX_VIDEO_BYTES) {
+    throw new Error(`Theme video must be a stable non-empty file no larger than ${MAX_VIDEO_BYTES} bytes`);
+  }
+  const handle = await fs.open(videoPath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+  try {
+    const header = Buffer.alloc(16);
+    const { bytesRead } = await handle.read(header, 0, header.length, 0);
+    const expected = extension === ".mp4" ? "video/mp4" : "video/webm";
+    if (detectedVideoMedia(header.subarray(0, bytesRead)) !== expected) {
+      throw new Error("Theme video content does not match its extension");
+    }
+  } finally {
+    await handle.close();
+  }
+  return stat;
+}
 // Shared with macOS: in-renderer progress for pause/apply so both platforms feel the same.
 const OPERATION_UI_CSS = `
   :host {
@@ -534,6 +556,10 @@ export async function loadTheme(themeDir) {
   }
   const image = normalizedText(raw.image, "image", null, 240);
   if (!image || path.isAbsolute(image)) throw new Error("Theme image must be a relative path");
+  const videoConfig = normalizeThemeVideo(raw.video, "theme.video");
+  if (videoConfig?.poster !== undefined && videoConfig.poster !== image) {
+    throw new Error("Theme video poster must match theme image");
+  }
   const imagePath = path.resolve(realThemeDir, image);
   const relativeImage = path.relative(realThemeDir, imagePath);
   if (!isContainedRelativePath(relativeImage)) {
@@ -547,6 +573,21 @@ export async function loadTheme(themeDir) {
   const realRelativeImage = path.relative(realThemeDir, realImagePath);
   if (!isContainedRelativePath(realRelativeImage)) {
     throw new Error("Theme image cannot escape through a link or junction");
+  }
+  let videoPath = null;
+  let videoStat = null;
+  if (videoConfig) {
+    const requestedVideoPath = path.resolve(realThemeDir, videoConfig.src);
+    const relativeVideo = path.relative(realThemeDir, requestedVideoPath);
+    if (!isContainedRelativePath(relativeVideo)) {
+      throw new Error("Theme video must remain inside the selected theme directory");
+    }
+    videoPath = await fs.realpath(requestedVideoPath);
+    const realRelativeVideo = path.relative(realThemeDir, videoPath);
+    if (!isContainedRelativePath(realRelativeVideo)) {
+      throw new Error("Theme video cannot escape through a link or junction");
+    }
+    videoStat = await validateVideoAsset(videoPath, path.extname(videoConfig.src).toLowerCase());
   }
   const art = raw.art && typeof raw.art === "object" && !Array.isArray(raw.art) ? raw.art : {};
   const rawColors = raw.colors && typeof raw.colors === "object" && !Array.isArray(raw.colors)
@@ -589,6 +630,7 @@ export async function loadTheme(themeDir) {
     explicitColorKeys: rawColors ? colorKeys.filter((key) => Object.hasOwn(rawColors, key)) : [],
     colors,
   };
+  if (videoConfig) theme.video = { src: pathToFileURL(videoPath).href, performance: videoConfig.performance };
   const [themeStat, imageStat, safeCss] = await Promise.all([
     fs.stat(themePath),
     fs.stat(realImagePath),
@@ -626,6 +668,7 @@ export async function loadTheme(themeDir) {
     safeCssStatus: safeCss ? "validated" : "none",
     fingerprint,
     sourceStamp: `${themeStat.size}:${themeStat.mtimeMs}:${imageStat.size}:${imageStat.mtimeMs}:` +
+      (videoStat ? `${videoStat.size}:${videoStat.mtimeMs}:` : "no-video:") +
       (safeCss ? `${safeCss.stat.size}:${safeCss.stat.mtimeMs}` : "none"),
   };
 }

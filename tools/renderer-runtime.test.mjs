@@ -30,7 +30,7 @@ function classList(initial) {
 function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
-  modernMessages = false,
+  modernMessages = false, reducedMotion = false,
 } = {}) {
   const attrs = new Map();
   const rootStyle = styleDeclaration();
@@ -43,6 +43,7 @@ function makeFixture({
   const intervals = new Map();
   const listeners = new Map();
   const revoked = [];
+  const videoNodes = [];
   let nextId = 0;
   let nextBlob = 0;
   const attributesFor = (values) => [...values].map(([name, value]) => ({ name, value }));
@@ -181,12 +182,35 @@ function makeFixture({
     };
     return node;
   };
+  const makeVideoNode = () => {
+    const mediaListeners = new Map();
+    const node = makeDomNode("video", null);
+    node.style = styleDeclaration();
+    node.tagName = "VIDEO";
+    node.paused = true;
+    node.playCount = 0;
+    node.pauseCount = 0;
+    node.addEventListener = (type, callback) => mediaListeners.set(type, callback);
+    node.removeEventListener = (type) => mediaListeners.delete(type);
+    node.play = () => { node.playCount += 1; node.paused = false; return Promise.resolve(); };
+    node.pause = () => { node.pauseCount += 1; node.paused = true; };
+    node.remove = () => { node.parentElement = null; };
+    node.mediaListeners = mediaListeners;
+    videoNodes.push(node);
+    return node;
+  };
   const document = {
     documentElement: root,
     head: root,
     body,
     adoptedStyleSheets: adopted ? [] : undefined,
-    createElement(tag) { return tag === "style" ? makeStyleNode() : { tagName: tag }; },
+    createElement(tag) {
+      if (tag === "style") return makeStyleNode();
+      if (tag === "video") return makeVideoNode();
+      return { tagName: tag };
+    },
+    addEventListener(type, callback) { listeners.set(`document:${type}`, callback); },
+    removeEventListener(type) { listeners.delete(`document:${type}`); },
     getElementById(id) { return nodes.get(id) || null; },
     querySelector(selector) {
       if (settingsPanel && selector === '[data-settings-panel-slug="general-settings"]') {
@@ -218,15 +242,15 @@ function makeFixture({
   }
   const window = {
     navigation,
-    matchMedia() {
+    matchMedia(query) {
       return {
-        matches: nativeAppearance === "dark",
+        matches: query.includes("prefers-reduced-motion") ? reducedMotion : nativeAppearance === "dark",
         addEventListener(type, callback) { listeners.set(`media:${type}`, callback); },
         removeEventListener(type) { listeners.delete(`media:${type}`); },
       };
     },
-    addEventListener() {},
-    removeEventListener() {},
+    addEventListener(type, callback) { listeners.set(`window:${type}`, callback); },
+    removeEventListener(type) { listeners.delete(`window:${type}`); },
   };
   const context = {
     window,
@@ -272,7 +296,7 @@ function makeFixture({
   };
   return {
     addDynamicMessage, attrs, context, document, domNodes, flushTimers, intervals, listeners,
-    nodes, observers, partFixtures, payloadFor, revoked, root, rootClasses, rootStyle, timers, window,
+    nodes, observers, partFixtures, payloadFor, revoked, root, rootClasses, rootStyle, timers, videoNodes, window,
   };
 }
 
@@ -401,6 +425,46 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(state.metrics.partPasses, 1);
   assert.equal(state.metrics.layoutReads, 0, "Runtime must not perform layout reads");
   assert.equal(home.rootClasses.writes.length, 0, "Runtime must not write classes");
+
+  const video = makeFixture({ nativeAppearance: "dark" });
+  vm.runInNewContext(video.payloadFor({
+    video: { src: "file:///theme/background.mp4", performance: "balanced" },
+  }), video.context);
+  assert.equal(video.attrs.get("data-dream-media"), "video");
+  assert.equal(video.videoNodes.length, 1);
+  assert.equal(video.videoNodes[0].muted, true);
+  assert.equal(video.videoNodes[0].loop, true);
+  assert.equal(video.videoNodes[0].playsInline, true);
+  assert.equal(video.videoNodes[0].src, "file:///theme/background.mp4");
+  assert.equal(video.videoNodes[0].playCount, 1);
+  video.listeners.get("window:blur")();
+  assert.equal(video.attrs.get("data-dream-media"), "poster");
+  assert.equal(video.videoNodes[0].pauseCount, 2,
+    "Blur must pause the video and keep the poster visible");
+  video.listeners.get("window:focus")();
+  assert.equal(video.attrs.get("data-dream-media"), "video");
+  assert.equal(video.videoNodes[0].playCount, 2,
+    "Focus may resume a healthy balanced video");
+  video.videoNodes[0].mediaListeners.get("error")();
+  assert.equal(video.attrs.get("data-dream-media"), "poster");
+  assert.equal(video.rootStyle.values.get("--dream-skin-art"), 'url("blob:fixture-1")');
+
+  const reducedVideo = makeFixture({ nativeAppearance: "dark", reducedMotion: true });
+  vm.runInNewContext(reducedVideo.payloadFor({
+    video: { src: "file:///theme/background.webm", performance: "immersive" },
+  }), reducedVideo.context);
+  assert.equal(reducedVideo.attrs.get("data-dream-media"), "poster");
+  assert.equal(reducedVideo.videoNodes.length, 0,
+    "Reduced-motion mode must not create a video element or fetch the media");
+
+  const ecoVideo = makeFixture({ nativeAppearance: "dark" });
+  vm.runInNewContext(ecoVideo.payloadFor({
+    video: { src: "file:///theme/background.mp4", performance: "eco" },
+  }), ecoVideo.context);
+  assert.equal(ecoVideo.attrs.get("data-dream-media"), "poster");
+  assert.equal(ecoVideo.videoNodes.length, 0,
+    "Eco mode must keep the poster-only path");
+
   const partObserver = home.observers.find((observer) => observer.options?.childList);
   const rootObserver = home.observers.find((observer) => observer.options?.attributes);
   assert.ok(partObserver?.options?.subtree, "Dynamic parts require one subtree child-list observer");

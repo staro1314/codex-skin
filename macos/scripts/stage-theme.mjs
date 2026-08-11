@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { decodeAndValidateSafeCss } from "../assets/safe-css-validator.mjs";
+import { detectedVideoMedia, normalizeThemeVideo } from "../assets/theme-package-validator.mjs";
 import { runtimeThemeContentFingerprint } from "./theme-content-fingerprint.mjs";
 
 const [sourceDirArg, stageDirArg] = process.argv.slice(2);
@@ -11,6 +12,7 @@ if (!sourceDirArg || !stageDirArg) {
 
 const MAX_CONFIG_BYTES = 1024 * 1024;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 const MAX_CSS_BYTES = 256 * 1024;
 const OPEN_FLAGS = fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0);
 
@@ -105,14 +107,27 @@ async function main() {
   if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/u.test(theme.image)) {
     throw new Error("Theme image contains control characters");
   }
+  const video = normalizeThemeVideo(theme.video);
+  if (video?.poster !== undefined && video.poster !== theme.image) {
+    throw new Error("Theme video poster must match theme image");
+  }
 
   const imagePath = path.resolve(sourceRoot, theme.image);
   assertContained(sourceRoot, imagePath, "Theme image");
-  const [image, safeCss] = await Promise.all([
+  const videoPath = video ? path.resolve(sourceRoot, video.src) : null;
+  if (videoPath) assertContained(sourceRoot, videoPath, "Theme video");
+  const [image, safeCss, videoFile] = await Promise.all([
     readStableFile(imagePath, "Theme image", MAX_IMAGE_BYTES),
     readOptionalStableFile(path.join(sourceRoot, "theme.css"), "Theme Safe CSS", MAX_CSS_BYTES),
+    videoPath ? readStableFile(videoPath, "Theme video", MAX_VIDEO_BYTES) : null,
   ]);
   if (image.bytes.length < 1) throw new Error("Theme image is empty");
+  if (videoFile) {
+    const expected = video.src.endsWith(".webm") ? "video/webm" : "video/mp4";
+    if (detectedVideoMedia(videoFile.bytes) !== expected) {
+      throw new Error("Theme video content does not match its extension");
+    }
+  }
   if (safeCss) decodeAndValidateSafeCss(safeCss.bytes);
 
   const stageRoot = await fs.realpath(stageDirArg);
@@ -120,16 +135,24 @@ async function main() {
   if (!stageStat.isDirectory()) throw new Error("Theme stage must be a directory");
   assertContained(stageRoot, path.join(stageRoot, "theme.json"), "Staged theme config");
   assertContained(stageRoot, path.join(stageRoot, theme.image), "Staged theme image");
+  if (video) assertContained(stageRoot, path.join(stageRoot, video.src), "Staged theme video");
 
   // Write both files from the already-open, stable descriptors. The caller
   // publishes the image first and theme.json last, so the watcher only ever
   // observes a complete pair; subsequent source edits cannot race the copy.
   await writeExclusive(path.join(stageRoot, theme.image), image.bytes);
+  if (videoFile) await writeExclusive(path.join(stageRoot, video.src), videoFile.bytes);
   if (safeCss) await writeExclusive(path.join(stageRoot, "theme.css"), safeCss.bytes);
   await writeExclusive(path.join(stageRoot, "theme.json"), config.bytes);
   process.stdout.write(JSON.stringify({
     image: theme.image,
-    contentFingerprint: runtimeThemeContentFingerprint(theme, image.bytes, safeCss?.bytes ?? null),
+    video: video?.src ?? null,
+    contentFingerprint: runtimeThemeContentFingerprint(
+      theme,
+      image.bytes,
+      safeCss?.bytes ?? null,
+      videoFile?.bytes ?? null,
+    ),
   }));
 }
 

@@ -102,15 +102,20 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\doctor-d
 
 导入图片必须是纯背景，不要使用包含窗口、侧栏、输入框、文字或按钮的效果截图。图片上限为 10 MB；宽或高不能超过 16384 像素，总像素不能超过 5000 万。
 
-新的正式 Studio ZIP 必须包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选
-带 `LICENSE.txt`、`manifest.sig`；文件直接位于根目录或只包一层主题目录。本地简化包也必须恰好包含
-`theme.json`、`theme.css` 与其引用图片，且只应来自可信来源。压缩文件上限 32 MiB、最多
+新的正式 Studio ZIP 必须包含 `manifest.json`、非空 `theme.json`、非空 `theme.css`、恰好一张 `background.webp|jpg|png`，并可选一个
+`background.mp4|webm`、`LICENSE.txt`、`manifest.sig`；文件直接位于根目录或只包一层主题目录。本地简化包也必须包含
+`theme.json`、`theme.css` 与其引用图片，并可选一个视频，且只应来自可信来源。压缩文件上限 32 MiB、最多
 32 个条目、解压后最多 64 MiB；路径穿越、链接/reparse、嵌套压缩包和未注册文件会被拒绝。正式包还会
 核对平台、最低客户端版本及清单中每个负载文件的大小与 SHA-256。Safe CSS 会在本机导入和每次应用时
 复验，通过后只作用于 12 个注册部件；升级前已有的无 CSS legacy 主题仍可切换且不会注入额外 CSS。
 预留签名当前不验证。导入只加入主题库，不会改动当前主题；重复内容不会再次写入。同 ID 的新版本会在确认
 旧目录身份后原地更新；只有语义指纹完全一致的旧版 `-2`/`-3` 同族目录才会被清理，名称本身不能证明重复，
 身份不明时会保留并拒绝覆盖。
+
+视频主题必须继续提供图片作为 poster。`video.src` 只能引用主题目录内的
+`background.mp4` 或 `background.webm`，上限 32 MiB；支持 `eco`、`balanced`、`immersive`
+三档性能策略，播放器固定静音循环。窗口失焦、页面隐藏、减少动态效果、低电量或播放错误时自动回退到
+poster，视频字节不会写入注入 payload。
 
 也可从托盘选择“打开主题文件夹”，手动把已解压、且直接包含 `theme.json`、`theme.css` 与背景图的完整目录移动到
 `%LOCALAPPDATA%\CodexDreamSkin\themes\`。重新打开托盘菜单后即可看到；不要再套一层目录。手动目录

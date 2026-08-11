@@ -106,7 +106,7 @@ legacy themes remain rejected by the client.
 Import a UI-free wallpaper rather than a preview containing a window, sidebar, composer, text, or buttons. Images may be at most 10 MB, 16384 pixels on either side, and 50 million total pixels.
 
 Every new official Studio ZIP contains `manifest.json`, non-empty `theme.json`,
-non-empty `theme.css`, and exactly one `background.webp|jpg|png`, with optional `LICENSE.txt` and the
+non-empty `theme.css`, exactly one `background.webp|jpg|png`, optionally one local `background.mp4|webm`, with optional `LICENSE.txt` and the
 reserved `manifest.sig`. Place them at archive root or inside exactly one
 top-level theme folder. A local simplified ZIP must contain exactly `theme.json`,
 `theme.css`, and its referenced image; because it lacks manifest integrity and compatibility

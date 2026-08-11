@@ -4,12 +4,14 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Script } from "node:vm";
 import { readImageMetadata } from "./image-metadata.mjs";
 import {
+  detectedVideoMedia,
   normalizeThemeColor,
   normalizeThemeText,
+  normalizeThemeVideo,
 } from "../assets/theme-package-validator.mjs";
 import { decodeAndValidateSafeCss } from "../assets/safe-css-validator.mjs";
 
@@ -51,6 +53,7 @@ export { SKIN_VERSION };
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const CDP_ID_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
 const MAX_ART_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 const MAX_SAFE_CSS_BYTES = 256 * 1024;
 const OPERATION_UI_HOST_ID = "chatgpt-dream-skin-operation";
 const OPERATION_UI_REGISTRY_KEY = "__CHATGPT_DREAM_SKIN_OPERATION_UI__";
@@ -168,6 +171,25 @@ const OPERATION_UI_CSS = `
 `;
 let staticPayloadAssets = null;
 let operationSequence = 0;
+
+async function validateVideoAsset(videoPath, extension) {
+  const stat = await fs.stat(videoPath);
+  if (!stat.isFile() || stat.size < 1 || stat.size > MAX_VIDEO_BYTES) {
+    throw new Error(`Theme video must be a stable non-empty file no larger than ${MAX_VIDEO_BYTES} bytes`);
+  }
+  const handle = await fs.open(videoPath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+  try {
+    const header = Buffer.alloc(16);
+    const { bytesRead } = await handle.read(header, 0, header.length, 0);
+    const expected = extension === ".mp4" ? "video/mp4" : "video/webm";
+    if (detectedVideoMedia(header.subarray(0, bytesRead)) !== expected) {
+      throw new Error("Theme video content does not match its extension");
+    }
+  } finally {
+    await handle.close();
+  }
+  return stat;
+}
 
 function hasReasonableDimensions(width, height) {
   return Number.isFinite(width) && Number.isFinite(height)
@@ -660,6 +682,10 @@ export async function loadTheme(themeDir) {
     throw new Error(`${configPath} has an invalid image field`);
   }
   if (path.basename(raw.image) !== raw.image) throw new Error("Theme image must stay inside its theme directory");
+  const rawVideo = normalizeThemeVideo(raw.video, `${configPath}.video`);
+  if (rawVideo?.poster !== undefined && rawVideo.poster !== raw.image) {
+    throw new Error(`${configPath} video.poster must match image`);
+  }
   const choice = (value, name, choices) => {
     if (value === undefined) return undefined;
     if (typeof value !== "string" || !choices.includes(value)) {
@@ -734,6 +760,19 @@ export async function loadTheme(themeDir) {
   const extension = path.extname(theme.image).toLowerCase();
   if (![".png", ".jpg", ".jpeg", ".webp"].includes(extension)) {
     throw new Error(`Unsupported theme image format: ${extension || "missing"}`);
+  }
+  let videoPath = null;
+  if (rawVideo) {
+    const requestedVideoPath = path.join(assetsRoot, rawVideo.src);
+    try {
+      videoPath = await fs.realpath(requestedVideoPath);
+    } catch (error) {
+      if (error.code === "ENOENT") throw new Error(`Theme video is missing: ${requestedVideoPath}`);
+      throw error;
+    }
+    assertContainedPath(assetsRoot, videoPath, "Theme video");
+    await validateVideoAsset(videoPath, path.extname(rawVideo.src).toLowerCase());
+    theme.video = { src: pathToFileURL(videoPath).href, performance: rawVideo.performance };
   }
   let imageHandle;
   try {

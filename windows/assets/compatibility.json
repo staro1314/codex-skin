@@ -2,6 +2,19 @@
   "schema": "codex-dream-skin/compatibility/1",
   "skinVersion": "1.5.12",
   "injectorProtocol": 3,
+  "media": {
+    "schema": "codex-dream-skin/media/1",
+    "posterRequired": true,
+    "video": {
+      "formats": ["video/mp4", "video/webm"],
+      "maxBytes": 33554432,
+      "transport": "controlled-local-file-url",
+      "muted": true,
+      "loop": true
+    },
+    "performancePolicies": ["eco", "balanced", "immersive"],
+    "downgradeSignals": ["document-hidden", "window-blur", "prefers-reduced-motion", "playback-error"]
+  },
   "cdp": {
     "address": "127.0.0.1",
     "transport": "http-json-version-and-websocket",

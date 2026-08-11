@@ -100,11 +100,12 @@ manifest.json
 theme.json
 theme.css
 background.webp | background.jpg | background.png
+background.mp4 | background.webm # 可选；必须配合背景图作为封面
 LICENSE.txt                 # 可选
 manifest.sig                # 预留字段
 ```
 
-本地简化主题至少包含非空的 `theme.json`、非空的 `theme.css` 和 `theme.json` 引用的背景图。导入器会拒绝路径穿越、链接/reparse、嵌套压缩包、未注册文件、超限资源和不符合主题契约的内容。
+本地简化主题至少包含非空的 `theme.json`、非空的 `theme.css` 和 `theme.json` 引用的背景图；需要动态背景时可再加入一个 `background.mp4` 或 `background.webm`。导入器会拒绝路径穿越、链接/reparse、嵌套压缩包、未注册文件、超限资源和不符合主题契约的内容。
 
 图片主题应是纯背景，不应把 Codex 窗口、侧栏、输入框、按钮、文字或截图直接烘焙进图片。主题元数据可以控制：
 
@@ -113,7 +114,23 @@ manifest.sig                # 预留字段
 - `art.safeArea`：原生内容应避让的安全区。
 - `art.taskMode`：任务页使用环境、横幅、全强度或关闭模式。
 
-当前主题协议以图片为主。视频和 Canvas/WebGL 属于后续运行时扩展，会在保持原生控件可读和可交互的前提下增加性能档位。
+### 动态视频背景
+
+视频背景是图片主题的可选增强层，图片始终是必需的封面和降级路径：
+
+```json
+{
+  "image": "background.jpg",
+  "video": {
+    "src": "background.mp4",
+    "performance": "balanced",
+    "muted": true,
+    "loop": true
+  }
+}
+```
+
+视频只允许使用主题包内固定文件名的 MP4/WebM，大小上限为 32 MiB；视频字节不会编码进注入 payload，只通过受控本地文件 URL 加载。`eco` 只显示封面，`balanced` 使用元数据预加载，`immersive` 允许自动预加载。页面隐藏、窗口失焦、系统偏好减少动态效果、电量过低或播放错误时会自动暂停并回退到封面；视频始终静音、循环且不拦截原生控件交互。
 
 ## 安全边界
 
@@ -166,10 +183,10 @@ bash macos/tests/run-tests.sh
 
 ## 分阶段路线
 
-当前仓库已经具备稳定的 CDP 换肤、主题包、安全校验、双平台安装和恢复基础。后续扩展按以下顺序推进：
+当前仓库已经具备稳定的 CDP 换肤、主题包、安全校验、双平台安装、恢复基础和受控视频背景运行时。后续扩展按以下顺序推进：
 
 1. 固化当前版本的跨平台基线和文档。
-2. 增加视频背景、封面降级、省电和性能预算。
+2. 完善视频背景在真实 macOS/Windows Codex 环境中的播放验证和性能采样。
 3. 将 Codex 页面状态归一化为可驱动视觉的状态事件。
 4. 扩展主题协议和主题编辑能力，保持 Safe CSS 和资源校验。
 5. 完善版本兼容矩阵、诊断、回滚、安装器和发布验证。
