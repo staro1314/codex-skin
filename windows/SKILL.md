@@ -53,6 +53,7 @@ node --check assets\renderer-inject.js
 
 - `scripts/injector.mjs`: CDP connection, renderer injection, verification, screenshot, and removal.
 - `scripts/common-windows.ps1`: Store-package discovery, Node validation, managed runtime installation, port ownership, state, and process identity safety.
+- `scripts/doctor-dream-skin.ps1`: JSON environment, version, shared-contract, and optional live-session diagnostics.
 - `scripts/config-utf8.ps1`: atomic UTF-8 configuration backup, selective restore, and explicit recovery.
 - `assets/dream-skin.css`: full visual layer.
 - `assets/renderer-inject.js`: idempotent DOM integration and cleanup.

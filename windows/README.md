@@ -76,6 +76,14 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\verify-d
 
 随后用生成的截图检查横向溢出和文字对比度，再分别在首页与普通任务页手动检查项目菜单和输入框交互。完整视觉检查项见 [`references/qa-inventory.md`](./references/qa-inventory.md)。
 
+Windows 环境基线诊断：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\doctor-dream-skin.ps1 -Json
+```
+
+`-Json` 输出包含版本、共享契约、会话生命周期、稳定错误码和下一步动作。增加 `-RequireLive` 可要求当前存在已验证的活跃 Codex 会话；没有活跃会话时，静态环境检查仍可通过，但状态会标记为 `degraded`。
+
 ## 更换和保存主题
 
 打开 `Codex Dream Skin - Tray` 后可以：

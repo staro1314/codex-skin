@@ -35,4 +35,5 @@ This file is an optional Codex capability entry. The delivery is a complete stan
 - `assets/dream-skin.css`: live native interface styling.
 - `assets/renderer-inject.js`: idempotent DOM integration and cleanup.
 - `scripts/doctor-macos.sh`: signed-runtime, payload, and optional live-session self-check.
+- `scripts/runtime-doctor.mjs`: shared compatibility, version, synchronization, and health-state contract used by the platform Doctor.
 - `references/qa-inventory.md`: release and visual acceptance criteria.

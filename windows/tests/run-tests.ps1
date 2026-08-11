@@ -1380,6 +1380,9 @@ try {
   $doctorToolPath = Join-Path $projectRoot 'tools\doctor-selectors.test.mjs'
   $doctorToolResult = Invoke-DreamSkinNative -FilePath $node.Path -ArgumentList @($doctorToolPath)
   if ($doctorToolResult.ExitCode -ne 0) { throw "Runtime contract tool failed: $doctorToolPath" }
+  $runtimeDoctorToolPath = Join-Path $projectRoot 'tools\runtime-doctor.test.mjs'
+  $runtimeDoctorToolResult = Invoke-DreamSkinNative -FilePath $node.Path -ArgumentList @($runtimeDoctorToolPath)
+  if ($runtimeDoctorToolResult.ExitCode -ne 0) { throw "Runtime contract tool failed: $runtimeDoctorToolPath" }
   $injectorSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\injector.mjs')
   foreach ($requiredInjectorBehavior in @(
     'MAX_ART_BYTES', 'createHash', 'readImageMetadata', '50MP safety limit', 'STRONG_THEME_AUDIT_MS',

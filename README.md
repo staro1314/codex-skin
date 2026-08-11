@@ -76,6 +76,21 @@ cd macos
 ./tests/run-tests.sh
 ```
 
+## Phase 1 Doctor
+
+Doctor 会检查平台运行时文件、版本矩阵、共享契约同步状态和可选的活跃会话。JSON 输出包含稳定的 `schema`、`status`、`checks`、错误码和 `nextAction`：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\windows\scripts\doctor-dream-skin.ps1 -Json
+```
+
+```bash
+./macos/scripts/doctor-macos.sh --json
+./macos/scripts/doctor-macos.sh --json --require-live
+```
+
+共享兼容性矩阵位于 [`runtime/compatibility.json`](./runtime/compatibility.json)，平台副本由 `tools/sync-runtime-assets.mjs` 生成；源码维护者可运行 `node tools/sync-runtime-assets.mjs --check` 验证同步状态。
+
 ## 主题包
 
 正式主题包包含：

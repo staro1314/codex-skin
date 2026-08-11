@@ -10,14 +10,14 @@
 - Windows、macOS 和 `runtime/` 共享资产已经存在。
 - 当前主题协议以静态图片、主题元数据和 Safe CSS 为主。
 - 当前项目包含安装器、托盘/菜单栏、CDP 注入、验证、恢复和大量跨平台测试。
-- 仓库尚未完成首次本地 Git 提交，本次先提交完整源码基线与项目文档。
+- 仓库已完成首次本地 Git 提交；本阶段在该基线之上增加共享运行时契约和 Doctor。
 
 ## 阶段
 
 | 阶段 | 目标 | 状态 | 主要产物 | 验收标准 |
 |---|---|---|---|---|
 | Phase 0 | 建立项目文档和可追溯基线 | completed | 根 README、计划、发现记录、首次本地提交 | 源码范围清晰，文档与版本一致，现有检查可运行 |
-| Phase 1 | 固化跨平台运行基线 | pending | 版本矩阵、环境 Doctor、测试入口和同步检查 | Windows/macOS/runtime 的共享契约可验证，失败状态可诊断 |
+| Phase 1 | 固化跨平台运行基线 | completed | 版本矩阵、环境 Doctor、测试入口和同步检查 | Windows/macOS/runtime 的共享契约可验证，失败状态可诊断 |
 | Phase 2 | 动态媒体运行时 | pending | 视频背景、poster 降级、媒体生命周期和性能档位 | 视频可切换、可暂停、可恢复，不遮挡原生控件 |
 | Phase 3 | Codex 状态可视化 | pending | 状态归一化、视觉状态机、事件到动效映射 | 空闲、思考、执行、审批、成功、失败状态稳定呈现 |
 | Phase 4 | 主题协议与创作工具 | pending | 主题 schema、编辑器字段、预览、主题包版本化 | 主题可创建、预览、导入、校验、切换和回滚 |
@@ -31,6 +31,14 @@
 - 为启动、注入、验证、暂停、恢复和卸载统一健康状态和错误码。
 - 让 Doctor 能输出下一步动作，而不是只返回模糊失败。
 - 固化便携 Node、PowerShell、shell、Swift 和真实平台测试的边界。
+
+## Phase 1 结果
+
+- `runtime/compatibility.json` 定义平台能力、CDP 边界、版本和稳定错误码。
+- `runtime/runtime-doctor.mjs` 输出统一的 `ready`、`degraded`、`blocked` 健康状态，以及会话生命周期、检查项和下一步动作。
+- Windows 提供 `scripts/doctor-dream-skin.ps1`；macOS 的 `doctor-macos.sh` 增加 `--json` 和 `--require-live`。
+- `tools/sync-runtime-assets.mjs` 将契约和 Doctor 同步到双端；安装器、DMG 和运行时清单会拒绝缺失副本。
+- Windows/shared Node 测试 26/26 通过；macOS/Unix 专用测试因当前主机环境缺口未宣称通过。
 
 ## Phase 2 重点
 

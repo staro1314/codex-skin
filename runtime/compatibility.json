@@ -1,0 +1,39 @@
+{
+  "schema": "codex-dream-skin/compatibility/1",
+  "skinVersion": "1.5.12",
+  "injectorProtocol": 3,
+  "cdp": {
+    "address": "127.0.0.1",
+    "transport": "http-json-version-and-websocket",
+    "identity": "registered-official-codex-install"
+  },
+  "platforms": {
+    "windows": {
+      "label": "Windows",
+      "runtime": "PowerShell plus Node.js",
+      "codexIdentity": "Microsoft Store OpenAI.Codex package",
+      "requiredCapabilities": ["loopback-cdp", "renderer-identity", "native-window-verification"]
+    },
+    "darwin": {
+      "label": "macOS",
+      "runtime": "Bash plus signed Node.js",
+      "codexIdentity": "com.openai.codex with the fixed signing requirement",
+      "requiredCapabilities": ["loopback-cdp", "renderer-identity", "native-window-verification"]
+    }
+  },
+  "health": {
+    "schema": "codex-dream-skin/health/1",
+    "statuses": ["ready", "degraded", "blocked"],
+    "sessions": ["unknown", "off", "applying", "active", "paused", "stale"],
+    "operations": ["", "applying", "pausing", "success", "paused", "cancelled", "failed"],
+    "errorCodes": [
+      { "code": "DS-ENV-001", "id": "missing-platform-file", "nextAction": "Reinstall the Dream Skin runtime from a complete release or source checkout." },
+      { "code": "DS-ENV-002", "id": "unsupported-node", "nextAction": "Use the bundled Node.js runtime or install the supported Node.js version." },
+      { "code": "DS-SYNC-001", "id": "shared-contract-drift", "nextAction": "Run tools/sync-runtime-assets.mjs and rerun the Doctor." },
+      { "code": "DS-VERSION-001", "id": "version-mismatch", "nextAction": "Install matching Windows, macOS, and shared runtime assets." },
+      { "code": "DS-STATE-001", "id": "invalid-state", "nextAction": "Restore the last known good theme or remove only the stale Dream Skin state through the platform restore command." },
+      { "code": "DS-STATE-002", "id": "live-session-required", "nextAction": "Start Codex through Dream Skin, then run the Doctor again." },
+      { "code": "DS-RUN-001", "id": "operation-failed", "nextAction": "Read the platform error log, restore the last known good theme, and retry." }
+    ]
+  }
+}

@@ -130,6 +130,14 @@ const sourceImageMetadata = await fs.readFile(
   path.join(projectRoot, "runtime", "image-metadata.mjs"),
   "utf8",
 );
+const sourceCompatibility = await fs.readFile(
+  path.join(projectRoot, "runtime", "compatibility.json"),
+  "utf8",
+);
+const sourceRuntimeDoctor = await fs.readFile(
+  path.join(projectRoot, "runtime", "runtime-doctor.mjs"),
+  "utf8",
+);
 const outputs = [
   {
     // The injector runs from a packaged platform tree, so stage the same
@@ -181,6 +189,14 @@ const outputs = [
   {
     content: compileWindowsImageMetadata(sourceImageMetadata),
     paths: ["windows/scripts/image-metadata.mjs"],
+  },
+  {
+    content: sourceCompatibility,
+    paths: ["macos/assets/compatibility.json", "windows/assets/compatibility.json"],
+  },
+  {
+    content: sourceRuntimeDoctor,
+    paths: ["macos/scripts/runtime-doctor.mjs", "windows/scripts/runtime-doctor.mjs"],
   },
 ];
 

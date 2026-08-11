@@ -4,9 +4,11 @@ set -euo pipefail
 . "$(cd "$(dirname "$0")" && pwd -P)/common-macos.sh"
 
 REQUIRE_LIVE="false"
+JSON="false"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --require-live) REQUIRE_LIVE="true"; shift ;;
+    --json) JSON="true"; shift ;;
     *) fail "Unknown doctor argument: $1" ;;
   esac
 done
@@ -38,6 +40,20 @@ if [ -f "$STATE_PATH" ] && verified_cdp_endpoint "$PORT"; then
   LIVE="true"
 fi
 [ "$REQUIRE_LIVE" = "false" ] || [ "$LIVE" = "true" ] || fail "No verified live Dream Skin session is active."
+
+if [ "$JSON" = "true" ]; then
+  doctor_args=(
+    --json
+    --platform darwin
+    --platform-root "$PROJECT_ROOT"
+    --project-root "$(cd "$PROJECT_ROOT/.." && pwd -P)"
+    --state-file "$STATE_PATH"
+    --check-sync
+  )
+  [ "$REQUIRE_LIVE" = "true" ] && doctor_args+=(--require-live)
+  "$NODE" "$SCRIPT_DIR/runtime-doctor.mjs" "${doctor_args[@]}"
+  exit $?
+fi
 
 "$NODE" -e '
   const payload = JSON.parse(process.argv[1]);

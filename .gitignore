@@ -18,6 +18,8 @@ runtime/*
 !runtime/safe-css-validator.mjs
 !runtime/theme-package-validator.mjs
 !runtime/validate-safe-css-file.mjs
+!runtime/compatibility.json
+!runtime/runtime-doctor.mjs
 
 # local agent context
 TASK_PROGRESS.md

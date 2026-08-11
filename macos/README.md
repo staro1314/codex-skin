@@ -56,6 +56,21 @@ Install location after step 2:
 | State / logs / user images | `~/Library/Application Support/CodexDreamSkinStudio` |
 | Theme backup | under Application Support (`theme-backup.json`) |
 
+## Doctor and compatibility status
+
+Run the platform Doctor after installation or an application update:
+
+```bash
+./scripts/doctor-macos.sh --json
+./scripts/doctor-macos.sh --json --require-live
+```
+
+The JSON report distinguishes static runtime readiness from a live verified
+Codex session. It includes stable health status, lifecycle, error codes, and
+the next recommended action. The shared compatibility contract is staged at
+`assets/compatibility.json` from the repository source
+`../runtime/compatibility.json`.
+
 ## Legacy standalone ZIP (maintainer/offline packaging only)
 
 To build the “double-click install” folder layout for non-git users:

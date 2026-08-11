@@ -77,7 +77,7 @@ fi
   "$ROOT/scripts/switch-theme-macos.sh"
 /usr/bin/grep -F -q 'CFBundleURLTypes.0.CFBundleURLSchemes.0' "$ROOT/scripts/build-dmg.sh"
 for required_runtime in apply-community-theme-macos.sh snapshot-active-theme-macos.sh \
-  theme-content-fingerprint.mjs theme-switch-lock-macos.sh; do
+  theme-content-fingerprint.mjs theme-switch-lock-macos.sh runtime-doctor.mjs; do
   /usr/bin/grep -F -q "$required_runtime" "$ROOT/scripts/build-dmg.sh"
 done
 UPDATE_JSON="$({
@@ -146,11 +146,13 @@ fi
 PROJECT_ROOT="$(cd "$ROOT/.." && pwd -P)"
 "$NODE" "$PROJECT_ROOT/tools/sync-runtime-assets.mjs" --check
 "$NODE" "$PROJECT_ROOT/tools/doctor-selectors.test.mjs"
+"$NODE" "$PROJECT_ROOT/tools/runtime-doctor.test.mjs"
 if ! /usr/bin/cmp -s "$ROOT/assets/dream-skin.css" "$PROJECT_ROOT/windows/assets/dream-skin.css" ||
     ! /usr/bin/cmp -s "$ROOT/assets/renderer-inject.js" "$PROJECT_ROOT/windows/assets/renderer-inject.js" ||
     ! /usr/bin/cmp -s "$ROOT/assets/safe-css-policy.json" "$PROJECT_ROOT/windows/assets/safe-css-policy.json" ||
     ! /usr/bin/cmp -s "$ROOT/assets/safe-css-validator.mjs" "$PROJECT_ROOT/windows/assets/safe-css-validator.mjs" ||
     ! /usr/bin/cmp -s "$ROOT/assets/selectors.json" "$PROJECT_ROOT/windows/assets/selectors.json" ||
+    ! /usr/bin/cmp -s "$ROOT/assets/compatibility.json" "$PROJECT_ROOT/windows/assets/compatibility.json" ||
     ! /usr/bin/cmp -s "$ROOT/assets/theme-package-validator.mjs" "$PROJECT_ROOT/windows/assets/theme-package-validator.mjs" ||
     ! /usr/bin/cmp -s "$ROOT/scripts/validate-safe-css-file.mjs" "$PROJECT_ROOT/windows/scripts/validate-safe-css-file.mjs"; then
   printf 'macOS and Windows runtime assets are not byte-identical.\n' >&2

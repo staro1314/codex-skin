@@ -103,6 +103,7 @@ RUNTIME_SCRIPTS=(
   recover-theme-imports-macos.sh
   snapshot-active-theme-macos.sh
   restore-dream-skin-macos.sh
+  runtime-doctor.mjs
   snapshot-theme-zip.mjs
   stage-theme.mjs
   theme-content-fingerprint.mjs
