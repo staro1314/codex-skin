@@ -29,6 +29,12 @@
 - Node test runner (elevated): focused `node --test tools/*.test.mjs` passed 8/8. Full `node --test macos/tests/*.test.mjs windows/tests/*.test.mjs tools/*.test.mjs` ran 99 tests: 91 passed, 2 skipped by platform requirements, and 6 macOS-only tests failed because this Windows checkout lacks `.github/workflows/release.yml`, Unix `/tmp` test directories, and the macOS window command environment. Windows and shared-runtime tests passed.
 - `node tools/sync-runtime-assets.mjs --check` passed. Node syntax checks passed for the shared and generated renderer/validator assets plus the macOS and Windows payload/import scripts. PowerShell execution remains blocked by the local AuthorizationManager policy, so Windows script execution is recorded as an environment gap rather than bypassed.
 
+## Phase 3 visual state bridge
+
+- Added the shared visual state contract and renderer state machine. Route state wins for `home`, `settings`, and `overlay`; thread pages default to `idle`, while bounded DOM attributes/signals can produce `thinking`, `executing`, `approval`, `success`, and `error`.
+- Added the `codex-dream-skin:visual-state` event bridge and `clearVisualState()` API. State effects are isolated to the non-interactive video layer; no message text or private Codex business event is parsed.
+- Focused renderer/media tests pass 8/8. Phase 3 remains in progress until a real Codex DOM/event capture confirms the signal names across supported versions.
+
 ## Errors Encountered
 
 | Error | Attempt | Resolution |

@@ -15,6 +15,13 @@
     "performancePolicies": ["eco", "balanced", "immersive"],
     "downgradeSignals": ["document-hidden", "window-blur", "prefers-reduced-motion", "playback-error"]
   },
+  "visualState": {
+    "schema": "codex-dream-skin/visual-state/1",
+    "states": ["unknown", "home", "idle", "thinking", "executing", "approval", "success", "error", "settings", "overlay"],
+    "sources": ["route", "dom", "event", "fallback"],
+    "event": "codex-dream-skin:visual-state",
+    "nativeControlsUntouched": true
+  },
   "cdp": {
     "address": "127.0.0.1",
     "transport": "http-json-version-and-websocket",

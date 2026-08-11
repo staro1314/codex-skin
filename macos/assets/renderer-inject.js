@@ -10,6 +10,7 @@
   const ROOT_ATTRS = [
     "data-dream-skin", SHELL_ATTR,
     "data-dream-media",
+    "data-dream-visual-state",
     "data-dream-art-wide", "data-dream-art-safe", "data-dream-task-mode",
     "data-dream-art-safe-area", "data-dream-art-task-mode", "data-dream-art-aspect",
     "data-dream-art-ready",
@@ -17,6 +18,11 @@
   const VERSION = __DREAM_SKIN_VERSION_JSON__;
   const STYLE_REVISION = __DREAM_SKIN_STYLE_REVISION_JSON__;
   const PAYLOAD_REVISION = __DREAM_SKIN_PAYLOAD_REVISION_JSON__;
+  const VISUAL_STATE_EVENT = "codex-dream-skin:visual-state";
+  const VISUAL_STATES = new Set([
+    "unknown", "home", "idle", "thinking", "executing", "approval",
+    "success", "error", "settings", "overlay",
+  ]);
   const THEME = themeConfig && typeof themeConfig === "object" ? themeConfig : {};
   const VIDEO = THEME.video && typeof THEME.video === "object" ? THEME.video : null;
   const ART = THEME.art && typeof THEME.art === "object" ? THEME.art : {};
@@ -74,6 +80,14 @@
   let batteryManager = null;
   let batteryHandler = null;
   let batterySaver = false;
+  let visualStateOverride = null;
+  let visualState = {
+    state: "unknown",
+    source: "initial",
+    confidence: "low",
+    since: Date.now(),
+    sequence: 0,
+  };
   const now = () => typeof performance === "object" && typeof performance.now === "function"
     ? performance.now() : Date.now();
   const metrics = {
@@ -770,6 +784,147 @@
     };
   };
 
+  const VISUAL_STATE_ALIASES = new Map([
+    ["ready", "idle"],
+    ["queued", "thinking"],
+    ["loading", "thinking"],
+    ["generating", "thinking"],
+    ["streaming", "thinking"],
+    ["running", "executing"],
+    ["working", "executing"],
+    ["tool", "executing"],
+    ["needs-approval", "approval"],
+    ["needs_review", "approval"],
+    ["review", "approval"],
+    ["complete", "success"],
+    ["completed", "success"],
+    ["done", "success"],
+    ["failed", "error"],
+    ["failure", "error"],
+  ]);
+
+  const normalizeVisualState = (value) => {
+    const token = String(value ?? "").trim().toLowerCase().replace(/[_\s]+/g, "-");
+    if (VISUAL_STATES.has(token)) return token;
+    return VISUAL_STATE_ALIASES.get(token) || null;
+  };
+
+  const visibleSignal = (node, main) => Boolean(node)
+    && node.getAttribute?.("hidden") === null
+    && node.getAttribute?.("aria-hidden") !== "true"
+    && (!main || main.contains?.(node));
+
+  const signalNodes = (selectors, main) => selectors
+    .flatMap((selector) => queryAll(selector))
+    .filter((node) => visibleSignal(node, main));
+
+  const explicitVisualState = (main) => {
+    const attributes = [
+      "data-codex-dream-skin-state",
+      "data-codex-state",
+      "data-agent-state",
+      "data-run-state",
+      "data-task-state",
+    ];
+    const selectors = attributes.map((attribute) => `[${attribute}]`);
+    for (const node of signalNodes(selectors, main)) {
+      for (const attribute of attributes) {
+        const state = normalizeVisualState(node.getAttribute?.(attribute));
+        if (state) return state;
+      }
+    }
+    return null;
+  };
+
+  const detectVisualState = (scope) => {
+    if (scope?.baseState === "settings") return { state: "settings", source: "route", confidence: "high" };
+    if (scope?.overlay) return { state: "overlay", source: "route", confidence: "high" };
+    if (scope?.baseState === "home") return { state: "home", source: "route", confidence: "high" };
+
+    if (visualStateOverride) {
+      return { state: visualStateOverride, source: "event", confidence: "explicit" };
+    }
+
+    const main = resolvedMainNode();
+    const explicit = explicitVisualState(main);
+    if (explicit) return { state: explicit, source: "dom", confidence: "explicit" };
+    if (signalNodes([
+      "[data-codex-approval]", "[data-approval-required]",
+      '[data-codex-state="approval"]', '[data-status="approval"]',
+    ], main).length) {
+      return { state: "approval", source: "dom", confidence: "medium" };
+    }
+    if (signalNodes([
+      '[data-codex-state="error"]', '[data-status="error"]',
+      '[data-run-state="failed"]', '[role="alert"][aria-live="assertive"]',
+    ], main).length) {
+      return { state: "error", source: "dom", confidence: "medium" };
+    }
+    if (signalNodes([
+      "[data-tool-running=\"true\"]", "[data-executing=\"true\"]",
+      '[data-codex-state="executing"]', '[data-status="running"]',
+      '[data-state="running"]',
+    ], main).length) {
+      return { state: "executing", source: "dom", confidence: "medium" };
+    }
+    if (signalNodes([
+      '[aria-busy="true"]', '[data-loading="true"]', '[data-streaming="true"]',
+      '[data-codex-state="thinking"]', '[data-status="thinking"]',
+      '[role="progressbar"]',
+    ], main).length) {
+      return { state: "thinking", source: "dom", confidence: "medium" };
+    }
+    if (signalNodes([
+      '[data-codex-state="success"]', '[data-status="success"]',
+      '[data-status="completed"]', '[data-run-state="completed"]',
+    ], main).length) {
+      return { state: "success", source: "dom", confidence: "medium" };
+    }
+    if (scope?.baseState === "thread") return { state: "idle", source: "route", confidence: "low" };
+    return { state: "unknown", source: "fallback", confidence: "low" };
+  };
+
+  const applyVisualState = ({ state, source, confidence }) => {
+    if (!VISUAL_STATES.has(state)) return visualState;
+    if (visualState.state === state && visualState.source === source) return visualState;
+    visualState = {
+      state,
+      source,
+      confidence,
+      since: Date.now(),
+      sequence: visualState.sequence + 1,
+    };
+    const root = document.documentElement;
+    if (root) setAttribute(root, "data-dream-visual-state", state);
+    const runtimeState = window[STATE_KEY];
+    if (runtimeState?.installToken === installToken) runtimeState.visualState = visualState;
+    return visualState;
+  };
+
+  const refreshVisualState = (scope) => applyVisualState(detectVisualState(scope));
+
+  const setVisualState = (requested, source = "event") => {
+    const state = normalizeVisualState(requested);
+    if (!state) return null;
+    visualStateOverride = state;
+    return applyVisualState({ state, source, confidence: "explicit" });
+  };
+
+  const clearVisualState = () => {
+    visualStateOverride = null;
+    return refreshVisualState(window[STATE_KEY]?.scope || detectScope());
+  };
+
+  const visualStateHandler = (event) => {
+    const detail = event?.detail;
+    if (detail?.clear === true || detail === null) {
+      clearVisualState();
+      return;
+    }
+    const requested = typeof detail === "string" ? detail : detail?.state ?? detail?.visualState;
+    if (requested !== undefined) setVisualState(requested);
+  };
+
   const refreshScope = () => {
     metrics.routePasses += 1;
     const scope = detectScope();
@@ -785,7 +940,8 @@
     metrics.ensureCalls += 1;
     if (rootPass) applyRootState(root);
     if (partPass) refreshParts();
-    if (scopePass) refreshScope();
+    const scope = scopePass ? refreshScope() : window[STATE_KEY]?.scope || detectScope();
+    if (rootPass || scopePass) refreshVisualState(scope);
   };
 
   const cleanup = () => {
@@ -832,6 +988,9 @@
     }
     if (focusHandler && typeof window.removeEventListener === "function") {
       window.removeEventListener("focus", focusHandler);
+    }
+    if (visualStateHandler && typeof window.removeEventListener === "function") {
+      window.removeEventListener(VISUAL_STATE_EVENT, visualStateHandler);
     }
     if (state?.navigationHandler && state?.navigation) {
       try { state.navigation.removeEventListener("navigate", state.navigationHandler); } catch {}
@@ -908,6 +1067,10 @@
     scheduleEnsure({ scope: true, parts: true }, 180);
   } : null;
 
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener(VISUAL_STATE_EVENT, visualStateHandler);
+  }
+
   window[STATE_KEY] = {
     ensure,
     cleanup,
@@ -920,6 +1083,11 @@
     motionQuery,
     motionHandler,
     videoNode,
+    visualState,
+    setVisualState,
+    clearVisualState,
+    visualStateHandler,
+    visualStateEvent: VISUAL_STATE_EVENT,
     navigation: navigationApi,
     navigationHandler,
     artUrl,

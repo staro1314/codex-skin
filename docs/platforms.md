@@ -96,6 +96,12 @@ Windows 普通启动、失败回滚与恢复重开均从已注册的 `OpenAI.Cod
 - `video.performance` 支持 `eco`、`balanced`、`immersive`。播放器固定静音、循环和行内播放；页面隐藏、窗口失焦、减少动态效果、低电量或播放错误时回退到图片 poster。
 - macOS 和 Windows 都把视频作为受控本地文件 URL 传给渲染器，不把视频字节放进注入 payload。若宿主 CSP 或运行时拒绝本地视频资源，仍保留图片主题，不阻断 Codex 原生界面。
 
+### Codex 状态视觉桥
+
+- 共享 renderer 将路由和有限的 DOM 语义信号归一化为 `unknown`、`home`、`idle`、`thinking`、`executing`、`approval`、`success`、`error`、`settings`、`overlay`。路由状态优先，线程页无明确活动信号时回退为 `idle`。
+- 受信任的页面内适配层可发送 `codex-dream-skin:visual-state` 自定义事件，`detail.state` 只允许上述枚举；也可调用 `window.__CODEX_DREAM_SKIN_STATE__.clearVisualState()` 清除覆盖。
+- 状态 effect 只改变装饰视频层的 opacity/filter/animation，并保持 `pointer-events: none`。当前没有把 Codex 私有业务事件或模型内容写入主题状态；真实事件来源待后续 Codex 版本快照确认。
+
 ## 预设与图片类型
 
 - `macos/presets/preset-arina-hashimoto/` 是「桥本有菜 / Arina Hashimoto」源码参考主题；公开安装包在人物与素材分发权确认前明确排除它。

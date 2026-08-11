@@ -30,7 +30,7 @@ function classList(initial) {
 function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
-  modernMessages = false, reducedMotion = false,
+  modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
 } = {}) {
   const attrs = new Map();
   const rootStyle = styleDeclaration();
@@ -153,13 +153,23 @@ function makeFixture({
     partFixtures.assistantMessage = makeDomNode("assistant-message", partFixtures.thread);
     partFixtures.composer = makeDomNode("composer", partFixtures.main);
     partFixtures.composerToolbar = makeDomNode("composer-toolbar", partFixtures.composer);
+    if (visualSignal) {
+      const signalNode = makeDomNode(
+        "visual-signal",
+        partFixtures.thread,
+        new Map([["data-codex-state", visualSignal]]),
+      );
+      register("[data-codex-state]", signalNode);
+    }
     register("aside.app-shell-left-panel", partFixtures.sidebar);
     register("main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", partFixtures.main);
     register("header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", partFixtures.header);
-    register('[data-testid="home-icon"]', partFixtures.homeIcon);
-    register('[data-feature="game-source"]', partFixtures.homeHero);
-    register('[role="main"]:has([data-testid="home-icon"])', partFixtures.home);
-    register('[role="main"]', partFixtures.home);
+    if (!threadRoute) {
+      register('[data-testid="home-icon"]', partFixtures.homeIcon);
+      register('[data-feature="game-source"]', partFixtures.homeHero);
+      register('[role="main"]:has([data-testid="home-icon"])', partFixtures.home);
+      register('[role="main"]', partFixtures.home);
+    }
     register(".group\\/project-selector", partFixtures.projectList);
     register(".thread-scroll-container", partFixtures.thread);
     const messageSelector =
@@ -367,6 +377,8 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.match(css, /content:\s*var\(--dream-skin-quote/);
   assert.match(css, /--ds-task-full-veil/);
   assert.match(css, /data-dream-task-mode="full"/);
+  assert.match(css, /data-dream-visual-state="executing"/);
+  assert.match(css, /codex-dream-skin-success/);
   assert.match(css, /background-image:\s*var\(--ds-task-full-veil\),\s*var\(--dream-skin-art\)/);
   assert.match(
     css,
@@ -400,6 +412,8 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(home.document.adoptedStyleSheets.length, 1);
   assert.equal(state.scope.baseState, "home");
   assert.equal(state.scope.level, "L1");
+  assert.equal(state.visualState.state, "home");
+  assert.equal(home.attrs.get("data-dream-visual-state"), "home");
   assert.equal(home.rootStyle.values.get("--dream-skin-brand-subtitle"), '"CODEX DREAM SKIN"');
   assert.equal(home.rootStyle.values.get("--dream-skin-status"), '"DREAM SKIN ONLINE"');
   assert.equal(home.rootStyle.values.get("--ds-theme-surface-radius"), "12px");
@@ -464,6 +478,26 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(ecoVideo.attrs.get("data-dream-media"), "poster");
   assert.equal(ecoVideo.videoNodes.length, 0,
     "Eco mode must keep the poster-only path");
+
+  const thinking = makeFixture({ nativeAppearance: "dark", threadRoute: true, visualSignal: "thinking" });
+  vm.runInNewContext(thinking.payloadFor(), thinking.context);
+  assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.scope.baseState, "thread");
+  assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.visualState.state, "thinking");
+  assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.visualState.source, "dom");
+
+  const stateBridge = makeFixture({ nativeAppearance: "dark", threadRoute: true });
+  vm.runInNewContext(stateBridge.payloadFor(), stateBridge.context);
+  const stateBridgeRuntime = stateBridge.window.__CODEX_DREAM_SKIN_STATE__;
+  assert.equal(stateBridgeRuntime.visualState.state, "idle");
+  const stateEvent = stateBridge.listeners.get("window:codex-dream-skin:visual-state");
+  assert.equal(typeof stateEvent, "function");
+  stateEvent({ detail: { state: "executing" } });
+  assert.equal(stateBridgeRuntime.visualState.state, "executing");
+  assert.equal(stateBridge.attrs.get("data-dream-visual-state"), "executing");
+  stateEvent({ detail: { state: "approval" } });
+  assert.equal(stateBridgeRuntime.visualState.state, "approval");
+  stateBridgeRuntime.clearVisualState();
+  assert.equal(stateBridgeRuntime.visualState.state, "idle");
 
   const partObserver = home.observers.find((observer) => observer.options?.childList);
   const rootObserver = home.observers.find((observer) => observer.options?.attributes);

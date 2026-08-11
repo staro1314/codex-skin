@@ -19,7 +19,7 @@
 | Phase 0 | 建立项目文档和可追溯基线 | completed | 根 README、计划、发现记录、首次本地提交 | 源码范围清晰，文档与版本一致，现有检查可运行 |
 | Phase 1 | 固化跨平台运行基线 | completed | 版本矩阵、环境 Doctor、测试入口和同步检查 | Windows/macOS/runtime 的共享契约可验证，失败状态可诊断 |
 | Phase 2 | 动态媒体运行时 | completed | 视频背景、poster 降级、媒体生命周期和性能档位 | 视频可切换、可暂停、可恢复，不遮挡原生控件 |
-| Phase 3 | Codex 状态可视化 | pending | 状态归一化、视觉状态机、事件到动效映射 | 空闲、思考、执行、审批、成功、失败状态稳定呈现 |
+| Phase 3 | Codex 状态可视化 | in_progress | 状态归一化、视觉状态机、事件到动效映射 | 空闲、思考、执行、审批、成功、失败状态稳定呈现 |
 | Phase 4 | 主题协议与创作工具 | pending | 主题 schema、编辑器字段、预览、主题包版本化 | 主题可创建、预览、导入、校验、切换和回滚 |
 | Phase 5 | 安全与兼容性强化 | pending | CDP 会话策略、选择器矩阵、回滚和安全回归 | Codex 更新、异常启动、恶意主题和资源超限均 fail-closed |
 | Phase 6 | 发布工程 | pending | 安装包、签名/校验、发布检查、用户诊断 | DMG/Setup 与源码版本一致，安装、更新、恢复可验证 |
@@ -62,6 +62,13 @@
 - 视觉状态机与 Codex 连接、主题渲染解耦。
 - 事件必须有默认状态、超时、重复事件去重和错误恢复。
 - 任何装饰层保持 `pointer-events: none`，审批和输入控件优先级最高。
+
+## Phase 3 当前结果
+
+- 共享 renderer 已增加统一视觉状态机和 `data-dream-visual-state` 根属性，路由状态覆盖 `home`、`settings`、`overlay`，线程页默认 `idle`。
+- 受限 DOM 语义信号支持 `thinking`、`executing`、`approval`、`success`、`error` 的显式或半显式判定；未知值 fail-closed，不读取消息文本。
+- 提供 `codex-dream-skin:visual-state` 事件桥和 `clearVisualState()`，为后续 Codex 版本适配保留稳定入口；状态 effect 只作用于视频装饰层。
+- 聚焦 renderer/media 测试 8/8 通过；真实 Codex 事件名称、DOM 状态属性和跨版本快照仍待真实平台采样后收敛，Phase 3 暂不标记完成。
 
 ## Phase 4-6 重点
 

@@ -132,6 +132,21 @@ manifest.sig                # 预留字段
 
 视频只允许使用主题包内固定文件名的 MP4/WebM，大小上限为 32 MiB；视频字节不会编码进注入 payload，只通过受控本地文件 URL 加载。`eco` 只显示封面，`balanced` 使用元数据预加载，`immersive` 允许自动预加载。页面隐藏、窗口失焦、系统偏好减少动态效果、电量过低或播放错误时会自动暂停并回退到封面；视频始终静音、循环且不拦截原生控件交互。
 
+### Codex 状态视觉桥
+
+渲染器会把路由、受限 DOM 语义信号和可选事件桥归一化为 `data-dream-visual-state`：
+`unknown`、`home`、`idle`、`thinking`、`executing`、`approval`、`success`、`error`、`settings`、`overlay`。路由状态优先，未识别的任务状态安全回退到 `idle`；状态特效只作用于装饰视频层，不修改原生控件的交互。
+
+未来的 Codex 事件适配层可以在页面内发送：
+
+```js
+window.dispatchEvent(new CustomEvent("codex-dream-skin:visual-state", {
+  detail: { state: "executing" },
+}));
+```
+
+清除显式状态覆盖使用 `window.__CODEX_DREAM_SKIN_STATE__.clearVisualState()`。非法状态会被拒绝，事件桥不会接受远程 URL、脚本或其他执行指令。
+
 ## 安全边界
 
 - 不修改官方 `.app`、`app.asar`、`WindowsApps` 或代码签名。
