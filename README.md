@@ -1,0 +1,166 @@
+# Codex Dream Skin
+
+Codex Dream Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工具。它通过本机回环 CDP 连接 Codex 的渲染进程，注入受控的 CSS 和装饰 DOM，在不修改官方安装包、`app.asar` 或代码签名的前提下，给 Codex 增加可替换的背景、透明层和主题视觉。
+
+它保留 Codex 原生的侧栏、项目选择、建议卡、任务内容、输入框和菜单交互，不使用整窗截图覆盖，也不改写 API Key、Base URL 或模型供应商配置。
+
+当前代码版本：`1.5.12`。项目同时包含 Windows 和 macOS 实现，并将共享渲染逻辑、主题校验和媒体元数据处理收敛在 `runtime/`。
+
+## 能力概览
+
+- 本机 CDP 注入：启动并验证官方 Codex 渲染页，再注入主题运行时。
+- 原生界面保留：装饰层使用 `pointer-events: none`，不遮挡真实控件。
+- 自适应背景：根据图片亮度、焦点、左右安全区和宽高比生成可读性层。
+- 主题包导入：支持受校验的 `.zip` 主题包和可信的本地简化主题目录。
+- 安全 CSS：主题 CSS 经过本地策略校验，只能作用于注册的主题部件。
+- 主题管理：支持导入、保存、切换、暂停、重新应用和完整恢复官方外观。
+- 双平台运行：Windows 托盘与 PowerShell 流程，macOS 原生菜单栏与脚本流程。
+- 安装与恢复：提供安装器、运行时复制、进程身份校验、日志和回滚路径。
+- 自动化验证：覆盖主题包、渲染注入、选择器、窗口可见性、恢复和发布资产。
+
+## 工作原理
+
+```text
+Dream Skin 启动器 / 托盘 / 菜单栏
+        |
+        | 启动官方 Codex，并将 CDP 限制到 127.0.0.1
+        v
+官方 Codex Desktop
+        |
+        | CDP WebSocket：发现 renderer、注入 CSS + JavaScript、验证结果
+        v
+原生 Codex 控件 + 主题背景 / 透明层 / 装饰效果
+```
+
+主题图片和 CSS 在本机读取、校验并注入，不上传到外部 API。启动器会检查目标进程是否属于当前注册的官方 Codex 包，注入器会检查 CDP 端口、浏览器身份和预期 renderer 标记。
+
+## 平台
+
+| 平台 | 入口 | 主要能力 |
+|---|---|---|
+| Windows | [`windows/README.md`](./windows/README.md) | Store 包发现、PowerShell 安装器、系统托盘、CDP 启动/验证/恢复 |
+| macOS | [`macos/README.md`](./macos/README.md) | 原生菜单栏应用、签名运行时校验、DMG、主题编辑和恢复 |
+| Shared | [`runtime/`](./runtime/) | 渲染注入、Safe CSS、主题包、图片元数据和跨平台同步源 |
+
+普通用户应优先使用 [GitHub Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) 中对应平台的安装包。源码安装和诊断流程请分别阅读平台 README。
+
+## 从源码运行
+
+### Windows
+
+关闭 Codex 后，在 `windows/` 目录运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1
+```
+
+安装后通过 `Codex Dream Skin` 快捷方式启动，或运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\start-dream-skin.ps1 -PromptRestart
+```
+
+验证当前窗口：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\verify-dream-skin.ps1 `
+  -ScreenshotPath "$env:TEMP\codex-dream-skin.png"
+```
+
+### macOS
+
+macOS 的源码入口、DMG 安装和菜单栏流程见 [`macos/README.md`](./macos/README.md)。源码测试入口为：
+
+```bash
+cd macos
+./tests/run-tests.sh
+```
+
+## 主题包
+
+正式主题包包含：
+
+```text
+manifest.json
+theme.json
+theme.css
+background.webp | background.jpg | background.png
+LICENSE.txt                 # 可选
+manifest.sig                # 预留字段
+```
+
+本地简化主题至少包含非空的 `theme.json`、非空的 `theme.css` 和 `theme.json` 引用的背景图。导入器会拒绝路径穿越、链接/reparse、嵌套压缩包、未注册文件、超限资源和不符合主题契约的内容。
+
+图片主题应是纯背景，不应把 Codex 窗口、侧栏、输入框、按钮、文字或截图直接烘焙进图片。主题元数据可以控制：
+
+- `appearance`：跟随系统、浅色或深色。
+- `art.focusX` / `art.focusY`：图片焦点位置。
+- `art.safeArea`：原生内容应避让的安全区。
+- `art.taskMode`：任务页使用环境、横幅、全强度或关闭模式。
+
+当前主题协议以图片为主。视频和 Canvas/WebGL 属于后续运行时扩展，会在保持原生控件可读和可交互的前提下增加性能档位。
+
+## 安全边界
+
+- 不修改官方 `.app`、`app.asar`、`WindowsApps` 或代码签名。
+- CDP 只绑定 `127.0.0.1`，不对局域网开放。
+- CDP 本身没有同用户身份认证；主题运行时只应和可信的本机软件一起使用。
+- 主题导入、图片处理、Safe CSS 和社区主题下载均采用 fail-closed 校验。
+- 安装、启动、切换、暂停、恢复和卸载使用受控状态与进程身份检查。
+- 完整恢复会关闭已保存的 CDP 会话，并从官方普通入口重新打开 Codex。
+- 图片、视频、字体和人物素材需要单独确认版权、商标和再分发许可。
+
+详细威胁模型和操作边界见 [`SECURITY.md`](./SECURITY.md)。
+
+## 仓库结构
+
+```text
+codex-skin/
+├── docs/       项目记录、平台路径、安装和素材说明
+├── macos/      macOS 菜单栏、安装、主题和测试
+├── runtime/    跨平台共享渲染与主题校验源
+├── tools/      选择器、运行时同步和诊断工具
+├── windows/    Windows 安装、托盘、CDP 注入、验证和测试
+├── AGENTS.md   维护、安全和发布约束
+└── SECURITY.md 威胁模型与安全边界
+```
+
+修改 `runtime/` 共享源后，应使用现有同步工具生成平台资产，不要只改某一个平台的生成副本。
+
+## 验证
+
+Node 便携回归：
+
+```powershell
+node --test macos/tests/*.test.mjs windows/tests/*.test.mjs tools/*.test.mjs
+```
+
+Windows 回归：
+
+```powershell
+powershell -NoProfile -File windows\tests\run-tests.ps1
+```
+
+macOS 回归：
+
+```bash
+bash macos/tests/run-tests.sh
+```
+
+真实平台验证还需要对应的官方 Codex、系统运行时和图形环境。截图检查、首页/任务页交互和恢复流程以 [`windows/references/qa-inventory.md`](./windows/references/qa-inventory.md) 及 macOS 对应文档为准。
+
+## 分阶段路线
+
+当前仓库已经具备稳定的 CDP 换肤、主题包、安全校验、双平台安装和恢复基础。后续扩展按以下顺序推进：
+
+1. 固化当前版本的跨平台基线和文档。
+2. 增加视频背景、封面降级、省电和性能预算。
+3. 将 Codex 页面状态归一化为可驱动视觉的状态事件。
+4. 扩展主题协议和主题编辑能力，保持 Safe CSS 和资源校验。
+5. 完善版本兼容矩阵、诊断、回滚、安装器和发布验证。
+
+详细计划见 [`task_plan.md`](./task_plan.md)，当前事实和风险见 [`findings.md`](./findings.md)。
+
+## 许可
+
+软件代码使用 MIT，详见 [`LICENSE`](./LICENSE)。第三方运行时、主题图片、赞助素材、人物/IP 素材和其他资产以各自的 NOTICE、LICENSE 或来源说明为准。项目不是 OpenAI 官方产品。
