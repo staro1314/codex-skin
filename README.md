@@ -60,6 +60,26 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\start-dream-skin.ps1 -PromptRestart
 ```
 
+也可以从仓库根目录使用快捷启动入口：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin.ps1
+```
+
+启动并执行一次脱敏 DOM/视觉状态快照：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin.ps1 -Capture
+```
+
+启动后持续采集首页、会话页、菜单和状态变化：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin.ps1 -Watch
+```
+
+该入口只调用 `windows/scripts/start-dream-skin.ps1`，不会修改官方 Codex 文件；采集器只记录脱敏 DOM 结构、固定状态枚举和布尔信号，不记录消息文本。
+
 验证当前窗口：
 
 ```powershell

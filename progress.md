@@ -34,6 +34,10 @@
 - Added the shared visual state contract and renderer state machine. Route state wins for `home`, `settings`, and `overlay`; thread pages default to `idle`, while bounded DOM attributes/signals can produce `thinking`, `executing`, `approval`, `success`, and `error`.
 - Added the `codex-dream-skin:visual-state` event bridge and `clearVisualState()` API. State effects are isolated to the non-interactive video layer; no message text or private Codex business event is parsed.
 - Focused renderer/media tests pass 8/8. Phase 3 remains in progress until a real Codex DOM/event capture confirms the signal names across supported versions.
+- The local `9335` candidate and all project fallback ports (`9335-9339`, `9341-9345`, `9222`) had no reachable CDP endpoint; running ChatGPT/Codex processes were present but no debug port was exposed. Process command-line inspection was denied by Windows permissions, so no undocumented attachment was attempted.
+- Upgraded `tools/capture-dom-fixture.mjs` to `1.2.0`. It now emits only normalized visual-state candidates, fixed signal counts, and a bounded runtime state summary. Syntax validation passed and the no-CDP path exited `2` with the existing actionable message.
+- Added the root `start-codex-skin.ps1` convenience launcher. It delegates to the existing verified Windows launcher, preserves automatic reuse of the state-file port unless `-Port` is explicit, and optionally starts one-shot (`-Capture`) or watch-mode (`-Watch`) redacted sampling.
+- Focused tool regression now passes 9/9, including the root launcher contract; PowerShell AST and Node syntax checks also pass.
 
 ## Errors Encountered
 

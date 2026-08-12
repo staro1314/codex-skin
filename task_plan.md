@@ -68,6 +68,8 @@
 - 共享 renderer 已增加统一视觉状态机和 `data-dream-visual-state` 根属性，路由状态覆盖 `home`、`settings`、`overlay`，线程页默认 `idle`。
 - 受限 DOM 语义信号支持 `thinking`、`executing`、`approval`、`success`、`error` 的显式或半显式判定；未知值 fail-closed，不读取消息文本。
 - 提供 `codex-dream-skin:visual-state` 事件桥和 `clearVisualState()`，为后续 Codex 版本适配保留稳定入口；状态 effect 只作用于视频装饰层。
+- `tools/capture-dom-fixture.mjs` 已升级为 1.2.0，在脱敏快照中记录固定状态枚举、布尔信号计数和已注入 renderer 状态，供真实 Codex 采样使用。
+- 根目录新增 `start-codex-skin.ps1`，统一启动、单次脱敏采集和持续采集入口；未显式指定端口时保留底层启动器的状态端口复用逻辑。
 - 聚焦 renderer/media 测试 8/8 通过；真实 Codex 事件名称、DOM 状态属性和跨版本快照仍待真实平台采样后收敛，Phase 3 暂不标记完成。
 
 ## Phase 4-6 重点

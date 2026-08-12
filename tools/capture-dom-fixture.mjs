@@ -32,7 +32,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
-const TOOL_VERSION = "1.1.0";
+const TOOL_VERSION = "1.2.0";
 const DEFAULT_WAIT_SECONDS = 30;
 const MAX_TARGETS = 4;
 
@@ -199,6 +199,142 @@ function pageCapture(CFG, PROBE_LIST) {
     }
   });
 
+  // State sampling is deliberately narrower than the DOM snapshot. Only
+  // fixed state attributes and boolean signal presence leave this function;
+  // arbitrary values, labels, and message text never enter a fixture.
+  var visualStateAliases = {
+    ready: "idle",
+    queued: "thinking",
+    loading: "thinking",
+    generating: "thinking",
+    streaming: "thinking",
+    running: "executing",
+    working: "executing",
+    tool: "executing",
+    "needs-approval": "approval",
+    "needs_review": "approval",
+    review: "approval",
+    complete: "success",
+    completed: "success",
+    done: "success",
+    failed: "error",
+    failure: "error",
+  };
+  var visualStates = {
+    unknown: true,
+    home: true,
+    idle: true,
+    thinking: true,
+    executing: true,
+    approval: true,
+    success: true,
+    error: true,
+    settings: true,
+    overlay: true,
+  };
+  function normalizeVisualState(value) {
+    var token = String(value || "").trim().toLowerCase().replace(/[_\s]+/g, "-");
+    return Object.prototype.hasOwnProperty.call(visualStates, token)
+      ? token : visualStateAliases[token] || null;
+  }
+  function safeSignalCount(selector) {
+    try {
+      var nodes = document.querySelectorAll(selector);
+      var count = 0;
+      for (var i = 0; i < nodes.length; i += 1) {
+        if (nodes[i].getAttribute("hidden") === null && nodes[i].getAttribute("aria-hidden") !== "true") count += 1;
+      }
+      return count;
+    } catch (error) {
+      return 0;
+    }
+  }
+  var explicitStates = {};
+  [
+    "data-codex-dream-skin-state",
+    "data-codex-state",
+    "data-agent-state",
+    "data-run-state",
+    "data-task-state",
+  ].forEach(function (attribute) {
+    try {
+      var nodes = document.querySelectorAll("[" + attribute + "]");
+      for (var i = 0; i < nodes.length; i += 1) {
+        var state = normalizeVisualState(nodes[i].getAttribute(attribute));
+        if (state) explicitStates[state] = (explicitStates[state] || 0) + 1;
+      }
+    } catch (error) {}
+  });
+  var signalDefinitions = {
+    approval: [
+      "[data-codex-approval]", "[data-approval-required]",
+      '[data-codex-state="approval"]', '[data-status="approval"]',
+    ],
+    error: [
+      '[data-codex-state="error"]', '[data-status="error"]',
+      '[data-run-state="failed"]', '[role="alert"][aria-live="assertive"]',
+    ],
+    executing: [
+      '[data-tool-running="true"]', '[data-executing="true"]',
+      '[data-codex-state="executing"]', '[data-status="running"]',
+      '[data-state="running"]',
+    ],
+    thinking: [
+      '[aria-busy="true"]', '[data-loading="true"]', '[data-streaming="true"]',
+      '[data-codex-state="thinking"]', '[data-status="thinking"]',
+      '[role="progressbar"]',
+    ],
+    success: [
+      '[data-codex-state="success"]', '[data-status="success"]',
+      '[data-status="completed"]', '[data-run-state="completed"]',
+    ],
+  };
+  var signalCounts = {};
+  Object.keys(signalDefinitions).forEach(function (key) {
+    signalCounts[key] = signalDefinitions[key].reduce(function (total, selector) {
+      return total + safeSignalCount(selector);
+    }, 0);
+  });
+  var probeHit = function (key) {
+    return probes.some(function (probe) { return probe.key === key && probe.count > 0; });
+  };
+  var candidate = "unknown";
+  var confidence = "low";
+  if (probeHit("overlay-dialog") || probeHit("overlay-menu") || probeHit("overlay-popper")) {
+    candidate = "overlay";
+    confidence = "high";
+  } else if (probeHit("home-icon") || probeHit("home-route")) {
+    candidate = "home";
+    confidence = "high";
+  } else {
+    var explicitKeys = Object.keys(explicitStates);
+    if (explicitKeys.length) {
+      candidate = explicitKeys[0];
+      confidence = "explicit";
+    } else {
+      ["approval", "error", "executing", "thinking", "success"].some(function (key) {
+        if (!signalCounts[key]) return false;
+        candidate = key;
+        confidence = "medium";
+        return true;
+      });
+      if (candidate === "unknown" && probeHit("markdown")) {
+        candidate = "idle";
+        confidence = "low";
+      }
+    }
+  }
+  var root = document.documentElement;
+  var skinState = window.__CODEX_DREAM_SKIN_STATE__;
+  var runtimeVisualState = skinState && skinState.visualState &&
+    normalizeVisualState(skinState.visualState.state)
+    ? {
+      state: normalizeVisualState(skinState.visualState.state),
+      source: String(skinState.visualState.source || "").slice(0, 20),
+      confidence: String(skinState.visualState.confidence || "").slice(0, 20),
+    }
+    : null;
+
   var features = {
     hasSelector: (function () {
       try { return CSS.supports("selector(:has(*))"); } catch (error) { return false; }
@@ -230,8 +366,6 @@ function pageCapture(CFG, PROBE_LIST) {
     return out;
   }
 
-  var root = document.documentElement;
-  var skinState = window.__CODEX_DREAM_SKIN_STATE__;
   var pathname = "";
   try { pathname = location.pathname.split("/").pop() || ""; } catch (error) {}
   var route = "";
@@ -259,6 +393,13 @@ function pageCapture(CFG, PROBE_LIST) {
       version: (skinState && skinState.version) || null,
       themeId: (skinState && skinState.themeId) || null,
       revision: (skinState && skinState.revision) || null,
+    },
+    visualState: {
+      candidate: candidate,
+      confidence: confidence,
+      explicitStates: explicitStates,
+      signals: signalCounts,
+      runtime: runtimeVisualState,
     },
     appearance: {
       rootClasses: nativeClasses(root),
@@ -528,6 +669,8 @@ function buildSignatureExpression() {
 }
 
 function deriveLabel(data) {
+  const visualState = data.visualState?.candidate;
+  if (visualState && visualState !== "idle" && visualState !== "unknown") return `visual-${visualState}`;
   const hit = (key) => (data.probes.find((probe) => probe.key === key)?.count ?? 0) > 0;
   let base = "state";
   if (hit("overlay-dialog")) base = "dialog";
@@ -663,6 +806,11 @@ function printTargetSummary(entry) {
     ? `皮肤已注入 v${data.skin.version ?? "?"} theme=${data.skin.themeId ?? "?"}（快照已过滤皮肤痕迹）`
     : "无皮肤（原生 DOM）";
   console.log(`  ${skin}`);
+  if (data.visualState) {
+    const runtime = data.visualState.runtime?.state
+      ? ` · runtime=${data.visualState.runtime.state}` : "";
+    console.log(`  视觉状态候选：${data.visualState.candidate}（${data.visualState.confidence}）${runtime}`);
+  }
   console.log(`  节点 ${data.stats.nodes} · 唯一类名 ${data.summaries.uniqueClassCount} · testid ${data.summaries.testids.length} · 外观 ${data.appearance.computedColorScheme || "?"}`);
   for (const probe of data.probes) {
     const status = probe.error ? `⚠ ${probe.error}` : probe.count > 0 ? `✔ ${probe.count}` : "✘ 0";
