@@ -38,6 +38,7 @@
 - Upgraded `tools/capture-dom-fixture.mjs` to `1.2.0`. It now emits only normalized visual-state candidates, fixed signal counts, and a bounded runtime state summary. Syntax validation passed and the no-CDP path exited `2` with the existing actionable message.
 - Added the root `start-codex-skin.ps1` convenience launcher. It delegates to the existing verified Windows launcher, preserves automatic reuse of the state-file port unless `-Port` is explicit, and optionally starts one-shot (`-Capture`) or watch-mode (`-Watch`) redacted sampling.
 - Focused tool regression now passes 9/9, including the root launcher contract; PowerShell AST and Node syntax checks also pass.
+- Added `start-codex-skin.cmd` as the double-click user entry. It invokes the PowerShell launcher with `RemoteSigned`, closes on success, and pauses on failure without using `Bypass`.
 
 ## Errors Encountered
 

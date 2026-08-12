@@ -66,6 +66,8 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\start-dr
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin.ps1
 ```
 
+普通用户无需打开 PowerShell，直接双击仓库根目录的 `start-codex-skin.cmd` 即可启动。启动成功后窗口自动关闭；失败时窗口会保留并暂停，方便查看错误。
+
 启动并执行一次脱敏 DOM/视觉状态快照：
 
 ```powershell
