@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
-import { gradeDoctorResult, selectorMatchesScope } from "./doctor-selectors.mjs";
+import {
+  extractCodexVersion,
+  gradeDoctorResult,
+  selectSelectorProfile,
+  selectorMatchesScope,
+} from "./doctor-selectors.mjs";
 
 const contract = JSON.parse(await fs.readFile(new URL("./selectors.json", import.meta.url), "utf8"));
 const selectorFor = (key) => contract.selectors.find((entry) => entry.key === key)?.selector;
+assert.equal(
+  extractCodexVersion({ Browser: "Codex/26.727.40816 Chrome/150.0" }),
+  "26.727.40816",
+);
+assert.equal(extractCodexVersion({ Browser: "Chrome/150.0" }), null);
+assert.equal(selectSelectorProfile(contract, "26.727.40816", "darwin").id, "codex-26.727-macos");
+assert.equal(selectSelectorProfile(contract, "26.727.40816", "win32").known, false);
+assert.equal(selectSelectorProfile(contract, "99.1.2", "darwin").mode, "conservative");
 assert.equal(
   selectorFor("shell-main"),
   "main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])",
@@ -44,6 +57,7 @@ const home = resultFor("home", [
 ]);
 assert.equal(home.pass, true);
 assert.equal(home.exitCode, 0);
+assert.equal(home.compatibility.known, false);
 assert.equal(home.tiers.L1.length, 6);
 assert.equal(home.tiers.L2.find(({ key }) => key === "project-selector").status, "miss(config)");
 

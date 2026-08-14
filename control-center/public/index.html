@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0e0d">
+  <title>Dream Skin Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true">DS</span>
+      <div>
+        <strong>DREAM SKIN <em>STUDIO</em></strong>
+        <span>CODEX 外观工作台 / LOCAL ONLY</span>
+      </div>
+    </div>
+    <div class="topbar-context">
+      <span class="context-label">当前工作区</span>
+      <strong>视觉主题管理</strong>
+      <span class="context-divider" aria-hidden="true"></span>
+      <span id="connection-dot" class="status-dot" aria-hidden="true"></span>
+      <span id="system-status">正在建立本地连接</span>
+    </div>
+  </header>
+
+  <div id="connection-banner" class="connection-banner" hidden role="alert">
+    <span class="banner-mark" aria-hidden="true">!</span>
+    <div>
+      <strong>控制中心暂时无法连接</strong>
+      <span id="connection-message">请确认 Dream Skin 服务正在运行。</span>
+    </div>
+    <button id="retry-button" class="text-button" type="button">重新连接</button>
+  </div>
+
+  <main class="workbench">
+    <aside class="library panel-frame" aria-label="主题库">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">LIBRARY</span>
+          <h2>主题库</h2>
+        </div>
+        <div class="panel-heading-actions">
+          <span class="count-badge"><b id="theme-count">00</b> 个</span>
+          <button id="new-theme-button" class="icon-button" type="button" title="新建主题">+</button>
+        </div>
+      </div>
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input id="theme-search" type="search" placeholder="搜索主题名称" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+      <div class="filter-row" role="group" aria-label="主题筛选">
+        <button class="filter-button active" type="button" data-filter="all">全部</button>
+        <button class="filter-button" type="button" data-filter="saved">已保存</button>
+        <button class="filter-button" type="button" data-filter="bundled">内置</button>
+        <button class="filter-button" type="button" data-filter="active">当前</button>
+      </div>
+      <div class="library-subline"><span>可用主题</span><span id="library-match">等待同步</span></div>
+      <div id="theme-list" class="theme-list"></div>
+      <div id="library-empty" class="empty-state" hidden>
+        <span class="empty-icon" aria-hidden="true">◇</span>
+        <strong>没有匹配主题</strong>
+        <p>换个关键词，或清除筛选后继续浏览。</p>
+      </div>
+      <div class="library-note">
+        <span class="note-icon" aria-hidden="true">i</span>
+        <p>保存会生成新主题，不会覆盖原始母版。</p>
+      </div>
+    </aside>
+
+    <section class="stage-column" aria-label="主题预览">
+      <div class="stage-meta">
+        <div class="stage-title">
+          <span class="eyebrow">LIVE PREVIEW</span>
+          <div><h1 id="preview-name">未选择主题</h1><span id="preview-fingerprint">未载入主题数据</span></div>
+        </div>
+        <div class="stage-readout">
+          <span class="readout-chip" id="preview-mode">IMAGE / AMBIENT</span>
+          <span class="readout-divider" aria-hidden="true"></span>
+          <span class="readout-state"><i></i><b id="preview-state-name">IDLE</b></span>
+        </div>
+      </div>
+
+      <div id="preview-stage" class="preview-stage" data-motion="standard">
+        <img id="preview-image" class="preview-media" alt="主题背景预览">
+        <video id="preview-video" class="preview-media" muted loop playsinline></video>
+        <div class="preview-veil"></div>
+        <div class="state-aura"></div>
+        <div class="mock-app">
+          <nav class="mock-rail" aria-hidden="true"><b>⌁</b><span></span><span></span><span></span><i></i><span></span></nav>
+          <aside class="mock-sidebar glass-surface">
+            <div class="mock-wordmark">CODEX <i></i></div>
+            <button class="mock-new-task">＋ <span>新对话</span></button>
+            <small>项目</small>
+            <div class="mock-project active"><i></i><span>codex-skin</span><b>●</b></div>
+            <div class="mock-project"><i></i><span>design-system</span></div>
+            <div class="mock-project"><i></i><span>voice-interface</span></div>
+            <div class="mock-spacer"></div>
+            <div class="mock-profile"><span>FY</span><div><b>Local workspace</b><small>Theme engine ready</small></div></div>
+          </aside>
+          <section class="mock-main">
+            <div class="mock-windowbar"><span>任务 / codex-skin</span><div><i></i><i></i><i></i></div></div>
+            <div class="mock-thread">
+              <div class="mock-chip">LOCAL THEME SESSION</div>
+              <h2>让工作界面拥有<br>属于你的视觉节奏。</h2>
+              <p>背景、玻璃表面和状态光效在这里同步调校。</p>
+              <div class="mock-response glass-surface"><span class="response-line long"></span><span class="response-line"></span><span class="response-line short"></span></div>
+            </div>
+            <div class="mock-composer glass-surface"><span>准备接收新任务</span><button>↑</button></div>
+          </section>
+        </div>
+        <div class="scan-line" aria-hidden="true"></div>
+        <div class="stage-corner top-left">PREVIEW / 1440 × 900</div>
+        <div class="stage-corner bottom-right">RENDER SAFE</div>
+      </div>
+
+      <div class="state-console panel-frame">
+        <div class="console-heading">
+          <div><span class="eyebrow">STATE PRESETS</span><strong>预览 AI 状态</strong></div>
+          <span class="console-hint">点击状态查看对应光效</span>
+        </div>
+        <div id="state-strip" class="state-strip" role="tablist" aria-label="AI 状态预览"></div>
+      </div>
+    </section>
+
+    <aside class="inspector panel-frame" aria-label="主题编辑器">
+      <div class="inspector-heading">
+        <div><span class="eyebrow">INSPECTOR</span><h2>编辑器</h2></div>
+        <span class="live-badge"><i></i> LIVE</span>
+      </div>
+      <div class="draft-summary">
+        <span class="summary-icon" aria-hidden="true">✦</span>
+        <div><strong id="draft-summary">尚未选择主题</strong><span id="selection-note">选择主题后开始调校</span></div>
+        <button id="delete-theme-button" class="icon-button delete-button" type="button" title="删除当前已保存主题" disabled>×</button>
+      </div>
+      <nav class="editor-tabs" aria-label="编辑分组">
+        <button class="editor-tab active" type="button" data-editor-tab="media">构图</button>
+        <button class="editor-tab" type="button" data-editor-tab="surface">表面</button>
+        <button class="editor-tab" type="button" data-editor-tab="effects">状态</button>
+        <button class="editor-tab" type="button" data-editor-tab="export">分享</button>
+      </nav>
+      <div class="inspector-scroll">
+        <section class="control-section open active" data-section="media">
+          <button class="section-title" type="button"><span>01 / 媒体与构图</span><i>−</i></button>
+          <div class="section-body">
+            <label class="text-field"><span>主题名称</span><input id="theme-name" maxlength="80" autocomplete="off" placeholder="给这套视觉取个名字"></label>
+            <div class="media-mode" role="radiogroup" aria-label="媒体类型">
+              <label class="media-option"><input id="media-mode-image" name="media-mode" type="radio" value="image" checked><span>图片主题</span><small>静态背景，性能更稳</small></label>
+              <label class="media-option"><input id="media-mode-video" name="media-mode" type="radio" value="video"><span>视频主题</span><small>上传或继承视频</small></label>
+            </div>
+            <div class="upload-grid">
+              <label class="upload-button"><span>更换图片</span><small>PNG / JPG / WEBP</small><input id="image-upload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+              <label class="upload-button"><span>添加视频</span><small>MP4 / WEBM</small><input id="video-upload" type="file" accept="video/mp4,video/webm"></label>
+            </div>
+            <label class="toggle-row"><span><b>继承母版视频</b><small>没有新视频时沿用原素材</small></span><input id="inherit-video" type="checkbox" checked><i></i></label>
+            <div class="field-grid">
+              <label class="select-field"><span>界面明暗</span><select data-path="appearance"><option value="auto">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></label>
+              <label class="select-field"><span>视频性能</span><select data-path="videoPerformance"><option value="eco">节能</option><option value="balanced">平衡</option><option value="immersive">沉浸</option></select></label>
+              <label class="select-field"><span>画面安全区</span><select data-path="art.safeArea"><option value="left">左侧留白</option><option value="right">右侧留白</option><option value="none">不限定</option></select></label>
+              <label class="select-field"><span>任务页强度</span><select data-path="art.taskMode"><option value="ambient">氛围</option><option value="full">完整</option><option value="off">关闭</option></select></label>
+            </div>
+            <div class="subsection-label">画面定位</div>
+            <label class="range-field"><span>水平焦点 <output data-output="art.focusX"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusX"></label>
+            <label class="range-field"><span>垂直焦点 <output data-output="art.focusY"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusY"></label>
+            <label class="range-field"><span>背景缩放 <output data-output="controls.imageZoom"></output></span><input type="range" min="1" max="1.2" step="0.01" data-path="controls.imageZoom"></label>
+            <label class="range-field"><span>背景压暗 <output data-output="controls.imageDim"></output></span><input type="range" min="0" max="0.65" step="0.01" data-path="controls.imageDim"></label>
+          </div>
+        </section>
+
+        <section class="control-section" data-section="surface">
+          <button class="section-title" type="button"><span>02 / 玻璃表面</span><i>+</i></button>
+          <div class="section-body">
+            <div class="control-intro"><strong>让内容浮在背景之上</strong><span>调整界面层的透明度、模糊和圆角。</span></div>
+            <label class="range-field"><span>不透明度 <output data-output="controls.surfaceOpacity"></output></span><input type="range" min="0.55" max="1" step="0.01" data-path="controls.surfaceOpacity"></label>
+            <label class="range-field"><span>模糊半径 <output data-output="controls.surfaceBlur"></output></span><input type="range" min="0" max="32" step="1" data-path="controls.surfaceBlur"></label>
+            <label class="range-field"><span>圆角尺度 <output data-output="controls.surfaceRadius"></output></span><input type="range" min="8" max="28" step="1" data-path="controls.surfaceRadius"></label>
+            <label class="select-field"><span>动态级别</span><select data-path="controls.motionLevel"><option value="reduced">克制</option><option value="standard">标准</option><option value="expressive">强化</option></select></label>
+            <div class="subsection-label">颜色系统</div>
+            <div class="color-grid">
+              <label><span>强调色</span><input type="color" data-path="colors.accent"></label>
+              <label><span>次强调</span><input type="color" data-path="colors.secondary"></label>
+              <label><span>背景色</span><input type="color" data-path="colors.background"></label>
+              <label><span>文字色</span><input type="color" data-path="colors.text"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section" data-section="effects">
+          <button class="section-title" type="button"><span>03 / 当前状态特效</span><i>+</i></button>
+          <div class="section-body">
+            <div class="selected-state"><span>正在调校</span><b id="effect-state-label">IDLE</b></div>
+            <label class="color-line"><span>状态光色</span><input id="effect-color" type="color"></label>
+            <label class="select-field"><span>运动方式</span><select id="effect-motion"><option value="none">静止</option><option value="pulse">脉冲</option><option value="flash">闪现</option><option value="alert">警示</option></select></label>
+            <label class="range-field"><span>边缘光 <output id="effect-overlay-output"></output></span><input id="effect-overlay" type="range" min="0" max="0.35" step="0.01"></label>
+            <label class="range-field"><span>媒体可见度 <output id="effect-media-output"></output></span><input id="effect-media" type="range" min="0" max="1" step="0.01"></label>
+            <label class="range-field"><span>亮度 <output id="effect-brightness-output"></output></span><input id="effect-brightness" type="range" min="0.5" max="1.35" step="0.01"></label>
+            <label class="range-field"><span>饱和度 <output id="effect-saturation-output"></output></span><input id="effect-saturation" type="range" min="0" max="2" step="0.01"></label>
+            <label class="range-field"><span>色相偏移 <output id="effect-hue-output"></output></span><input id="effect-hue" type="range" min="-180" max="180" step="1"></label>
+          </div>
+        </section>
+
+        <section class="control-section export-section" data-section="export">
+          <button class="section-title" type="button"><span>04 / 版本与分享包</span><i>+</i></button>
+          <div class="section-body">
+            <div class="export-readiness"><span>PACKAGE</span><b>WINDOWS + MACOS</b></div>
+            <label class="text-field"><span>语义版本</span><input id="export-version" value="1.0.0" maxlength="32" autocomplete="off" inputmode="decimal"></label>
+            <label class="text-field"><span>发布者名称</span><input id="publisher-name" value="Local Creator" maxlength="80" autocomplete="organization"></label>
+            <label class="text-field"><span>发布者 ID</span><input id="publisher-id" value="local-creator" maxlength="64" autocomplete="off"></label>
+            <label class="select-field"><span>素材许可证</span><select id="export-license"><option value="All-Rights-Reserved">保留所有权利</option><option value="CC-BY-4.0">CC BY 4.0</option><option value="CC0-1.0">CC0 1.0</option><option value="MIT">MIT</option></select></label>
+            <label class="text-field"><span>来源说明</span><textarea id="export-summary" maxlength="500">Theme exported from Codex Dream Skin Control Center.</textarea></label>
+            <label class="toggle-row"><span><b>包含 AI 生成素材</b><small>写入分享包来源声明</small></span><input id="export-ai" type="checkbox"><i></i></label>
+            <p id="export-history-note" class="export-history-note">仅导出已保存主题，未保存的调校不会进入分享包。</p>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="action-dock">
+    <div class="save-readout">
+      <span class="eyebrow">WORKSPACE STATUS</span>
+      <strong id="save-status">参数尚未修改</strong>
+      <small id="action-help">选择主题后可开始调校</small>
+    </div>
+    <div class="dock-actions">
+      <button id="reset-button" class="button ghost" type="button">恢复草稿</button>
+      <span class="dock-divider" aria-hidden="true"></span>
+      <button id="pause-button" class="button ghost" type="button">暂停皮肤</button>
+      <button id="resume-button" class="button ghost" type="button">继续显示</button>
+      <button id="apply-button" class="button secondary" type="button">应用所选主题</button>
+      <button id="save-button" class="button secondary" type="button">保存为新主题</button>
+      <button id="export-button" class="button secondary" type="button">导出分享包</button>
+      <button id="save-apply-button" class="button primary" type="button">保存并应用 <span aria-hidden="true">↗</span></button>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="new-theme-dialog" class="new-theme-dialog" aria-labelledby="new-theme-title">
+    <form method="dialog" class="new-theme-form">
+      <div class="dialog-kicker">NEW THEME</div>
+      <h2 id="new-theme-title">新增主题</h2>
+      <p class="dialog-description">选择媒体类型并上传素材，确认后会创建主题并进入编辑器。</p>
+      <label class="text-field">
+        <span>主题名称</span>
+        <input id="new-theme-name" maxlength="80" autocomplete="off" placeholder="例如：夜航蓝图">
+      </label>
+      <fieldset class="new-theme-type">
+        <legend>媒体类型</legend>
+        <label class="new-theme-type-option">
+          <input id="new-theme-type-image" name="new-theme-type" type="radio" value="image" checked>
+          <span><b>图片主题</b><small>静态背景，资源更轻</small></span>
+        </label>
+        <label class="new-theme-type-option">
+          <input id="new-theme-type-video" name="new-theme-type" type="radio" value="video">
+          <span><b>视频主题</b><small>动态背景，需要视频文件</small></span>
+        </label>
+      </fieldset>
+      <label class="new-theme-file">
+        <span class="new-theme-file-icon">↑</span>
+        <span><b id="new-theme-file-label">上传图片</b><small id="new-theme-file-hint">PNG / JPG / WEBP，最大 10 MiB</small></span>
+        <input id="new-theme-file" type="file" accept="image/png,image/jpeg,image/webp">
+      </label>
+      <p id="new-theme-error" class="dialog-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="new-theme-cancel" class="button ghost" type="button">取消</button>
+        <button id="new-theme-confirm" class="button primary" type="button">创建并进入编辑 ↗</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

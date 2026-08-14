@@ -99,6 +99,7 @@ if [ -f "$STATE_PATH" ]; then
 fi
 
 INJECTOR_PID=""
+BROWSER_ID=""
 if [ "$DEBUG_READY" = "false" ]; then
   # Codex is closed on this path (never started, or stopped just above), so it
   # is safe to sync the appearanceTheme pin to the staged theme before launch.
@@ -108,15 +109,12 @@ if [ "$DEBUG_READY" = "false" ]; then
   PORT="$(select_available_port "$PORT")"
   printf 'Launching ChatGPT with skin debug port %s…\n' "$PORT" >&2
   launch_codex_with_cdp "$PORT"
-  # Start probing immediately instead of waiting for the native window to finish loading.
-  if [ "$FOREGROUND_INJECTOR" != "true" ]; then
-    INJECTOR_PID="$(launch_injector_daemon "$PORT")"
-  fi
   if ! wait_for_cdp "$PORT"; then
-    [ -z "$INJECTOR_PID" ] || /bin/kill -TERM "$INJECTOR_PID" 2>/dev/null || true
     fail "ChatGPT did not expose a verified loopback CDP endpoint on port $PORT within 45 seconds. See $APP_LOG and $APP_ERROR_LOG"
   fi
 fi
+BROWSER_ID="$(cdp_browser_id "$PORT")" \
+  || fail "Could not establish the CDP browser identity lease on port $PORT."
 
 # LaunchServices activation reaches the already-running, identity-bound App.
 # Do not use -n here: a second instance can arrive before ChatGPT has registered
@@ -124,19 +122,19 @@ fi
 activate_codex_window
 
 if [ "$FOREGROUND_INJECTOR" = "true" ]; then
-  exec "$NODE" "$INJECTOR" --watch --port "$PORT" --theme-dir "$THEME_DIR" \
+  exec "$NODE" "$INJECTOR" --watch --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" \
     --operation-state "$OPERATION_STATE_PATH" --operation-ack "$OPERATION_ACK_PATH"
 fi
 
 if [ -z "$INJECTOR_PID" ]; then
-  INJECTOR_PID="$(launch_injector_daemon "$PORT")"
+  INJECTOR_PID="$(launch_injector_daemon "$PORT" "$BROWSER_ID")"
 fi
 /bin/sleep 0.15
 /bin/kill -0 "$INJECTOR_PID" 2>/dev/null || fail "The injector exited during startup. See $INJECTOR_ERROR_LOG"
 INJECTOR_STARTED_AT="$(process_started_at "$INJECTOR_PID")"
 [ -n "$INJECTOR_STARTED_AT" ] || fail "Could not record the injector process start time."
 CODEX_PID="$(codex_main_pids | /usr/bin/head -n 1)"
-write_state "$PORT" "$INJECTOR_PID" "$INJECTOR_STARTED_AT" "$CODEX_PID"
+write_state "$PORT" "$INJECTOR_PID" "$INJECTOR_STARTED_AT" "$CODEX_PID" applying "$BROWSER_ID"
 
 # Commit active only after the renderer, exact theme, and payload revision verify.
 VERIFY_OUTPUT="$(/usr/bin/mktemp "${TMPDIR:-/tmp}/dream-skin-verify.XXXXXX")"
@@ -145,7 +143,7 @@ cleanup_verify_output() {
   [ -z "${VERIFY_OUTPUT:-}" ] || /bin/rm -f "$VERIFY_OUTPUT"
   VERIFY_OUTPUT=""
 }
-if "$NODE" "$INJECTOR" --verify --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 20000 >"$VERIFY_OUTPUT" 2>/dev/null; then
+if "$NODE" "$INJECTOR" --verify --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 20000 >"$VERIFY_OUTPUT" 2>/dev/null; then
   verify_code=0
 else
   verify_code=$?
@@ -155,12 +153,12 @@ if [ "$verify_code" -ne 0 ]; then
   # exact bundle once more before the final force-inject and verification pass.
   activate_codex_window
   if [ -n "$OPERATION_TOKEN" ]; then
-    "$NODE" "$INJECTOR" --once --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 15000 \
+    "$NODE" "$INJECTOR" --once --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 15000 \
       --operation-token "$OPERATION_TOKEN" >/dev/null 2>&1 || true
   else
-    "$NODE" "$INJECTOR" --once --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 15000 >/dev/null 2>&1 || true
+    "$NODE" "$INJECTOR" --once --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 15000 >/dev/null 2>&1 || true
   fi
-  if "$NODE" "$INJECTOR" --verify --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 12000 >"$VERIFY_OUTPUT" 2>/dev/null; then
+  if "$NODE" "$INJECTOR" --verify --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 12000 >"$VERIFY_OUTPUT" 2>/dev/null; then
     verify_code=0
   else
     verify_code=$?

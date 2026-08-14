@@ -31,6 +31,7 @@ function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
   modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
+  locationHref = "app://-/index.html",
 } = {}) {
   const attrs = new Map();
   const rootStyle = styleDeclaration();
@@ -161,7 +162,7 @@ function makeFixture({
       );
       register("[data-codex-state]", signalNode);
     }
-    register("aside.app-shell-left-panel", partFixtures.sidebar);
+    register('aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])', partFixtures.sidebar);
     register("main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", partFixtures.main);
     register("header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", partFixtures.header);
     if (!threadRoute) {
@@ -251,6 +252,7 @@ function makeFixture({
     replaceSync(text) { this.text = text; }
   }
   const window = {
+    location: { href: locationHref },
     navigation,
     matchMedia(query) {
       return {
@@ -352,6 +354,7 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.match(template, /adoptedStyleSheets/);
   assert.match(template, /CSSStyleSheet/);
   assert.match(template, /window\.navigation/);
+  assert.match(template, /native-browser-comment-popup/);
   assert.match(template, /electron-dark/);
   assert.doesNotMatch(template, /electron-opaque|home-suggestion-list-item/,
     "Runtime payload must not carry retired selector documentation/fossils.");
@@ -372,14 +375,21 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.match(css, /header:is\(\.app-header-tint, \[data-app-shell-header-edge-scroll\], \[class\*=\"_Header_\"\]\)/);
   assert.match(css, /:is\(\.app-shell-main-content-top-fade, \[data-app-shell-main-content-top-fade\], \[class\*=\"_MainContentTopFade_\"\]\)/);
   assert.doesNotMatch(css, /:has\([^()]*:has\(/);
-  assert.match(css, /content:\s*var\(--dream-skin-name[\s\S]{0,180}var\(--dream-skin-brand-subtitle/);
-  assert.match(css, /content:\s*var\(--dream-skin-status/);
+  assert.doesNotMatch(css, /content:\s*var\(--dream-skin-name[\s\S]{0,180}var\(--dream-skin-brand-subtitle/,
+    "The renderer must not inject a duplicate title into Codex's native header.");
+  assert.doesNotMatch(css, /content:\s*var\(--dream-skin-status/,
+    "The renderer must not inject a duplicate status badge into Codex's native header.");
   assert.match(css, /content:\s*var\(--dream-skin-quote/);
   assert.match(css, /--ds-task-full-veil/);
   assert.match(css, /data-dream-task-mode="full"/);
-  assert.match(css, /data-dream-visual-state="executing"/);
-  assert.match(css, /codex-dream-skin-success/);
-  assert.match(css, /background-image:\s*var\(--ds-task-full-veil\),\s*var\(--dream-skin-art\)/);
+  assert.match(css, /data-dream-state-motion="pulse"/);
+  assert.match(css, /codex-dream-skin-media-flash/);
+  assert.match(css, /--dream-state-overlay-opacity/);
+  assert.match(
+    css,
+    /background-image:\s*var\(--ds-task-full-veil\),\s*var\(--ds-theme-image-veil\),\s*var\(--dream-skin-art\)/,
+  );
+  assert.match(css, /background-size:\s*100% 100%,\s*100% 100%,\s*var\(--ds-art-size, cover\)/);
   assert.match(
     css,
     /:not\(:has\(main:is\(\.main-surface, \[data-app-shell-main-surface\], \[class\*=\"_MainContentSurface_\"\]\)\)\)[\s\S]{0,120}\[data-ds-part="sidebar"\]/,
@@ -402,6 +412,21 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.doesNotMatch(unscoped, /\[role="main"\]:has\(\[data-testid="home-icon"\]\)/);
   assert.doesNotMatch(unscoped, /\.group\\\/project-selector/);
 
+  assert.match(css, /header:is\(\.app-header-tint, \[data-app-shell-header-edge-scroll\], \[class\*="_Header_"\]\)[\s\S]{0,520}z-index:\s*2\s*!important/,
+    "Native header controls must stay above the skin artwork layer.");
+  assert.match(css, /body::after[\s\S]{0,260}z-index:\s*0;/,
+    "State glow must remain below native controls.");
+  assert.match(css, /\[class\*="_ApplicationMenuTopBar_"\][\s\S]{0,260}color:\s*var\(--ds-text\)/,
+    "The rebuilt native menu bar must use the skin text token for contrast.");
+  assert.match(css, /aside\[class~="bg-token-main-surface-primary"\][\s\S]{0,360}background:\s*linear-gradient[\s\S]{0,180}rgb\(var\(--ds-panel-rgb\) \/ \.46\)[\s\S]{0,120}rgb\(var\(--ds-bg-rgb\) \/ \.58\)/,
+    "Rebuilt hover sidebars must use the skin glass surface.");
+  assert.match(css, /\[class~="bg-token-dropdown-background"\][\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
+    "Floating dropdown surfaces must remain translucent under the skin.");
+  assert.match(css, /\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.52\)/,
+    "Dynamic terminal panes must use the skin glass surface.");
+  assert.match(css, /\[class\*="_ComposerLayoutRoot_"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
+    "Current Codex composer roots must use the skin glass surface.");
+
   const home = makeFixture({ nativeAppearance: "dark" });
   vm.runInNewContext(home.payloadFor({ art: { safeArea: "left", taskMode: "banner" } }), home.context);
   const state = home.window.__CODEX_DREAM_SKIN_STATE__;
@@ -414,6 +439,13 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(state.scope.level, "L1");
   assert.equal(state.visualState.state, "home");
   assert.equal(home.attrs.get("data-dream-visual-state"), "home");
+  // The real Codex browser toolbar can mount after the constructable sheet.
+  // The delayed repair must reattach the same sheet without losing the active
+  // theme, so the native tab title and add-tab control get a fresh paint pass.
+  home.flushTimers(180);
+  home.flushTimers(0);
+  assert.equal(home.document.adoptedStyleSheets.length, 1);
+  assert.equal(state.metrics.styleRepairs, 1);
   assert.equal(home.rootStyle.values.get("--dream-skin-brand-subtitle"), '"CODEX DREAM SKIN"');
   assert.equal(home.rootStyle.values.get("--dream-skin-status"), '"DREAM SKIN ONLINE"');
   assert.equal(home.rootStyle.values.get("--ds-theme-surface-radius"), "12px");
@@ -433,12 +465,41 @@ export async function runRendererRuntimeTest(assetRoot) {
   for (const [variable, expected] of Object.entries(publicDefaults)) {
     assert.equal(home.rootStyle.values.get(variable), expected);
   }
+  assert.equal(home.attrs.get("data-dream-controls"), "default");
+  assert.equal(home.attrs.get("data-dream-motion-level"), "standard");
   assert.equal(home.rootStyle.values.get("--ds-theme-image-focus-x"), "0.72");
   assert.equal(home.rootStyle.values.get("--ds-theme-image-focus-y"), "0.5");
   assert.equal(state.metrics.routePasses, 1);
   assert.equal(state.metrics.partPasses, 1);
   assert.equal(state.metrics.layoutReads, 0, "Runtime must not perform layout reads");
   assert.equal(home.rootClasses.writes.length, 0, "Runtime must not write classes");
+
+  const nativeCommentPopup = makeFixture({ locationHref: "about:blank" });
+  const nativeCommentResult = vm.runInNewContext(
+    nativeCommentPopup.payloadFor(), nativeCommentPopup.context,
+  );
+  assert.equal(nativeCommentResult?.installed, false,
+    "Native Codex comment popups must not install Dream Skin");
+  assert.equal(nativeCommentResult?.reason, "native-browser-comment-popup",
+    "Native Codex comment popups must be identified before any skin layer is created");
+  assert.equal(nativeCommentPopup.document.adoptedStyleSheets.length, 0);
+  assert.equal(nativeCommentPopup.attrs.size, 0);
+
+  const transitioningCommentPopup = makeFixture({ nativeAppearance: "dark" });
+  vm.runInNewContext(transitioningCommentPopup.payloadFor(), transitioningCommentPopup.context);
+  assert.equal(transitioningCommentPopup.attrs.get("data-dream-skin"), "active");
+  assert.equal(transitioningCommentPopup.document.adoptedStyleSheets.length, 1);
+  transitioningCommentPopup.window.location.href = "about:blank";
+  const transitionResult = vm.runInNewContext(
+    transitioningCommentPopup.payloadFor(), transitioningCommentPopup.context,
+  );
+  assert.equal(transitionResult?.installed, false,
+    "A popup that transitions to native comment mode must disable Dream Skin");
+  assert.equal(transitionResult?.reason, "native-browser-comment-popup",
+    "A popup that transitions to native comment mode must use the native isolation path");
+  assert.equal(transitioningCommentPopup.window.__CODEX_DREAM_SKIN_STATE__, undefined);
+  assert.equal(transitioningCommentPopup.document.adoptedStyleSheets.length, 0);
+  assert.equal(transitioningCommentPopup.attrs.size, 0);
 
   const video = makeFixture({ nativeAppearance: "dark" });
   vm.runInNewContext(video.payloadFor({
@@ -494,10 +555,66 @@ export async function runRendererRuntimeTest(assetRoot) {
   stateEvent({ detail: { state: "executing" } });
   assert.equal(stateBridgeRuntime.visualState.state, "executing");
   assert.equal(stateBridge.attrs.get("data-dream-visual-state"), "executing");
+  assert.equal(stateBridge.attrs.get("data-dream-state-motion"), "pulse");
+  assert.equal(stateBridge.rootStyle.values.get("--dream-state-media-opacity"), "0.9");
   stateEvent({ detail: { state: "approval" } });
   assert.equal(stateBridgeRuntime.visualState.state, "approval");
   stateBridgeRuntime.clearVisualState();
   assert.equal(stateBridgeRuntime.visualState.state, "idle");
+
+  const customEffect = makeFixture({ nativeAppearance: "dark", threadRoute: true });
+  vm.runInNewContext(customEffect.payloadFor({
+    stateEffects: {
+      executing: {
+        color: "#123456",
+        overlayOpacity: 0.2,
+        mediaOpacity: 0.66,
+        brightness: 1.2,
+        saturation: 1.4,
+        contrast: 1.1,
+        hueRotate: 22,
+        motion: "alert",
+      },
+    },
+  }), customEffect.context);
+  customEffect.listeners.get("window:codex-dream-skin:visual-state")({
+    detail: { state: "executing" },
+  });
+  const customRuntime = customEffect.window.__CODEX_DREAM_SKIN_STATE__;
+  assert.equal(customEffect.attrs.get("data-dream-state-motion"), "alert");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-color"), "#123456");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-overlay-opacity"), "0.2");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-media-opacity"), "0.66");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-brightness"), "1.2");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-saturation"), "1.4");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-contrast"), "1.1");
+  assert.equal(customEffect.rootStyle.values.get("--dream-state-hue"), "22deg");
+  assert.equal(customRuntime.visualEffect.motion, "alert");
+
+  const customControls = makeFixture({ nativeAppearance: "dark", threadRoute: true });
+  vm.runInNewContext(customControls.payloadFor({
+    controls: {
+      surfaceOpacity: 0.72,
+      surfaceBlur: 20,
+      surfaceRadius: 26,
+      imageZoom: 1.12,
+      imageDim: 0.28,
+      motionLevel: "reduced",
+    },
+  }), customControls.context);
+  assert.equal(customControls.attrs.get("data-dream-controls"), "custom");
+  assert.equal(customControls.attrs.get("data-dream-motion-level"), "reduced");
+  assert.equal(customControls.rootStyle.values.get("--ds-theme-surface-opacity"), "0.72");
+  assert.equal(customControls.rootStyle.values.get("--ds-theme-surface-blur"), "20px");
+  assert.equal(customControls.rootStyle.values.get("--ds-theme-surface-radius"), "26px");
+  assert.equal(customControls.rootStyle.values.get("--ds-theme-image-zoom"), "1.12");
+  assert.equal(customControls.rootStyle.values.get("--ds-theme-image-dim"), "0.28");
+  assert.equal(customControls.rootStyle.values.get("--ds-art-size"), "112% auto");
+  customControls.listeners.get("window:codex-dream-skin:visual-state")({
+    detail: { state: "executing" },
+  });
+  assert.equal(customControls.attrs.get("data-dream-state-motion"), "none",
+    "Reduced theme motion must disable state animations at the runtime boundary");
 
   const partObserver = home.observers.find((observer) => observer.options?.childList);
   const rootObserver = home.observers.find((observer) => observer.options?.attributes);

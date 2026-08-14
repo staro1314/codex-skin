@@ -83,6 +83,8 @@ export function normalizeHealthState(state) {
     codexRunning: state?.codexRunning === true,
     themeId: typeof state?.themeId === "string" ? state.themeId : "",
     appliedThemeId: typeof state?.appliedThemeId === "string" ? state.appliedThemeId : "",
+    browserId: typeof state?.browserId === "string" && /^[A-Za-z0-9._-]{1,200}$/.test(state.browserId)
+      ? state.browserId : "",
   };
 }
 
@@ -251,6 +253,11 @@ export async function runDoctor({
   const stateResult = await readState(stateFile);
   if (stateResult.check) checks.push(stateResult.check);
   const normalizedState = normalizeHealthState(stateResult.state);
+  if (stateResult.state && ["active", "applying", "paused"].includes(normalizedState.session)) {
+    checks.push(normalizedState.browserId
+      ? check("session-identity", "DS-STATE-003", "pass", "The saved session contains a valid CDP Browser ID.")
+      : check("session-identity", "DS-STATE-003", "fail", "The saved session is missing its CDP Browser ID lease.", "Restore the official appearance, then start Dream Skin again."));
+  }
   if (stateResult.state && normalizedState.operation === "failed") {
     checks.push(check("last-operation", "DS-RUN-001", "warn", "The last Dream Skin operation failed.", "Read the platform error log, restore the last known good theme, and retry."));
   }

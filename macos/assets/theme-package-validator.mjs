@@ -77,6 +77,37 @@ const COLOR_KEYS = [
   "muted",
   "line",
 ];
+const VISUAL_STATE_KEYS = [
+  "unknown",
+  "home",
+  "idle",
+  "thinking",
+  "executing",
+  "approval",
+  "success",
+  "error",
+  "settings",
+  "overlay",
+];
+const STATE_EFFECT_KEYS = [
+  "color",
+  "overlayOpacity",
+  "mediaOpacity",
+  "brightness",
+  "saturation",
+  "contrast",
+  "hueRotate",
+  "motion",
+];
+const STATE_EFFECT_MOTIONS = new Set(["none", "pulse", "flash", "alert"]);
+const THEME_CONTROL_KEYS = [
+  "surfaceOpacity",
+  "surfaceBlur",
+  "surfaceRadius",
+  "imageZoom",
+  "imageDim",
+  "motionLevel",
+];
 const SEMVER_PATTERN = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
 const THEME_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const PUBLISHER_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -316,12 +347,117 @@ export function normalizeThemeVideo(value, label = "theme.video") {
   };
 }
 
+function normalizeBoundedNumber(value, fallback, min, max, label) {
+  if (value === undefined) return fallback;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) {
+    fail(`${label} must be between ${min} and ${max}`);
+  }
+  return value;
+}
+
+export function normalizeThemeStateEffects(value, label = "theme.stateEffects") {
+  if (value === undefined) return null;
+  const effects = assertObject(value, label);
+  assertExactKeys(effects, [], VISUAL_STATE_KEYS, label);
+  const normalized = {};
+  for (const state of VISUAL_STATE_KEYS) {
+    if (effects[state] === undefined) continue;
+    const effectLabel = `${label}.${state}`;
+    const effect = assertObject(effects[state], effectLabel);
+    assertExactKeys(effect, [], STATE_EFFECT_KEYS, effectLabel);
+    if (effect.color !== undefined) {
+      assertString(effect.color, `${effectLabel}.color`, {
+        min: 1,
+        max: 64,
+        pattern: COLOR_PATTERN,
+        controls: null,
+      });
+    }
+    if (effect.motion !== undefined && !STATE_EFFECT_MOTIONS.has(effect.motion)) {
+      fail(`${effectLabel}.motion is unsupported`);
+    }
+    normalized[state] = {
+      ...(effect.color !== undefined ? { color: effect.color } : {}),
+      ...(effect.overlayOpacity !== undefined ? {
+        overlayOpacity: normalizeBoundedNumber(
+          effect.overlayOpacity, undefined, 0, 0.35, `${effectLabel}.overlayOpacity`,
+        ),
+      } : {}),
+      ...(effect.mediaOpacity !== undefined ? {
+        mediaOpacity: normalizeBoundedNumber(
+          effect.mediaOpacity, undefined, 0, 1, `${effectLabel}.mediaOpacity`,
+        ),
+      } : {}),
+      ...(effect.brightness !== undefined ? {
+        brightness: normalizeBoundedNumber(
+          effect.brightness, undefined, 0.5, 1.35, `${effectLabel}.brightness`,
+        ),
+      } : {}),
+      ...(effect.saturation !== undefined ? {
+        saturation: normalizeBoundedNumber(
+          effect.saturation, undefined, 0, 2, `${effectLabel}.saturation`,
+        ),
+      } : {}),
+      ...(effect.contrast !== undefined ? {
+        contrast: normalizeBoundedNumber(
+          effect.contrast, undefined, 0.5, 1.5, `${effectLabel}.contrast`,
+        ),
+      } : {}),
+      ...(effect.hueRotate !== undefined ? {
+        hueRotate: normalizeBoundedNumber(
+          effect.hueRotate, undefined, -180, 180, `${effectLabel}.hueRotate`,
+        ),
+      } : {}),
+      ...(effect.motion !== undefined ? { motion: effect.motion } : {}),
+    };
+  }
+  return normalized;
+}
+
+export function normalizeThemeControls(value, label = "theme.controls") {
+  if (value === undefined) return null;
+  const controls = assertObject(value, label);
+  assertExactKeys(controls, [], THEME_CONTROL_KEYS, label);
+  if (controls.motionLevel !== undefined &&
+    !new Set(["reduced", "standard", "expressive"]).has(controls.motionLevel)) {
+    fail(`${label}.motionLevel is unsupported`);
+  }
+  return {
+    ...(controls.surfaceOpacity !== undefined ? {
+      surfaceOpacity: normalizeBoundedNumber(
+        controls.surfaceOpacity, undefined, 0.55, 1, `${label}.surfaceOpacity`,
+      ),
+    } : {}),
+    ...(controls.surfaceBlur !== undefined ? {
+      surfaceBlur: normalizeBoundedNumber(
+        controls.surfaceBlur, undefined, 0, 32, `${label}.surfaceBlur`,
+      ),
+    } : {}),
+    ...(controls.surfaceRadius !== undefined ? {
+      surfaceRadius: normalizeBoundedNumber(
+        controls.surfaceRadius, undefined, 8, 28, `${label}.surfaceRadius`,
+      ),
+    } : {}),
+    ...(controls.imageZoom !== undefined ? {
+      imageZoom: normalizeBoundedNumber(
+        controls.imageZoom, undefined, 1, 1.2, `${label}.imageZoom`,
+      ),
+    } : {}),
+    ...(controls.imageDim !== undefined ? {
+      imageDim: normalizeBoundedNumber(
+        controls.imageDim, undefined, 0, 0.65, `${label}.imageDim`,
+      ),
+    } : {}),
+    ...(controls.motionLevel !== undefined ? { motionLevel: controls.motionLevel } : {}),
+  };
+}
+
 function validateOfficialTheme(value) {
   const theme = assertObject(value, "theme.json");
   assertExactKeys(
     theme,
     THEME_REQUIRED,
-    [...THEME_COPY_KEYS, "promoUrl", "appearance", "art", "colors", "video"],
+    [...THEME_COPY_KEYS, "promoUrl", "appearance", "art", "colors", "video", "stateEffects", "controls"],
     "theme.json",
   );
   if (theme.schemaVersion !== 1) fail("theme.json must use schemaVersion 1");
@@ -367,6 +503,8 @@ function validateOfficialTheme(value) {
       });
     }
   }
+  normalizeThemeStateEffects(theme.stateEffects);
+  normalizeThemeControls(theme.controls);
   return theme;
 }
 
@@ -569,6 +707,8 @@ async function validateSimple(root, names) {
     || !names.includes(theme.image)
   ) fail("Local simplified theme image must be beside theme.json");
   const video = normalizeThemeVideo(theme.video);
+  normalizeThemeStateEffects(theme.stateEffects);
+  normalizeThemeControls(theme.controls);
   const expectedNames = new Set(["theme.json", "theme.css", theme.image]);
   if (video) expectedNames.add(video.src);
   if (names.length !== expectedNames.size || names.some((name) => !expectedNames.has(name))) {
@@ -604,17 +744,18 @@ async function validateSimple(root, names) {
   };
 }
 
-async function main() {
-  const args = parseArguments(process.argv.slice(2));
-  const source = await resolveDirectory(args.source, "Theme package source");
-  const stage = await resolveDirectory(args.stage, "Theme package stage", true);
-  const names = await sourceFileNames(source);
+export async function validateThemePackageDirectory({ source, stage, platform, clientVersion }) {
+  const resolvedSource = await resolveDirectory(source, "Theme package source");
+  const resolvedStage = await resolveDirectory(stage, "Theme package stage", true);
+  if (!new Set(["macos", "windows"]).has(platform)) fail(`Unsupported platform: ${platform}`);
+  parseSemver(clientVersion, "client version");
+  const names = await sourceFileNames(resolvedSource);
   const result = names.includes("manifest.json")
-    ? await validateOfficial(source, names, args.platform, args["client-version"])
-    : await validateSimple(source, names);
+    ? await validateOfficial(resolvedSource, names, platform, clientVersion)
+    : await validateSimple(resolvedSource, names);
   for (const [name, bytes] of result.bytes) {
-    await fs.writeFile(path.join(stage, name), bytes, { flag: "wx", mode: 0o600 });
-    await fs.chmod(path.join(stage, name), 0o600);
+    await fs.writeFile(path.join(resolvedStage, name), bytes, { flag: "wx", mode: 0o600 });
+    await fs.chmod(path.join(resolvedStage, name), 0o600);
   }
   return {
     format: result.format,
@@ -623,6 +764,16 @@ async function main() {
     safeCssStatus: result.safeCssStatus,
     signatureIgnored: result.signatureIgnored,
   };
+}
+
+async function main() {
+  const args = parseArguments(process.argv.slice(2));
+  return validateThemePackageDirectory({
+    source: args.source,
+    stage: args.stage,
+    platform: args.platform,
+    clientVersion: args["client-version"],
+  });
 }
 
 if (path.resolve(process.argv[1] || "") === path.resolve(scriptPath)) {

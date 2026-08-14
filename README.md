@@ -14,6 +14,7 @@ Codex Dream Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工
 - 主题包导入：支持受校验的 `.zip` 主题包和可信的本地简化主题目录。
 - 安全 CSS：主题 CSS 经过本地策略校验，只能作用于注册的主题部件。
 - 主题管理：支持导入、保存、切换、暂停、重新应用和完整恢复官方外观。
+- 可视化控制中心：在本机实时预览背景、玻璃表面和状态特效，保存为新主题后再应用。
 - 双平台运行：Windows 托盘与 PowerShell 流程，macOS 原生菜单栏与脚本流程。
 - 安装与恢复：提供安装器、运行时复制、进程身份校验、日志和回滚路径。
 - 自动化验证：覆盖主题包、渲染注入、选择器、窗口可见性、恢复和发布资产。
@@ -67,6 +68,17 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin
 ```
 
 普通用户无需打开 PowerShell，直接双击仓库根目录的 `start-codex-skin.cmd` 即可启动。启动成功后窗口自动关闭；失败时窗口会保留并暂停，方便查看错误。
+
+需要创作或调校主题时，直接双击仓库根目录的 `control-codex-skin.cmd`。它会在 `127.0.0.1` 的随机端口启动本地控制中心并自动打开浏览器，无需输入命令。控制中心支持：
+
+- 从当前、内置或已保存主题创建草稿，并实时预览图片/视频背景。
+- 调整构图焦点、安全区、任务页强度、视频性能、玻璃透明度/模糊/圆角、背景缩放和压暗。
+- 逐项预览 `idle`、`thinking`、`executing`、`approval`、`success`、`error`、`settings`、`overlay` 状态特效。
+- 上传最大 10 MiB 的 PNG/JPEG/WebP 或最大 32 MiB 的 MP4/WebM；保存前复用运行时媒体、Safe CSS 和主题校验。
+- 每次保存都在 `%LOCALAPPDATA%\CodexDreamSkin\themes\` 创建新的 `custom-*` 主题，不覆盖母版；应用、暂停和继续显示复用现有 Windows 主题操作。
+- 为已保存主题填写语义版本、发布者、许可证、来源说明和 AI 素材声明，一键下载 Windows/macOS 通用的正式 `.zip` 分享包。
+
+控制中心只监听回环地址。API 需要随机会话令牌，写操作还要求精确同源 `Origin`；页面不加载第三方脚本、字体或网络资源。完整恢复官方外观仍使用现有恢复入口，不会被伪装成控制中心里的普通外观按钮。
 
 启动并执行一次脱敏 DOM/视觉状态快照：
 
@@ -129,6 +141,10 @@ manifest.sig                # 预留字段
 
 本地简化主题至少包含非空的 `theme.json`、非空的 `theme.css` 和 `theme.json` 引用的背景图；需要动态背景时可再加入一个 `background.mp4` 或 `background.webm`。导入器会拒绝路径穿越、链接/reparse、嵌套压缩包、未注册文件、超限资源和不符合主题契约的内容。
 
+控制中心只允许导出已保存主题，防止把未保存预览误当成发布版本。导出器会规范化公开字段和固定媒体文件名，生成 `manifest.json` 的逐文件大小与 SHA-256，并分别按 Windows、macOS 和当前客户端版本复验后才返回普通 `.zip`。同一已保存主题不能重复导出同一语义版本；历史记录保存在本机状态目录的 `export-history.json`，分享包本身不长期缓存在控制中心目录。
+
+发布者必须确认图片、视频和衍生素材的授权范围。选择许可证并不会自动获得第三方素材版权；`LICENSE.txt` 只表达发布者对该主题包所作的授权声明。
+
 图片主题应是纯背景，不应把 Codex 窗口、侧栏、输入框、按钮、文字或截图直接烘焙进图片。主题元数据可以控制：
 
 - `appearance`：跟随系统、浅色或深色。
@@ -157,7 +173,51 @@ manifest.sig                # 预留字段
 ### Codex 状态视觉桥
 
 渲染器会把路由、受限 DOM 语义信号和可选事件桥归一化为 `data-dream-visual-state`：
-`unknown`、`home`、`idle`、`thinking`、`executing`、`approval`、`success`、`error`、`settings`、`overlay`。路由状态优先，未识别的任务状态安全回退到 `idle`；状态特效只作用于装饰视频层，不修改原生控件的交互。
+`unknown`、`home`、`idle`、`thinking`、`executing`、`approval`、`success`、`error`、`settings`、`overlay`。路由状态优先，未识别的任务状态安全回退到 `idle`；状态特效只作用于非交互装饰层，不修改原生控件的交互。
+
+主题可以通过可选的 `stateEffects` 覆盖各状态的内置效果：
+
+```json
+{
+  "stateEffects": {
+    "thinking": {
+      "color": "#36d7e8",
+      "overlayOpacity": 0.12,
+      "motion": "pulse"
+    },
+    "executing": {
+      "mediaOpacity": 0.92,
+      "brightness": 1.08,
+      "saturation": 1.35,
+      "motion": "pulse"
+    },
+    "success": {
+      "color": "#7cff46",
+      "overlayOpacity": 0.16,
+      "motion": "flash"
+    }
+  }
+}
+```
+
+`overlayOpacity` 限制在 `0..0.35`，`mediaOpacity` 限制在 `0..1`，亮度、饱和度、对比度和色相也有固定边界。`motion` 只接受 `none`、`pulse`、`flash`、`alert`，不接受任意 CSS、URL 或脚本。未声明的状态继续使用内置效果；显式使用 `motion: "none"` 可以关闭某一状态的内置动画。边缘状态光对图片和视频主题都有效，且始终保持 `pointer-events: none`。
+
+控制中心使用可选的 `controls` 字段保存通用视觉参数：
+
+```json
+{
+  "controls": {
+    "surfaceOpacity": 0.82,
+    "surfaceBlur": 22,
+    "surfaceRadius": 18,
+    "imageZoom": 1.06,
+    "imageDim": 0.24,
+    "motionLevel": "standard"
+  }
+}
+```
+
+其中表面透明度限制为 `0.55..1`，模糊限制为 `0..32`，圆角限制为 `8..28`，背景缩放限制为 `1..1.2`，压暗限制为 `0..0.65`，动态级别只接受 `reduced`、`standard`、`expressive`。旧主题省略 `controls` 时继续使用原有渲染效果，不需要迁移。
 
 未来的 Codex 事件适配层可以在页面内发送：
 
@@ -185,6 +245,7 @@ window.dispatchEvent(new CustomEvent("codex-dream-skin:visual-state", {
 
 ```text
 codex-skin/
+├── control-center/ 本机可视化主题控制中心与实时预览
 ├── docs/       项目记录、平台路径、安装和素材说明
 ├── macos/      macOS 菜单栏、安装、主题和测试
 ├── runtime/    跨平台共享渲染与主题校验源

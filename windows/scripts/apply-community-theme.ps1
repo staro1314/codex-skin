@@ -211,6 +211,10 @@ function Copy-DreamSkinActiveThemeSnapshot {
   $imageName = [System.IO.Path]::GetFileName($active.ImagePath)
   Copy-Item -LiteralPath $active.ThemePath -Destination (Join-Path $Destination 'theme.json') -Force
   Copy-Item -LiteralPath $active.ImagePath -Destination (Join-Path $Destination $imageName) -Force
+  if ($active.VideoPath) {
+    $videoName = [System.IO.Path]::GetFileName($active.VideoPath)
+    Copy-Item -LiteralPath $active.VideoPath -Destination (Join-Path $Destination $videoName) -Force
+  }
   $activeCss = Join-Path $Paths.Active 'theme.css'
   if (Test-Path -LiteralPath $activeCss -PathType Leaf) {
     Assert-DreamSkinSafeCssFile -Path $activeCss
@@ -243,6 +247,10 @@ function Copy-DreamSkinImportedThemeSnapshot {
   $imageName = [System.IO.Path]::GetFileName($source.ImagePath)
   Copy-Item -LiteralPath $source.ThemePath -Destination (Join-Path $Destination 'theme.json') -Force
   Copy-Item -LiteralPath $source.ImagePath -Destination (Join-Path $Destination $imageName) -Force
+  if ($source.VideoPath) {
+    $videoName = [System.IO.Path]::GetFileName($source.VideoPath)
+    Copy-Item -LiteralPath $source.VideoPath -Destination (Join-Path $Destination $videoName) -Force
+  }
   Copy-Item -LiteralPath $sourceCss -Destination (Join-Path $Destination 'theme.css') -Force
   $sourceLicense = Join-Path $sourceRoot 'LICENSE.txt'
   if (Test-Path -LiteralPath $sourceLicense -PathType Leaf) {
@@ -272,7 +280,7 @@ function Restore-DreamSkinActiveThemeSnapshot {
   $cssPath = Join-Path $SnapshotDirectory 'theme.css'
   if (-not (Test-Path -LiteralPath $cssPath -PathType Leaf)) { $cssPath = $null }
   $null = Set-DreamSkinActiveTheme -ImagePath $snapshot.ImagePath -Theme $theme `
-    -SafeCssPath $cssPath -StateRoot $StateRoot
+    -SafeCssPath $cssPath -VideoPath $snapshot.VideoPath -StateRoot $StateRoot
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   $restoredFingerprint = Get-DreamSkinThemeRuntimeContentFingerprint -ThemeDirectory $paths.Active
   if ($restoredFingerprint -cne $ExpectedContentFingerprint) {
@@ -297,7 +305,7 @@ function Set-DreamSkinActiveThemeFromSnapshot {
   Assert-DreamSkinSafeCssFile -Path $cssPath
   $theme = $candidate.Theme | ConvertTo-Json -Depth 8 | ConvertFrom-Json
   $null = Set-DreamSkinActiveTheme -ImagePath $candidate.ImagePath -Theme $theme `
-    -SafeCssPath $cssPath -StateRoot $StateRoot
+    -SafeCssPath $cssPath -VideoPath $candidate.VideoPath -StateRoot $StateRoot
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   $activeFingerprint = Get-DreamSkinThemeRuntimeContentFingerprint -ThemeDirectory $paths.Active
   if ($activeFingerprint -cne $ExpectedContentFingerprint) {

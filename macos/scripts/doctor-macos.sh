@@ -36,8 +36,10 @@ if [ -f "$STATE_PATH" ]; then
 fi
 LIVE="false"
 if [ -f "$STATE_PATH" ] && verified_cdp_endpoint "$PORT"; then
-  "$NODE" "$INJECTOR" --verify --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 12000 >/dev/null
-  LIVE="true"
+  if BROWSER_ID="$(leased_cdp_browser_id "$PORT")"; then
+    "$NODE" "$INJECTOR" --verify --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 12000 >/dev/null
+    LIVE="true"
+  fi
 fi
 [ "$REQUIRE_LIVE" = "false" ] || [ "$LIVE" = "true" ] || fail "No verified live Dream Skin session is active."
 

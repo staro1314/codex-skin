@@ -28,5 +28,8 @@ assert.doesNotMatch(
   /main_sha="\$\(git rev-parse origin\/main\)"/,
   "The release candidate must not be rebound to a later origin/main tip.",
 );
+assert.match(workflow, /^\s+contents: read\s*$/m);
+assert.doesNotMatch(workflow, /^\s+contents: write\s*$/m);
+assert.match(workflow, /Publish remains an explicit human-approved step/);
 
 console.log("PASS: Release workflow binds assets and tag to the exact event commit.");

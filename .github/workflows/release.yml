@@ -1,0 +1,92 @@
+name: Release Candidate
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to validate and build"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the immutable event commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bind candidate to the event commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          event_sha="$(git rev-parse HEAD)"
+          release_sha="$event_sha"
+          test "$event_sha" = "${{ github.sha }}"
+          test "$release_sha" = "${{ github.sha }}"
+          node tools/release-doctor.mjs --tag "$RELEASE_TAG"
+          node tools/sync-runtime-assets.mjs --check
+          node --test tools/*.test.mjs
+
+  macos:
+    needs: guard
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build macOS release archive
+        run: ./macos/scripts/build-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-dream-skin-macos
+          path: macos/release/*
+          if-no-files-found: error
+
+  windows:
+    needs: guard
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Build Windows installer
+        shell: pwsh
+        run: .\windows\installer\build-release.ps1 -OutputDirectory .\release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-dream-skin-windows
+          path: release/*
+          if-no-files-found: error
+
+  release-handoff:
+    needs: [guard, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+      - name: Summarize release candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          find release-assets -maxdepth 3 -type f -print
+          printf 'Candidate %s built from %s. Publish remains an explicit human-approved step.\n' "$RELEASE_TAG" "${{ github.sha }}"

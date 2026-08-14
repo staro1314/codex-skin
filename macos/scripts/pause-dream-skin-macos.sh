@@ -16,6 +16,7 @@ record_pause_error() {
   local recovery_path=""
   local recovery_port=""
   local recovery_protocol=""
+  local recovery_browser_id=""
   local expect_recovery="false"
   [ "$code" -ne 0 ] || return 0
   [ -n "${OPERATION_TOKEN:-}" ] || return 0
@@ -27,9 +28,11 @@ record_pause_error() {
     recovery_path="$(state_field injectorPath 2>/dev/null || true)"
     recovery_port="$(state_field port 2>/dev/null || true)"
     recovery_protocol="$(state_field injectorProtocol 2>/dev/null || true)"
-    if [ "$recovery_protocol" = "3" ] \
+    recovery_browser_id="$(state_field browserId 2>/dev/null || true)"
+    if { [ "$recovery_protocol" = "3" ] || [ "$recovery_protocol" = "4" ]; } \
       && recorded_injector_process_matches \
         "$recovery_pid" "$recovery_start" "$recovery_node" "$recovery_path" "$recovery_port" \
+        "$recovery_browser_id" \
       && operation_ack_matches "$OPERATION_TOKEN" "$recovery_pid" control; then
       expect_recovery="true"
     fi
@@ -43,7 +46,7 @@ record_pause_error() {
   if [ "$expect_recovery" = "true" ] \
     && wait_for_operation_ack "$OPERATION_TOKEN" "$recovery_pid" full 240 \
     && recorded_injector_process_matches \
-      "$recovery_pid" "$recovery_start" "$recovery_node" "$recovery_path" "$recovery_port"; then
+      "$recovery_pid" "$recovery_start" "$recovery_node" "$recovery_path" "$recovery_port" "$recovery_browser_id"; then
     mark_state_active 2>/dev/null || true
   fi
   alert_user "暂停失败，请重新打开菜单查看状态。"
@@ -111,6 +114,8 @@ if codex_is_running && [ "$DEBUG_READY" != "true" ]; then
 fi
 
 if [ "$DEBUG_READY" = "true" ]; then
+  BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
+    || fail "The live CDP browser identity does not match the saved Dream Skin session."
   begin_client_operation "$PORT" pause 3000 "$OPERATION_TOKEN" >/dev/null 2>&1 || true
 fi
 
@@ -127,15 +132,17 @@ if [ -f "$STATE_PATH" ]; then
   recorded_node="$(state_field nodePath 2>/dev/null || true)"
   recorded_path="$(state_field injectorPath 2>/dev/null || true)"
   recorded_port="$(state_field port 2>/dev/null || true)"
-  if [ "$injector_protocol" = "3" ]; then
+  recorded_browser_id="$(state_field browserId 2>/dev/null || true)"
+  if [ "$injector_protocol" = "3" ] || [ "$injector_protocol" = "4" ]; then
     case "$recorded_pid" in
       ''|*[!0-9]*) ;;
       *)
         if recorded_injector_process_matches \
           "$recorded_pid" "$recorded_start" "$recorded_node" "$recorded_path" "$recorded_port" \
+          "$recorded_browser_id" \
           && wait_for_operation_ack "$OPERATION_TOKEN" "$recorded_pid" control \
           && recorded_injector_process_matches \
-            "$recorded_pid" "$recorded_start" "$recorded_node" "$recorded_path" "$recorded_port"; then
+            "$recorded_pid" "$recorded_start" "$recorded_node" "$recorded_path" "$recorded_port" "$recorded_browser_id"; then
           KEEP_CONTROL_WATCHER="true"
         fi
         ;;
@@ -149,11 +156,11 @@ fi
 
 if [ "$DEBUG_READY" = "true" ]; then
   if [ -n "$OPERATION_TOKEN" ]; then
-    "$NODE" "$INJECTOR" --remove --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 8000 \
+    "$NODE" "$INJECTOR" --remove --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 8000 \
       --operation-token "$OPERATION_TOKEN" >/dev/null \
       || fail "Could not remove the live skin from ChatGPT."
   else
-    "$NODE" "$INJECTOR" --remove --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 8000 >/dev/null \
+    "$NODE" "$INJECTOR" --remove --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 8000 >/dev/null \
       || fail "Could not remove the live skin from ChatGPT."
   fi
   REMOVED="true"
@@ -170,7 +177,7 @@ fi
   try { prev = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
   const state = {
     ...prev,
-    schemaVersion: 4,
+    schemaVersion: 5,
     session: "paused",
     port,
     injectorPid: keepControlWatcher ? Number(prev.injectorPid || 0) : 0,

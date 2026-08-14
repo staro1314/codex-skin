@@ -1,16 +1,29 @@
 // Canonical cross-platform renderer. Run tools/sync-runtime-assets.mjs after editing.
 ((cssText, artDataUrl, themeConfig) => {
-  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside.app-shell-left-panel","tier":"L1","scope":"all","required":true},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
+  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const DISABLED_KEY = "__CODEX_DREAM_SKIN_DISABLED__";
   const STYLE_REGISTRY_KEY = "__CODEX_DREAM_SKIN_STYLE_SHEETS__";
   const STYLE_ID = "codex-dream-skin-style";
   const SHELL_ATTR = "data-dream-shell";
   const PART_ATTR = "data-ds-part";
+  const previous = window[STATE_KEY];
+  if (typeof previous?.cleanup === "function") previous.cleanup();
+  window[DISABLED_KEY] = false;
+  // Codex renders screenshot comments in a transparent BrowserWindow that
+  // intentionally stays on about:blank. It is native chrome, not a skin
+  // surface; injecting body layers there breaks popup anchoring and caret
+  // painting while the user moves the pointer.
+  if (window.location?.href === "about:blank") {
+    window[DISABLED_KEY] = true;
+    return { installed: false, reason: "native-browser-comment-popup" };
+  }
   const ROOT_ATTRS = [
     "data-dream-skin", SHELL_ATTR,
     "data-dream-media",
     "data-dream-visual-state",
+    "data-dream-state-motion",
+    "data-dream-controls", "data-dream-motion-level",
     "data-dream-art-wide", "data-dream-art-safe", "data-dream-task-mode",
     "data-dream-art-safe-area", "data-dream-art-task-mode", "data-dream-art-aspect",
     "data-dream-art-ready",
@@ -25,6 +38,10 @@
   ]);
   const THEME = themeConfig && typeof themeConfig === "object" ? themeConfig : {};
   const VIDEO = THEME.video && typeof THEME.video === "object" ? THEME.video : null;
+  const STATE_EFFECTS = THEME.stateEffects && typeof THEME.stateEffects === "object"
+    && !Array.isArray(THEME.stateEffects) ? THEME.stateEffects : {};
+  const RAW_CONTROLS = THEME.controls && typeof THEME.controls === "object"
+    && !Array.isArray(THEME.controls) ? THEME.controls : {};
   const ART = THEME.art && typeof THEME.art === "object" ? THEME.art : {};
   const ART_METADATA = THEME.artMetadata && typeof THEME.artMetadata === "object"
     ? THEME.artMetadata : null;
@@ -52,7 +69,29 @@
     "--ds-theme-image-focus-y", "--ds-theme-image-zoom",
     "--ds-theme-image-dim", "--ds-theme-image-task-intensity",
     "--ds-theme-density-scale", "--ds-theme-motion-level",
+    "--ds-art-size", "--ds-theme-image-veil",
+    "--dream-state-color", "--dream-state-overlay-opacity",
+    "--dream-state-media-opacity", "--dream-state-brightness",
+    "--dream-state-saturation", "--dream-state-contrast", "--dream-state-hue",
   ];
+  const DEFAULT_STATE_EFFECTS = Object.freeze({
+    unknown: { mediaOpacity: 0.78, brightness: 1, saturation: 1, contrast: 1, hueRotate: 0, motion: "none" },
+    home: { mediaOpacity: 0.78, brightness: 1, saturation: 1, contrast: 1, hueRotate: 0, motion: "none" },
+    idle: { mediaOpacity: 0.78, brightness: 1, saturation: 1, contrast: 1, hueRotate: 0, motion: "none" },
+    thinking: { mediaOpacity: 0.84, brightness: 1.03, saturation: 1.08, contrast: 1, hueRotate: 0, motion: "none" },
+    executing: { mediaOpacity: 0.90, brightness: 1.04, saturation: 1.16, contrast: 1, hueRotate: 0, motion: "pulse" },
+    approval: { mediaOpacity: 0.86, brightness: 1.08, saturation: 0.90, contrast: 1.04, hueRotate: 0, motion: "none" },
+    success: { mediaOpacity: 0.90, brightness: 1.06, saturation: 1.28, contrast: 1, hueRotate: 0, motion: "flash" },
+    error: { mediaOpacity: 0.88, brightness: 0.94, saturation: 1.18, contrast: 1, hueRotate: -8, motion: "alert" },
+    settings: { mediaOpacity: 0.78, brightness: 1, saturation: 1, contrast: 1, hueRotate: 0, motion: "none" },
+    overlay: { mediaOpacity: 0.78, brightness: 1, saturation: 1, contrast: 1, hueRotate: 0, motion: "none" },
+  });
+  const STATE_EFFECT_COLORS = Object.freeze({
+    unknown: "#36d7e8", home: "#36d7e8", idle: "#36d7e8", thinking: "#36d7e8",
+    executing: "#7cff46", approval: "#f5b942", success: "#7cff46", error: "#ff5c67",
+    settings: "#36d7e8", overlay: "#36d7e8",
+  });
+  const STATE_EFFECT_COLOR_PATTERN = /^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?|#[0-9a-fA-F]{3,4}|rgb\(\s*[0-9]{1,3}\s*,\s*[0-9]{1,3}\s*,\s*[0-9]{1,3}\s*\)|rgba\(\s*[0-9]{1,3}\s*,\s*[0-9]{1,3}\s*,\s*[0-9]{1,3}\s*,\s*(0|1|1\.0|0?\.[0-9]{1,6})\s*\))$/;
   const selectorByKey = new Map(SELECTOR_CONTRACT.selectors.map((entry) => [entry.key, entry]));
   const stableTestidSelector = (testid) => SELECTOR_CONTRACT.stableTestids?.includes(testid)
     ? `[data-testid="${testid}"]` : null;
@@ -69,6 +108,7 @@
   let styleMode = null;
   let styleNode = null;
   let styleSheet = null;
+  let stylePaintRepairTimer = null;
   let videoNode = null;
   let videoFailed = false;
   let motionQuery = null;
@@ -107,10 +147,6 @@
     firstEnsureMs: null,
     analysisMs: null,
   };
-
-  const previous = window[STATE_KEY];
-  if (typeof previous?.cleanup === "function") previous.cleanup();
-  window[DISABLED_KEY] = false;
 
   const existingStyleRegistry = window[STYLE_REGISTRY_KEY];
   const styleRegistry = existingStyleRegistry instanceof Set ? existingStyleRegistry : new Set();
@@ -197,6 +233,63 @@
       root.setAttribute(name, normalized);
       metrics.attributeWrites += 1;
     }
+  };
+
+  const boundedEffectNumber = (value, fallback, min, max) =>
+    typeof value === "number" && Number.isFinite(value) && value >= min && value <= max
+      ? value : fallback;
+
+  const controlsCustomized = Object.keys(RAW_CONTROLS).length > 0;
+  const CONTROLS = Object.freeze({
+    surfaceOpacity: boundedEffectNumber(RAW_CONTROLS.surfaceOpacity, 1, 0.55, 1),
+    surfaceBlur: boundedEffectNumber(RAW_CONTROLS.surfaceBlur, 0, 0, 32),
+    surfaceRadius: boundedEffectNumber(RAW_CONTROLS.surfaceRadius, controlsCustomized ? 22 : 12, 8, 28),
+    imageZoom: boundedEffectNumber(RAW_CONTROLS.imageZoom, 1, 1, 1.2),
+    imageDim: boundedEffectNumber(RAW_CONTROLS.imageDim, 0, 0, 0.65),
+    motionLevel: ["reduced", "standard", "expressive"].includes(RAW_CONTROLS.motionLevel)
+      ? RAW_CONTROLS.motionLevel : "standard",
+    customized: controlsCustomized,
+  });
+
+  const validEffectColor = (value) => typeof value === "string"
+    && STATE_EFFECT_COLOR_PATTERN.test(value);
+
+  const stateEffectFor = (state) => {
+    const defaults = DEFAULT_STATE_EFFECTS[state] || DEFAULT_STATE_EFFECTS.unknown;
+    const configured = STATE_EFFECTS[state] && typeof STATE_EFFECTS[state] === "object"
+      && !Array.isArray(STATE_EFFECTS[state]) ? STATE_EFFECTS[state] : {};
+    const themeColor = state === "thinking" ? THEME.colors?.secondary
+      : ["executing", "success"].includes(state) ? THEME.colors?.accent : null;
+    const fallbackColor = validEffectColor(themeColor)
+      ? themeColor : STATE_EFFECT_COLORS[state] || STATE_EFFECT_COLORS.unknown;
+    const color = validEffectColor(configured.color) ? configured.color : fallbackColor;
+    const requestedMotion = ["none", "pulse", "flash", "alert"].includes(configured.motion)
+      ? configured.motion : defaults.motion;
+    const motion = CONTROLS.motionLevel === "reduced" ? "none" : requestedMotion;
+    return {
+      color,
+      overlayOpacity: boundedEffectNumber(configured.overlayOpacity, 0, 0, 0.35),
+      mediaOpacity: boundedEffectNumber(configured.mediaOpacity, defaults.mediaOpacity, 0, 1),
+      brightness: boundedEffectNumber(configured.brightness, defaults.brightness, 0.5, 1.35),
+      saturation: boundedEffectNumber(configured.saturation, defaults.saturation, 0, 2),
+      contrast: boundedEffectNumber(configured.contrast, defaults.contrast, 0.5, 1.5),
+      hueRotate: boundedEffectNumber(configured.hueRotate, defaults.hueRotate, -180, 180),
+      motion,
+    };
+  };
+
+  const applyStateEffect = (root, state) => {
+    const effect = stateEffectFor(state);
+    if (!root) return effect;
+    setAttribute(root, "data-dream-state-motion", effect.motion);
+    setStyleProperty(root, "--dream-state-color", effect.color);
+    setStyleProperty(root, "--dream-state-overlay-opacity", String(effect.overlayOpacity));
+    setStyleProperty(root, "--dream-state-media-opacity", String(effect.mediaOpacity));
+    setStyleProperty(root, "--dream-state-brightness", String(effect.brightness));
+    setStyleProperty(root, "--dream-state-saturation", String(effect.saturation));
+    setStyleProperty(root, "--dream-state-contrast", String(effect.contrast));
+    setStyleProperty(root, "--dream-state-hue", `${effect.hueRotate}deg`);
+    return effect;
   };
 
   const parseRgb = (value) => {
@@ -366,18 +459,23 @@
     for (const [name, value] of Object.entries(publicColors)) {
       if (typeof value === "string" && value) setStyleProperty(root, name, value);
     }
-    setStyleProperty(root, "--ds-theme-surface-radius", "12px");
-    setStyleProperty(root, "--ds-theme-surface-opacity", "1");
-    setStyleProperty(root, "--ds-theme-surface-blur", "0px");
+    setStyleProperty(root, "--ds-theme-surface-opacity", String(CONTROLS.surfaceOpacity));
+    setStyleProperty(root, "--ds-theme-surface-blur", `${CONTROLS.surfaceBlur}px`);
+    setStyleProperty(root, "--ds-theme-surface-radius", `${CONTROLS.surfaceRadius}px`);
     setStyleProperty(root, "--ds-theme-font-family", "system");
     setStyleProperty(root, "--ds-theme-font-scale", "1");
     setStyleProperty(root, "--ds-theme-surface-border-alpha", "0.14");
     setStyleProperty(root, "--ds-theme-surface-shadow", "soft");
-    setStyleProperty(root, "--ds-theme-image-zoom", "1");
-    setStyleProperty(root, "--ds-theme-image-dim", "0");
+    setStyleProperty(root, "--ds-theme-image-zoom", String(CONTROLS.imageZoom));
+    setStyleProperty(root, "--ds-theme-image-dim", String(CONTROLS.imageDim));
     setStyleProperty(root, "--ds-theme-image-task-intensity", "0.35");
     setStyleProperty(root, "--ds-theme-density-scale", "standard");
-    setStyleProperty(root, "--ds-theme-motion-level", "standard");
+    setStyleProperty(root, "--ds-theme-motion-level", CONTROLS.motionLevel);
+    setStyleProperty(root, "--ds-art-size", CONTROLS.imageZoom === 1
+      ? "cover" : `${Number((CONTROLS.imageZoom * 100).toFixed(2))}% auto`);
+    setStyleProperty(root, "--ds-theme-image-veil", `linear-gradient(rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}), rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}))`);
+    setAttribute(root, "data-dream-controls", CONTROLS.customized ? "custom" : "default");
+    setAttribute(root, "data-dream-motion-level", CONTROLS.motionLevel);
     const rgbVariables = {
       "--ds-bg-rgb": variables["--ds-bg"],
       "--ds-panel-rgb": variables["--ds-panel"],
@@ -627,7 +725,32 @@
     }
   };
 
+  // Chromium can keep Codex's native browser toolbar in a stale paint layer
+  // when the constructable sheet is installed before the embedded tab mounts.
+  // Reattaching the same sheet once after the shell settles refreshes that
+  // layer without changing native toolbar geometry or interaction.
+  const scheduleStylePaintRepair = (delay = 180) => {
+    if (styleMode !== "adopted" || !styleSheet || stylePaintRepairTimer) return;
+    stylePaintRepairTimer = setTimeout(() => {
+      stylePaintRepairTimer = null;
+      if (window[DISABLED_KEY] || !styleSheet || !document.adoptedStyleSheets) return;
+      const current = [...document.adoptedStyleSheets];
+      if (!current.includes(styleSheet)) return;
+      document.adoptedStyleSheets = current.filter((candidate) => candidate !== styleSheet);
+      const reattach = () => {
+        if (window[DISABLED_KEY] || !styleSheet || !document.adoptedStyleSheets) return;
+        const latest = [...document.adoptedStyleSheets]
+          .filter((candidate) => candidate !== styleSheet);
+        document.adoptedStyleSheets = [...latest, styleSheet];
+        metrics.styleRepairs += 1;
+      };
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(reattach);
+      else setTimeout(reattach, 0);
+    }, delay);
+  };
+
   installStyle();
+  scheduleStylePaintRepair();
 
   const applyRootState = (root) => {
     metrics.rootPasses += 1;
@@ -886,7 +1009,13 @@
 
   const applyVisualState = ({ state, source, confidence }) => {
     if (!VISUAL_STATES.has(state)) return visualState;
-    if (visualState.state === state && visualState.source === source) return visualState;
+    const root = document.documentElement;
+    const visualEffect = applyStateEffect(root, state);
+    if (visualState.state === state && visualState.source === source) {
+      const runtimeState = window[STATE_KEY];
+      if (runtimeState?.installToken === installToken) runtimeState.visualEffect = visualEffect;
+      return visualState;
+    }
     visualState = {
       state,
       source,
@@ -894,10 +1023,12 @@
       since: Date.now(),
       sequence: visualState.sequence + 1,
     };
-    const root = document.documentElement;
     if (root) setAttribute(root, "data-dream-visual-state", state);
     const runtimeState = window[STATE_KEY];
-    if (runtimeState?.installToken === installToken) runtimeState.visualState = visualState;
+    if (runtimeState?.installToken === installToken) {
+      runtimeState.visualState = visualState;
+      runtimeState.visualEffect = visualEffect;
+    }
     return visualState;
   };
 
@@ -967,6 +1098,8 @@
     }
     if (state?.timer) clearInterval(state.timer);
     if (state?.scheduler?.timeout) clearTimeout(state.scheduler.timeout);
+    if (stylePaintRepairTimer) clearTimeout(stylePaintRepairTimer);
+    stylePaintRepairTimer = null;
     if (analysisTimer) clearTimeout(analysisTimer);
     if (state?.mediaHandler && state?.mediaQuery) {
       try { state.mediaQuery.removeEventListener("change", state.mediaHandler); } catch {}
@@ -1084,6 +1217,7 @@
     motionHandler,
     videoNode,
     visualState,
+    visualEffect: null,
     setVisualState,
     clearVisualState,
     visualStateHandler,

@@ -34,7 +34,7 @@ function createFixture() {
       addEventListener(type, callback) { if (type === "DOMContentLoaded") domReady.push(callback); },
       querySelector(selector) {
         if (selector === shellSelector) return markers.shell ? {} : null;
-        if (selector === "aside.app-shell-left-panel") return markers.sidebar ? {} : null;
+        if (selector === 'aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])') return markers.sidebar ? {} : null;
         if (selector === "[role=\"main\"]") return markers.main ? {} : null;
         if (selector === "main, [role=\"main\"]") return markers.main ? {} : null;
         if (selector === '[data-settings-panel-slug="general-settings"]') {

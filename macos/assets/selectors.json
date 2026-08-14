@@ -13,6 +13,28 @@
     ],
     "verdict": "双端运行时继续共用一份 selector/CSS 合同。26.727.40816 将主表面和顶栏的旧语义类改为 CSS Modules，同时提供稳定 app-shell data 属性；合同保留旧类并优先增加稳定属性。Windows 26.727 仍需真实 renderer 验收。"
   },
+  "compatibilityMatrix": {
+    "schema": "codex-dream-skin-selector-compatibility/1",
+    "unknownMode": "conservative",
+    "profiles": [
+      {
+        "id": "codex-26.727-macos",
+        "platforms": ["darwin"],
+        "versionPattern": "^26\\.727\\.",
+        "mode": "validated",
+        "evidence": "live-renderer-2026-07-31",
+        "notes": "macOS live renderer evidence exists for Codex 26.727.40816."
+      },
+      {
+        "id": "codex-26.715-macos",
+        "platforms": ["darwin"],
+        "versionPattern": "^26\\.715\\.",
+        "mode": "snapshot",
+        "evidence": "historical-fixture-2026-07-31",
+        "notes": "Historical macOS snapshot only; do not treat as current live validation."
+      }
+    ]
+  },
   "appearanceSignal": {
     "dark": "html.electron-dark",
     "light": "html.electron-light",
@@ -28,7 +50,7 @@
   },
   "selectors": [
     { "key": "shell-main", "selector": "main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "全局主表面。26.727.40816 提供 data-app-shell-main-surface，并使用 _MainContentSurface_ CSS Module；保留旧类兼容历史版本，前缀只限定在 main 元素。mac 设置页缺失（win 存在），缺失时整页仅 L0" },
-    { "key": "left-panel", "selector": "aside.app-shell-left-panel", "tier": "L1", "scope": "all", "required": true, "notes": "左侧栏；收起/重建时会移除节点，勿在其消失时清皮" },
+    { "key": "left-panel", "selector": "aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])", "tier": "L1", "scope": "all", "required": true, "notes": "左侧栏；兼容旧版 app-shell-left-panel 与新版 token surface 侧栏，收起/重建时会移除节点，勿在其消失时清皮" },
     { "key": "header-tint", "selector": "header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "顶栏。26.727.40816 输出 data-app-shell-header-edge-scroll 并使用 _Header_ CSS Module；保留旧类兼容历史版本，前缀只限定在 header 元素。皮肤不得覆盖其 position/z-index（既有回归约束）" },
     { "key": "main-content-top-fade", "selector": ":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])", "tier": "L2", "scope": "all", "required": false, "notes": "主区顶部渐变遮罩。26.727.40816 提供 data-app-shell-main-content-top-fade 并使用 _MainContentTopFade_ CSS Module；用于在主题背景下移除原生白色 fade" },
     { "key": "home-icon", "selector": "[data-testid=\"home-icon\"]", "tier": "L1", "scope": "home", "required": true, "notes": "首页判定信号，双端一致" },

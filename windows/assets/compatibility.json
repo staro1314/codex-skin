@@ -53,6 +53,7 @@
       { "code": "DS-VERSION-001", "id": "version-mismatch", "nextAction": "Install matching Windows, macOS, and shared runtime assets." },
       { "code": "DS-STATE-001", "id": "invalid-state", "nextAction": "Restore the last known good theme or remove only the stale Dream Skin state through the platform restore command." },
       { "code": "DS-STATE-002", "id": "live-session-required", "nextAction": "Start Codex through Dream Skin, then run the Doctor again." },
+      { "code": "DS-STATE-003", "id": "missing-cdp-identity", "nextAction": "Restore the official appearance, then start Dream Skin again to create a fresh CDP Browser ID lease." },
       { "code": "DS-RUN-001", "id": "operation-failed", "nextAction": "Read the platform error log, restore the last known good theme, and retry." }
     ]
   }

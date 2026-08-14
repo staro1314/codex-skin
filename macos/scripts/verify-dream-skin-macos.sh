@@ -22,8 +22,10 @@ if [ "$PORT_EXPLICIT" = "false" ] && [ -f "$STATE_PATH" ]; then
   PORT="$(state_field port)"
 fi
 verified_cdp_endpoint "$PORT" || fail "Port $PORT is not a verified Codex loopback CDP endpoint."
+BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
+  || fail "The live CDP browser identity does not match the saved Dream Skin session."
 
-ARGS=("$INJECTOR" --verify --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 30000)
+ARGS=("$INJECTOR" --verify --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 30000)
 [ -n "$SCREENSHOT" ] && ARGS+=(--screenshot "$SCREENSHOT")
 [ "$RELOAD" = "true" ] && ARGS+=(--reload)
 exec "$NODE" "${ARGS[@]}"

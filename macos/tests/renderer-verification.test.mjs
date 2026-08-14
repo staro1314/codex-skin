@@ -8,7 +8,7 @@ import { SKIN_VERSION, verifySession, waitForVerifiedSession } from "../scripts/
 // string equality and silently returns null on drift.
 const selectors = {
   shell: 'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])',
-  sidebar: "aside.app-shell-left-panel",
+  sidebar: 'aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])',
   composer: ".composer-surface-chrome",
   home: '[role="main"]:has([data-testid="home-icon"])',
   homeIcon: '[data-testid="home-icon"]',

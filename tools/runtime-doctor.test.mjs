@@ -27,6 +27,7 @@ await fs.writeFile(stateFile, JSON.stringify({
   injectorAlive: true,
   cdpOk: true,
   codexRunning: true,
+  browserId: "browser-test-1",
   themeId: "preset-test",
   appliedThemeId: "preset-test",
 }));
@@ -62,6 +63,7 @@ assert.deepEqual(normalized, {
   codexRunning: false,
   themeId: "",
   appliedThemeId: "",
+  browserId: "",
 });
 
 const blocked = createHealthSnapshot({

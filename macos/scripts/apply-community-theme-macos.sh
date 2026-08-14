@@ -93,8 +93,11 @@ process.stdout.write(value.contentFingerprint);
 ' "$SNAPSHOT_RESULT")" || fail "The rollback snapshot identity is invalid."
 
 /usr/bin/printf '%s\n' 'Verifying the rollback snapshot against the current visible renderer...' >&2
+ROLLBACK_BROWSER_ID="$(leased_cdp_browser_id "$ROLLBACK_PORT")" \
+  || fail "The CDP browser identity changed before rollback verification."
 "$NODE" "$INJECTOR" --verify \
   --port "$ROLLBACK_PORT" \
+  --browser-id "$ROLLBACK_BROWSER_ID" \
   --theme-dir "$ROLLBACK_SNAPSHOT" \
   --timeout-ms 12000 >/dev/null \
   || fail "The rollback snapshot does not exactly match the current visible renderer; community apply was cancelled before switching themes."

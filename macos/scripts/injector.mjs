@@ -10,6 +10,8 @@ import { readImageMetadata } from "./image-metadata.mjs";
 import {
   detectedVideoMedia,
   normalizeThemeColor,
+  normalizeThemeControls,
+  normalizeThemeStateEffects,
   normalizeThemeText,
   normalizeThemeVideo,
 } from "../assets/theme-package-validator.mjs";
@@ -59,6 +61,9 @@ const OPERATION_UI_HOST_ID = "chatgpt-dream-skin-operation";
 const OPERATION_UI_REGISTRY_KEY = "__CHATGPT_DREAM_SKIN_OPERATION_UI__";
 const OPERATION_KINDS = new Set(["apply", "pause", "switch"]);
 const OPERATION_UI_STATES = new Set(["success", "error", "cancelled"]);
+const OPERATION_STATE_STATUSES = new Set(["applying", "pausing", "success", "paused", "cancelled", "failed"]);
+const OPERATION_TOKEN_PATTERN = /^\d{1,12}:\d{13}:\d{1,8}$/;
+class CdpIdentityMismatchError extends Error {}
 const MIN_RENDERER_WIDTH = 320;
 const MIN_RENDERER_HEIGHT = 240;
 const MAX_RENDERER_DIMENSION = 65536;
@@ -259,13 +264,13 @@ export function assessRendererVerification(renderer, nativeWindow, expected) {
   const homeRoute = result.scope?.baseState === "home" || result.homeRoute || result.homePresent;
   const l1ScopePass = result.scope?.level === "L1" &&
     Array.isArray(result.scope?.missingL1) && result.scope.missingL1.length === 0;
-  const genericStructurePass = l1ScopePass && Boolean(result.genericMain?.visible) &&
-    (Boolean(result.genericInput?.visible) || Boolean(homeRoute && result.homePresent));
+  const genericStructurePass = Boolean(result.genericMain?.visible) &&
+    (Boolean(result.genericInput?.visible) || Boolean(homeRoute && result.homePresent)) &&
+    (l1ScopePass || result.scope?.baseState === "thread");
   const l0StructurePass = result.scope?.level === "L0" &&
     settingsRoute && Boolean(result.settings?.visible);
-  const structurePass = l0StructurePass || (l1ScopePass && (
-    (Boolean(result.shell?.visible) && Boolean(result.sidebar?.visible)) || genericStructurePass
-  ));
+  const structurePass = l0StructurePass || genericStructurePass || (l1ScopePass &&
+    Boolean(result.shell?.visible) && Boolean(result.sidebar?.visible));
   const nativeWindowPass = nativeWindow?.status === "ready";
   const fallbackWindowPass = nativeWindow?.status === "unsupported";
   const windowPass = documentVisible && viewportPass
@@ -322,6 +327,7 @@ function parseArgs(argv) {
     operationUiState: null,
     operationMessage: null,
     operationToken: null,
+    browserId: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -342,6 +348,7 @@ function parseArgs(argv) {
     else if (arg === "--operation-ui-state") options.operationUiState = argv[++i];
     else if (arg === "--operation-message") options.operationMessage = argv[++i];
     else if (arg === "--operation-token") options.operationToken = argv[++i];
+    else if (arg === "--browser-id") options.browserId = argv[++i];
     else if (arg === "--reload") options.reload = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -353,6 +360,13 @@ function parseArgs(argv) {
   }
   if (options.operationToken !== null && !/^\d{1,12}:\d{13}:\d{1,8}$/.test(options.operationToken)) {
     throw new Error("Invalid operation token");
+  }
+  if (options.browserId !== null && !CDP_ID_PATTERN.test(options.browserId)) {
+    throw new Error(`Invalid browser ID: ${options.browserId}`);
+  }
+  if (["watch", "once", "verify", "remove", "begin-operation", "finish-operation"].includes(options.mode)
+    && !options.browserId) {
+    throw new Error(`--browser-id is required in ${options.mode} mode`);
   }
   if (options.mode === "begin-operation" && !OPERATION_KINDS.has(options.operationKind)) {
     throw new Error("Begin operation requires --operation-kind apply, pause, or switch");
@@ -372,7 +386,7 @@ function parseArgs(argv) {
 
 function validatedDebuggerUrl(target, port) {
   const url = new URL(target.webSocketDebuggerUrl);
-  const pathIsValid = /^\/devtools\/page\/[A-Za-z0-9._-]{1,200}$/.test(url.pathname);
+  const pathIsValid = /^\/devtools\/(?:page|browser)\/[A-Za-z0-9._-]{1,200}$/.test(url.pathname);
   if (
     url.protocol !== "ws:" || !LOOPBACK_HOSTS.has(url.hostname) || Number(url.port) !== port
     || url.username || url.password || url.search || url.hash || !pathIsValid
@@ -381,6 +395,16 @@ function validatedDebuggerUrl(target, port) {
   }
   return url.href;
 }
+
+function browserIdFromVersion(version, port) {
+  const url = new URL(validatedDebuggerUrl(version, port));
+  const match = url.pathname.match(/^\/devtools\/browser\/([A-Za-z0-9._-]{1,200})$/);
+  if (!match || !CDP_ID_PATTERN.test(match[1])) {
+    throw new Error("Rejected an invalid CDP browser identity URL");
+  }
+  return match[1];
+}
+export { browserIdFromVersion };
 
 function isValidCdpPageTarget(item, port) {
   if (
@@ -513,21 +537,133 @@ class CdpSession {
   }
 }
 
-async function listAppTargets(port) {
+class BrowserIdentityAnchor {
+  constructor(url) {
+    this.ws = new WebSocket(url);
+    this.closed = false;
+    this.ws.addEventListener("close", () => { this.closed = true; });
+    this.ws.addEventListener("error", () => {
+      this.closed = true;
+      try { this.ws.close(); } catch {}
+    });
+  }
+
+  async open() {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.close();
+        reject(new Error("CDP browser identity WebSocket open timed out"));
+      }, 5000);
+      this.ws.addEventListener("open", () => { clearTimeout(timeout); resolve(); }, { once: true });
+      this.ws.addEventListener("error", () => {
+        clearTimeout(timeout);
+        reject(new Error("CDP browser identity WebSocket open failed"));
+      }, { once: true });
+      this.ws.addEventListener("close", () => {
+        clearTimeout(timeout);
+        reject(new Error("CDP browser identity WebSocket closed during startup"));
+      }, { once: true });
+    });
+    if (this.closed) throw new Error("CDP browser identity WebSocket is already closed");
+    return this;
+  }
+
+  close() {
+    if (!this.closed) {
+      try { this.ws.close(); } catch {}
+    }
+    this.closed = true;
+  }
+}
+
+async function fetchCdpJson(port, resource) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 2000);
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
+    const response = await fetch(`http://127.0.0.1:${port}${resource}`, {
       redirect: "error",
       signal: controller.signal,
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const targets = await response.json();
-    if (!Array.isArray(targets)) throw new Error("CDP target list was not an array");
-    return targets.filter((item) => isValidCdpPageTarget(item, port));
+    return await response.json();
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function listAppTargets(port, expectedBrowserId) {
+  const targets = await fetchCdpJson(port, "/json/list");
+  if (!Array.isArray(targets)) throw new Error("CDP target list was not an array");
+  const actualBrowserId = browserIdFromVersion(await fetchCdpJson(port, "/json/version"), port);
+  if (actualBrowserId !== expectedBrowserId) {
+    throw new CdpIdentityMismatchError(
+      `CDP browser identity changed from ${expectedBrowserId} to ${actualBrowserId}`,
+    );
+  }
+  return assertUniqueCdpTargets(targets.filter((item) => isValidCdpPageTarget(item, port)));
+}
+
+export function isAuxiliaryCommentTarget(target) {
+  return target?.type === "page" && target.url === "about:blank";
+}
+
+async function cleanupStaleCommentTargets(port) {
+  let targets;
+  try {
+    targets = await fetchCdpJson(port, "/json/list");
+  } catch {
+    return;
+  }
+  if (!Array.isArray(targets)) return;
+
+  for (const target of targets.filter(isAuxiliaryCommentTarget)) {
+    let session;
+    try {
+      session = await connectTarget(target, port);
+      const hasSkinResidue = await session.evaluate(`(() => {
+        const root = document.documentElement;
+        const hasRootMarkers = [...(root?.attributes || [])].some((attribute) =>
+          attribute.name.startsWith('data-dream-') || attribute.name === 'data-ds-part');
+        const hasThemeVariables = [...(root?.style || [])].some((property) =>
+          property.startsWith('--dream-') || property.startsWith('--ds-'));
+        const sheets = window.__CODEX_DREAM_SKIN_STYLE_SHEETS__;
+        const hasSkinSheet = Boolean(sheets?.size && 'adoptedStyleSheets' in document &&
+          [...document.adoptedStyleSheets].some((sheet) => sheets.has(sheet)));
+        return Boolean(window.__CODEX_DREAM_SKIN_STATE__ || hasRootMarkers ||
+          hasThemeVariables || hasSkinSheet || document.getElementById('codex-dream-skin-style'));
+      })()`);
+      if (hasSkinResidue) {
+        await removeFromSession(session);
+        console.log(`[dream-skin] cleaned stale skin from native comment target ${target.id}`);
+      }
+    } catch {
+      // Native comment windows can close while the target list is being read.
+    } finally {
+      session?.close();
+    }
+  }
+}
+
+export function assertUniqueCdpTargets(targets) {
+  const seen = new Set();
+  for (const target of targets) {
+    if (!target?.id || seen.has(target.id)) {
+      throw new Error(`CDP target list contains a duplicate page target id: ${target?.id || "<missing>"}`);
+    }
+    seen.add(target.id);
+  }
+  return targets;
+}
+
+async function connectBrowserIdentityAnchor(port, expectedBrowserId) {
+  const version = await fetchCdpJson(port, "/json/version");
+  const actualBrowserId = browserIdFromVersion(version, port);
+  if (actualBrowserId !== expectedBrowserId) {
+    throw new CdpIdentityMismatchError(
+      `CDP browser identity changed from ${expectedBrowserId} to ${actualBrowserId}`,
+    );
+  }
+  return new BrowserIdentityAnchor(validatedDebuggerUrl(version, port)).open();
 }
 
 async function probeSession(session) {
@@ -574,12 +710,12 @@ async function connectTarget(target, port) {
   return new CdpSession(target, port).open();
 }
 
-async function connectCodexTargets(port, timeoutMs) {
+async function connectCodexTargets(port, timeoutMs, expectedBrowserId) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
   while (Date.now() < deadline) {
     try {
-      const targets = await listAppTargets(port);
+      const targets = await listAppTargets(port, expectedBrowserId);
       const connected = [];
       for (const target of targets) {
         let session;
@@ -596,6 +732,7 @@ async function connectCodexTargets(port, timeoutMs) {
       if (connected.length) return connected;
       lastError = new Error("No page matched the expected ChatGPT shell markers");
     } catch (error) {
+      if (error instanceof CdpIdentityMismatchError) throw error;
       lastError = error;
     }
     await new Promise((resolve) => setTimeout(resolve, 350));
@@ -683,6 +820,8 @@ export async function loadTheme(themeDir) {
   }
   if (path.basename(raw.image) !== raw.image) throw new Error("Theme image must stay inside its theme directory");
   const rawVideo = normalizeThemeVideo(raw.video, `${configPath}.video`);
+  const stateEffects = normalizeThemeStateEffects(raw.stateEffects, `${configPath}.stateEffects`);
+  const controls = normalizeThemeControls(raw.controls, `${configPath}.controls`);
   if (rawVideo?.poster !== undefined && rawVideo.poster !== raw.image) {
     throw new Error(`${configPath} video.poster must match image`);
   }
@@ -747,6 +886,8 @@ export async function loadTheme(themeDir) {
   if (Object.values(art).some((value) => value !== undefined)) {
     theme.art = Object.fromEntries(Object.entries(art).filter(([, value]) => value !== undefined));
   }
+  if (stateEffects) theme.stateEffects = stateEffects;
+  if (controls) theme.controls = controls;
   const requestedImagePath = path.join(assetsRoot, theme.image);
   let imagePath;
   try {
@@ -1311,7 +1452,7 @@ function operationKindMessage(kind) {
 }
 
 async function runBeginOperation(options) {
-  const connected = await connectCodexTargets(options.port, options.timeoutMs);
+  const connected = await connectCodexTargets(options.port, options.timeoutMs, options.browserId);
   const operationToken = options.operationToken ?? nextOperationToken();
   let shown = false;
   try {
@@ -1331,7 +1472,7 @@ async function runBeginOperation(options) {
 }
 
 async function runFinishOperation(options) {
-  const connected = await connectCodexTargets(options.port, options.timeoutMs);
+  const connected = await connectCodexTargets(options.port, options.timeoutMs, options.browserId);
   let shown = false;
   try {
     const results = await Promise.all(connected.map(({ session }) => presentOperationUi(
@@ -1349,7 +1490,7 @@ async function runFinishOperation(options) {
 }
 
 async function runOneShot(options) {
-  const connected = await connectCodexTargets(options.port, options.timeoutMs);
+  const connected = await connectCodexTargets(options.port, options.timeoutMs, options.browserId);
   const operationToken = options.mode === "once" || options.mode === "remove"
     ? options.operationToken ?? nextOperationToken()
     : null;
@@ -1543,12 +1684,9 @@ async function readOperationState(statePath) {
     { encoding: "utf8", maxBuffer: 16 * 1024 },
   );
   const parsed = JSON.parse(stdout);
-  return {
-    token: String(parsed.operationToken || ""),
-    status: String(parsed.status || ""),
-    message: String(parsed.message || "").slice(0, 240),
-    updatedAt: Number(parsed.updatedAt || 0),
-  };
+  const operation = normalizeOperationState(parsed);
+  if (!operation) throw new Error("Operation state is malformed or stale");
+  return operation;
 }
 
 async function writeModeAck(ackPath, operationToken, mode) {
@@ -1569,12 +1707,29 @@ async function writeModeAck(ackPath, operationToken, mode) {
   }
 }
 
-function isFreshBusyOperation(operation) {
+function normalizeOperationState(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const token = typeof parsed.operationToken === "string" ? parsed.operationToken : "";
+  const status = typeof parsed.status === "string" ? parsed.status : "";
+  const message = typeof parsed.message === "string" ? parsed.message : "";
+  const updatedAt = Number(parsed.updatedAt);
+  if (!OPERATION_TOKEN_PATTERN.test(token) || !OPERATION_STATE_STATUSES.has(status)) return null;
+  if (!Number.isSafeInteger(updatedAt) || updatedAt <= 0) return null;
+  return { token, status, message: message.slice(0, 240), updatedAt };
+}
+
+function isFreshBusyOperation(operation, nowMs = Date.now()) {
+  if (!operation || !OPERATION_TOKEN_PATTERN.test(String(operation.token || ""))) return false;
   if (operation.status !== "applying" && operation.status !== "pausing") return false;
-  const ageSeconds = Date.now() / 1000 - operation.updatedAt;
+  const updatedAt = Number(operation.updatedAt);
+  const now = Number(nowMs);
+  if (!Number.isSafeInteger(updatedAt) || updatedAt <= 0 || !Number.isFinite(now)) return false;
+  const ageSeconds = now / 1000 - updatedAt;
   const maxAgeSeconds = operation.status === "applying" ? 180 : 90;
   return ageSeconds >= -5 && ageSeconds <= maxAgeSeconds;
 }
+
+export { isFreshBusyOperation, normalizeOperationState };
 
 async function watchOperationState(statePath, onState) {
   if (!statePath) return () => {};
@@ -1633,6 +1788,7 @@ async function watchOperationState(statePath, onState) {
 }
 
 async function runWatch(options) {
+  const identityAnchor = await connectBrowserIdentityAnchor(options.port, options.browserId);
   let current = await loadPayload(options.themeDir);
   const sessions = new Map();
   const rejected = new Set();
@@ -1929,7 +2085,7 @@ async function runWatch(options) {
   });
 
   try {
-    while (!stopping) {
+    while (!stopping && !identityAnchor.closed) {
       if (activeOperation && !isFreshBusyOperation(activeOperation)) {
         const expiredOperation = activeOperation;
         activeOperation = null;
@@ -1955,9 +2111,14 @@ async function runWatch(options) {
       }
       let targets = [];
       try {
-        targets = await listAppTargets(options.port);
+        targets = await listAppTargets(options.port, options.browserId);
         discoveryDelayMs = 100;
+        await cleanupStaleCommentTargets(options.port);
       } catch (error) {
+        if (error instanceof CdpIdentityMismatchError) {
+          console.error(`[dream-skin] ${error.message}; stopping stale CDP lease`);
+          break;
+        }
         if (Date.now() - lastListErrorAt >= 2000) {
           console.error(`[dream-skin] ${new Date().toISOString()} ${error.message}`);
           lastListErrorAt = Date.now();
@@ -1980,6 +2141,7 @@ async function runWatch(options) {
               record.session, "hide", record.operationToken, "loading", "",
             );
           }
+          if (!record.session.closed) await removeFromSession(record.session).catch(() => {});
           record.session.close();
           sessions.delete(id);
         }
@@ -1989,6 +2151,7 @@ async function runWatch(options) {
       let recoveredPauseThisCycle = false;
       let recoveryFailedThisCycle = false;
       for (const target of targets) {
+        if (identityAnchor.closed) break;
         if (sessions.has(target.id)) continue;
         let session;
         let record;
@@ -1997,6 +2160,7 @@ async function runWatch(options) {
         beginTargetSetup();
         try {
           session = await connectTarget(target, options.port);
+          if (identityAnchor.closed) throw new CdpIdentityMismatchError("Original CDP browser identity closed");
           record = {
             session,
             earlyScriptId: null,
@@ -2131,6 +2295,7 @@ async function runWatch(options) {
           if (record) await removeEarly(record);
           session?.close();
           sessions.delete(target.id);
+          if (identityAnchor.closed || error instanceof CdpIdentityMismatchError) break;
           console.error(`[dream-skin] inject failed for ${target.id}: ${error.message}`);
         } finally {
           finishTargetSetup();
@@ -2145,6 +2310,7 @@ async function runWatch(options) {
       await new Promise((resolve) => setTimeout(resolve, pollDelay));
     }
   } finally {
+    identityAnchor.close();
     if (reloadTimer) clearTimeout(reloadTimer);
     closePayloadWatchers();
     closeOperationWatcher();

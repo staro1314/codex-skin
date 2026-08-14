@@ -3,12 +3,23 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-import { earlyPayloadFor } from "../scripts/injector.mjs";
+import {
+  earlyPayloadFor,
+  isAuxiliaryCommentTarget,
+  isNativeCommentTarget,
+} from "../scripts/injector.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const injectorPath = path.resolve(here, "../scripts/injector.mjs");
 const source = await fs.readFile(injectorPath, "utf8");
 const shellSelector = 'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])';
+
+assert.equal(isAuxiliaryCommentTarget({ type: "page", url: "about:blank" }), true);
+assert.equal(isAuxiliaryCommentTarget({ type: "page", url: "app://-/index.html" }), false);
+assert.equal(isAuxiliaryCommentTarget({ type: "webview", url: "about:blank" }), false);
+assert.equal(isNativeCommentTarget({ type: "page", url: "about:blank", title: "浏览器评论" }), true);
+assert.equal(isNativeCommentTarget({ type: "page", url: "about:blank", title: "" }), false);
+assert.equal(isNativeCommentTarget({ type: "page", url: "app://-/index.html", title: "浏览器评论" }), false);
 
 function createFixture() {
   const domReady = [];
@@ -34,7 +45,7 @@ function createFixture() {
       addEventListener(type, callback) { if (type === "DOMContentLoaded") domReady.push(callback); },
       querySelector(selector) {
         if (selector === shellSelector) return markers.shell ? {} : null;
-        if (selector === "aside.app-shell-left-panel") return markers.sidebar ? {} : null;
+        if (selector === 'aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])') return markers.sidebar ? {} : null;
         if (selector === "[role=\"main\"]") return markers.main ? {} : null;
         if (selector === "main, [role=\"main\"]") return markers.main ? {} : null;
         if (selector === '[data-settings-panel-slug="general-settings"]') {
@@ -193,5 +204,19 @@ assert.match(source, /if \(!fallbackTargets\.get\(id\)\) return;/,
   "Fallback listeners must stay inert after a successful early registration.");
 assert.match(source, /Page\.removeScriptToEvaluateOnNewDocument/,
   "Watcher shutdown and theme refresh must unregister persistent Page scripts.");
+const activeTargetCleanupStart = source.indexOf("const activeIds = new Set(targets.map((target) => target.id));");
+const activeTargetCleanupSource = source.slice(activeTargetCleanupStart, activeTargetCleanupStart + 1200);
+assert.match(activeTargetCleanupSource, /await removeFromSession\(session\)/,
+  "A renderer that becomes a native comment window must be cleaned before its session closes.");
+assert.match(source, /cleanupStaleCommentTargets\(options\.port\)/,
+  "Existing native comment windows must be scrubbed when the watcher discovers them.");
+assert.doesNotMatch(source, /native comment mode: skin temporarily disabled/,
+  "Native comment detection must not unload the main Codex skin.");
+assert.doesNotMatch(source, /paused \|\| commentModeActive/,
+  "Native comment detection must not be used as a whole-page skin pause.");
+assert.match(source, /nativeCommentMode === true && options\.mode === "once"/,
+  "Startup one-shot recovery must not reapply the skin over native comments.");
+assert.match(source, /reason: "native-comment-mode"/,
+  "Skipped one-shot recovery must report why the application was suppressed.");
 
 console.log("PASS: Windows early injection is L0-ready, generation-safe, ordered before probing, and fallback-scoped.");

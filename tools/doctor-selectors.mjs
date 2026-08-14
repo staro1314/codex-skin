@@ -22,7 +22,65 @@ export function selectorMatchesScope(scope, state) {
   return tokens.some((token) => token !== "config" && scopes.has(token));
 }
 
-export function gradeDoctorResult(contract, pageResult) {
+function normalizePlatform(platform = process.platform) {
+  if (platform === "win32" || platform === "windows") return "windows";
+  if (platform === "darwin" || platform === "macos") return "darwin";
+  return String(platform || "unknown");
+}
+
+export function extractCodexVersion(version = {}) {
+  const candidates = [
+    version.codexVersion,
+    version.CodexVersion,
+    version["Codex-Version"],
+    version.Browser,
+    version.Product,
+    version["User-Agent"],
+  ];
+  for (const candidate of candidates) {
+    const match = String(candidate ?? "").match(/(?:^|[^\d])((?:\d+\.){2}\d+)(?:[^\d]|$)/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+export function selectSelectorProfile(contract, clientVersion, platform = process.platform) {
+  const matrix = contract?.compatibilityMatrix;
+  const normalizedPlatform = normalizePlatform(platform);
+  const profiles = Array.isArray(matrix?.profiles) ? matrix.profiles : [];
+  if (clientVersion) {
+    for (const profile of profiles) {
+      if (!profile?.id || typeof profile.versionPattern !== "string") continue;
+      if (Array.isArray(profile.platforms) && !profile.platforms.includes(normalizedPlatform)) continue;
+      let matches = false;
+      try { matches = new RegExp(profile.versionPattern).test(clientVersion); } catch { matches = false; }
+      if (matches) {
+        return {
+          id: profile.id,
+          mode: profile.mode || "conservative",
+          known: true,
+          evidence: profile.evidence || "unspecified",
+          notes: profile.notes || "",
+          clientVersion,
+          platform: normalizedPlatform,
+        };
+      }
+    }
+  }
+  return {
+    id: "unknown",
+    mode: matrix?.unknownMode || "conservative",
+    known: false,
+    evidence: "none",
+    notes: clientVersion
+      ? `No selector evidence is registered for Codex ${clientVersion} on ${normalizedPlatform}.`
+      : "The CDP version response did not expose a recognizable Codex client version.",
+    clientVersion: clientVersion || null,
+    platform: normalizedPlatform,
+  };
+}
+
+export function gradeDoctorResult(contract, pageResult, { clientVersion = null, platform = process.platform } = {}) {
   const counts = new Map(pageResult.probes.map((probe) => [probe.key, probe]));
   const state = { baseState: pageResult.baseState, overlay: pageResult.overlay };
   const tiers = { L1: [], L2: [] };
@@ -40,12 +98,15 @@ export function gradeDoctorResult(contract, pageResult) {
     });
   }
   const pass = tiers.L1.every((probe) => !probe.required || probe.status === "ok");
+  const compatibility = selectSelectorProfile(contract, clientVersion, platform);
   return {
     schema: "codex-dream-skin-selector-doctor/1",
     state: pageResult.overlay ? "overlay" : pageResult.baseState,
     baseState: pageResult.baseState,
     overlay: pageResult.overlay,
     appearance: pageResult.appearance,
+    clientVersion: compatibility.clientVersion,
+    compatibility,
     tiers,
     pass,
     exitCode: pass ? 0 : 1,
@@ -56,6 +117,8 @@ export function formatDoctorResult(result) {
   const lines = [
     `state=${result.state} appearance=${result.appearance}` +
       (result.overlay ? ` base=${result.baseState}` : ""),
+    `clientVersion=${result.clientVersion || "unknown"} selectorProfile=${result.compatibility?.id || "unknown"} mode=${result.compatibility?.mode || "conservative"}`,
+    `compatibilityEvidence=${result.compatibility?.evidence || "none"}`,
   ];
   for (const tier of ["L1", "L2"]) {
     const entries = result.tiers[tier];
@@ -192,7 +255,7 @@ async function discover(options) {
   do {
     for (const port of ports) {
       try {
-        await fetchJson(port, "/json/version");
+        const version = await fetchJson(port, "/json/version");
         const targets = await fetchJson(port, "/json/list", 2000);
         const target = (Array.isArray(targets) ? targets : []).find((item) => {
           if (item?.type !== "page" || !String(item.url || "").startsWith("app://")) return false;
@@ -202,7 +265,7 @@ async function discover(options) {
               Number(url.port) === port && url.pathname.startsWith("/devtools/page/");
           } catch { return false; }
         });
-        if (target) return { port, target };
+        if (target) return { port, target, version };
       } catch {}
     }
     if (Date.now() >= deadline) break;
@@ -281,7 +344,11 @@ async function main() {
     const pageResult = await session.evaluate(
       `(${pageDoctor.toString()})(${JSON.stringify(contract.selectors)}, ${JSON.stringify(contract.stableTestids || [])})`,
     );
-    const result = gradeDoctorResult(contract, pageResult);
+    const clientVersion = extractCodexVersion(found.version);
+    const result = gradeDoctorResult(contract, pageResult, {
+      clientVersion,
+      platform: process.platform,
+    });
     result.port = found.port;
     if (options.json) console.log(JSON.stringify(result));
     else console.log(formatDoctorResult(result));

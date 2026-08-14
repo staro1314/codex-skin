@@ -1040,7 +1040,8 @@ try {
   New-Item -ItemType Directory -Path $releaseFixtureAssets, $releaseFixtureScripts, $releaseFixturePresetDirectory -Force | Out-Null
   Copy-Item -LiteralPath (Join-Path $Root 'VERSION') -Destination $releaseFixtureRoot -Force
   foreach ($releaseAsset in @(
-    'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json', 'safe-css-validator.mjs', 'selectors.json',
+    'compatibility.json', 'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json',
+    'safe-css-validator.mjs', 'selectors.json',
     'theme-package-validator.mjs'
   )) {
     Copy-Item -LiteralPath (Join-Path $Root "assets\$releaseAsset") `
@@ -1050,10 +1051,12 @@ try {
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\apply-community-theme.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\check-update.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\config-utf8.ps1') -Destination $releaseFixtureScripts -Force
+  Copy-Item -LiteralPath (Join-Path $Root 'scripts\doctor-dream-skin.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\image-metadata.mjs') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\injector.mjs') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\install-dream-skin.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\restore-dream-skin.ps1') -Destination $releaseFixtureScripts -Force
+  Copy-Item -LiteralPath (Join-Path $Root 'scripts\runtime-doctor.mjs') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\start-dream-skin.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\theme-windows.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\tray-dream-skin.ps1') -Destination $releaseFixtureScripts -Force
@@ -1090,6 +1093,29 @@ try {
     throw 'Saved theme creation or discovery failed.'
   }
   $null = Use-DreamSkinSavedTheme -ThemeDirectory $savedTheme.Directory -StateRoot $themeStateRoot
+
+  # A saved video theme must remain a video theme when promoted to active-theme.
+  # This guards the control-center apply path, which delegates to this function.
+  $videoSavedDirectory = Join-Path $themePaths.Saved 'video-apply-regression'
+  New-Item -ItemType Directory -Force -Path $videoSavedDirectory | Out-Null
+  Copy-Item -LiteralPath (Join-Path $Root 'assets\dream-reference.jpg') `
+    -Destination (Join-Path $videoSavedDirectory 'background.jpg') -Force
+  [byte[]]$videoHeader = 0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 0, 0, 0, 0
+  [System.IO.File]::WriteAllBytes((Join-Path $videoSavedDirectory 'background.mp4'), $videoHeader)
+  $videoTheme = (Read-DreamSkinTheme -ThemeDirectory (Join-Path $Root 'assets')).Theme `
+    | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+  $videoTheme.id = 'video-apply-regression'
+  $videoTheme.name = 'Video apply regression'
+  $videoTheme.image = 'background.jpg'
+  $videoTheme | Add-Member -NotePropertyName video -NotePropertyValue `
+    ([pscustomobject]@{ src = 'background.mp4'; performance = 'balanced' }) -Force
+  Write-DreamSkinTheme -ThemeDirectory $videoSavedDirectory -Theme $videoTheme
+  $appliedVideoTheme = Use-DreamSkinSavedTheme -ThemeDirectory $videoSavedDirectory -StateRoot $themeStateRoot
+  if (-not $appliedVideoTheme.VideoPath -or
+    $appliedVideoTheme.Theme.video.src -cne 'background.mp4' -or
+    -not (Test-Path -LiteralPath $appliedVideoTheme.VideoPath -PathType Leaf)) {
+    throw 'Applying a saved video theme dropped its video from active-theme.'
+  }
 
   $outsideTheme = Join-Path $temporaryRoot 'outside-theme'
   New-Item -ItemType Directory -Path $outsideTheme | Out-Null
@@ -1153,7 +1179,7 @@ try {
 
   $css = Read-DreamSkinUtf8File -Path (Join-Path $Root 'assets\dream-skin.css')
   foreach ($requiredCss in @(
-    'background-image: var(--dream-skin-art)',
+    'var(--dream-skin-art)',
     'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) > header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*="_Header_"])',
     '[class~="group/application-menu-top-bar"]',
     '.app-shell-main-content-top-fade',
@@ -1161,7 +1187,7 @@ try {
     '_MainContentTopFade_',
     '.thread-scroll-container .bg-gradient-to-t.from-token-main-surface-primary',
     '--ds-immersive-composer',
-    'background-position: var(--ds-art-position)',
+    'var(--ds-art-position)',
     'html[data-dream-skin="active"]',
     'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):has([role="main"])',
     'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))'

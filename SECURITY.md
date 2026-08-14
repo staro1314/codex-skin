@@ -63,13 +63,45 @@ CDP 能读取页面内容、在 renderer 中执行 JavaScript，并操作当前�
 
 ## What the project validates / 项目会校验什么
 
+### Local Control Center and exports / 本地控制中心与导出
+
+The visual Control Center binds only to a random `127.0.0.1` port. Its API uses
+a random per-process token, and mutations additionally require an exact same-
+origin `Origin` header. Media previews use temporary opaque handles because
+native image and video elements cannot attach the API token. The page has a
+restrictive CSP and loads no third-party scripts or fonts.
+
+Theme uploads are bounded and content-sniffed before use. Saved drafts are
+published by same-root staging and atomic rename. Official export ZIPs contain
+only registered flat files, are CRC checked, and are revalidated for both
+platform contracts before download. ZIP self-validation budgets at most 64 MiB
+of expanded content before inflation, caps each inflater output, and requires
+local and central metadata and byte ranges to agree. Export metadata and a selected license do
+not prove ownership of third-party images or videos; publishers remain
+responsible for rights and attribution.
+
+可视化控制中心只绑定 `127.0.0.1` 的随机端口。API 使用每次进程随机 token，写操作还
+要求精确同源 `Origin`。图片和视频原生元素无法附加 API token，因此预览媒体使用临时、
+不可预测的句柄。页面启用严格 CSP，不加载第三方脚本或字体。
+
+上传媒体在使用前进行大小限制和内容识别；主题草稿通过同根暂存和原子重命名发布。
+正式导出 ZIP 只包含注册的平面文件，执行 CRC 自检，并在下载前按两个平台契约复验。
+ZIP 自检会在解压前执行 64 MiB 累计预算，为每个解压器设置输出硬上限，并要求本地头、
+中央目录元数据和数据范围完全一致。
+导出元数据和许可证选择不能证明第三方图片或视频的所有权，发布者仍需自行确认授权与署名。
+
 The platform scripts validate the expected Codex installation or package,
 process identity, loopback listener ownership, renderer target shape, and
 recorded injector state before performing sensitive lifecycle operations.
+Both injectors bind their lifecycle to the exact CDP Browser ID. The macOS
+watcher additionally keeps the browser WebSocket open as a lease and stops if
+the identity closes or the loopback port begins reporting another browser.
 Those checks reduce accidental targeting and stale-process mistakes. They do
 not add authentication to CDP and do not protect Codex from other software that
 is already running on the same computer.
 
 平台脚本会在敏感生命周期操作前校验 Codex 安装或包身份、进程身份、回环监听归属、
 renderer 目标形状和已记录的 injector 状态。这些校验能减少误操作和陈旧进程问题，
+双平台 injector 还会绑定精确的 CDP Browser ID；macOS watcher 会持续持有 browser
+WebSocket 租约，身份关闭或端口开始报告另一 browser 时立即停止。
 但不会给 CDP 增加认证，也不能防御同一台电脑上已经运行的其他软件。

@@ -32,6 +32,21 @@ if (($Capture -or $Watch) -and -not (Test-Path -LiteralPath $captureScript -Path
   throw "DOM capture tool was not found: $captureScript"
 }
 
+# RemoteSigned blocks scripts extracted from a downloaded ZIP because they
+# retain Zone.Identifier=3. Only clear the mark from this repository's own
+# managed launcher scripts; never change the user's execution policy.
+$managedScriptRoot = Join-Path $projectRoot 'windows\scripts'
+if (-not (Test-Path -LiteralPath $managedScriptRoot -PathType Container)) {
+  throw "Managed Windows script directory was not found: $managedScriptRoot"
+}
+foreach ($managedScript in @(Get-ChildItem -LiteralPath $managedScriptRoot -Filter '*.ps1' -File -Recurse)) {
+  try {
+    Unblock-File -LiteralPath $managedScript.FullName -ErrorAction Stop
+  } catch {
+    throw "Could not unblock the local Dream Skin script $($managedScript.FullName): $($_.Exception.Message)"
+  }
+}
+
 $startArguments = @(
   '-NoProfile',
   '-ExecutionPolicy', 'RemoteSigned',

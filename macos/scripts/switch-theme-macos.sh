@@ -173,7 +173,9 @@ fi
 progress "Applying theme to ChatGPT..."
 if hot_reapply_theme "$PORT" 8000 "$OPERATION_TOKEN"; then
   progress "Verifying rendered theme..."
-  "$NODE" "$INJECTOR" --verify --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 10000 >/dev/null \
+  BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
+    || fail "The live CDP browser identity changed during theme switching."
+  "$NODE" "$INJECTOR" --verify --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 10000 >/dev/null \
     || fail "Theme injection completed but the visible renderer did not verify the exact active theme."
   progress "Done: ${THEME_NAME}"
   exit 0

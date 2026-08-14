@@ -142,6 +142,10 @@ write_operation_state() {
             if [ "$current_ttl" -gt 0 ] && [ "$current_age" -ge -5 ] \
               && [ "$current_age" -le "$current_ttl" ]; then
               result=2
+            elif ! operation_token_is_valid "$current_token"; then
+              # Never replace a malformed or partially-written state file with
+              # a cancellation result. Preserve it for recovery diagnostics.
+              result=1
             fi
           elif operation_token_is_valid "$current_token"; then
             result=2
@@ -179,11 +183,13 @@ begin_client_operation() {
   local kind="$2"
   local timeout_ms="${3:-3000}"
   local token="${4:-}"
+  local browser_id=""
   case "$kind" in apply|pause|switch) ;; *) return 1 ;; esac
   [ -n "$token" ] || token="$(new_operation_token)"
   operation_token_is_valid "$token" || return 1
+  browser_id="$(cdp_browser_id "$port")" || return 1
   token="$("$NODE" "$INJECTOR" --begin-operation --operation-kind "$kind" \
-    --operation-token "$token" --port "$port" --timeout-ms "$timeout_ms" \
+    --operation-token "$token" --port "$port" --browser-id "$browser_id" --timeout-ms "$timeout_ms" \
     2>>"$INJECTOR_ERROR_LOG")" || return 1
   operation_token_is_valid "$token" || return 1
   /usr/bin/printf '%s\n' "$token"
@@ -195,12 +201,14 @@ finish_client_operation() {
   local message="$3"
   local token="$4"
   local timeout_ms="${5:-1500}"
+  local browser_id=""
   case "$state" in success|error|cancelled) ;; *) return 1 ;; esac
   operation_token_is_valid "$token" || return 1
   [ -n "${NODE:-}" ] && [ -x "$NODE" ] || return 1
+  browser_id="$(cdp_browser_id "$port")" || return 1
   "$NODE" "$INJECTOR" --finish-operation --operation-ui-state "$state" \
     --operation-message "$message" --operation-token "$token" \
-    --port "$port" --timeout-ms "$timeout_ms" 2>>"$INJECTOR_ERROR_LOG"
+    --port "$port" --browser-id "$browser_id" --timeout-ms "$timeout_ms" 2>>"$INJECTOR_ERROR_LOG"
 }
 
 # Seed bundled preset packs into the user's themes/ library so a fresh install
@@ -376,6 +384,7 @@ recorded_injector_process_matches() {
   local expected_node="${3:-}"
   local expected_injector="${4:-}"
   local expected_port="${5:-}"
+  local expected_browser_id="${6:-}"
   local command_line=""
   local command_lower=""
   local node_lower=""
@@ -385,7 +394,7 @@ recorded_injector_process_matches() {
   # A recorded PID is only safe to signal when the complete launch identity
   # was persisted.  Do not fall back to the current process paths: a stale or
   # hand-edited state file must fail closed instead of authorizing a reused PID.
-  [ -n "$expected_start" ] && [ -n "$expected_node" ] && [ -n "$expected_injector" ] || return 1
+  [ -n "$expected_start" ] && [ -n "$expected_node" ] && [ -n "$expected_injector" ] && [ -n "$expected_browser_id" ] || return 1
   case "$expected_port" in
     ''|*[!0-9]*) return 1 ;;
   esac
@@ -399,7 +408,7 @@ recorded_injector_process_matches() {
   # The watcher launch shape is deliberately matched as tokens.  In
   # particular, `--port 93410` must never satisfy a saved `9341` identity.
   case "$command_lower" in
-    *"$injector_lower --watch --port $expected_port --theme-dir "*) ;;
+    *"$injector_lower --watch --port $expected_port --browser-id $expected_browser_id --theme-dir "*) ;;
     *) return 1 ;;
   esac
   actual_start="$(process_started_at "$pid")"
@@ -506,6 +515,39 @@ cdp_http_ready() {
     "http://127.0.0.1:${port}/json/version" >/dev/null 2>&1
 }
 
+cdp_browser_id() {
+  local port="$1"
+  local version_json=""
+  version_json="$(/usr/bin/curl --noproxy '*' --silent --fail --max-time 2 \
+    "http://127.0.0.1:${port}/json/version")" || return 1
+  /usr/bin/printf '%s' "$version_json" | "$NODE" -e '
+    let text = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => { text += chunk; });
+    process.stdin.on("end", () => {
+      const value = JSON.parse(text);
+      const url = new URL(value.webSocketDebuggerUrl);
+      const match = url.pathname.match(/^\/devtools\/browser\/([A-Za-z0-9._-]{1,200})$/);
+      if (url.protocol !== "ws:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)
+        || Number(url.port) !== Number(process.argv[1]) || url.username || url.password
+        || url.search || url.hash || !match) process.exit(2);
+      process.stdout.write(match[1]);
+    });
+  ' "$port"
+}
+
+leased_cdp_browser_id() {
+  local port="$1"
+  local expected=""
+  local actual=""
+  [ -f "$STATE_PATH" ] || return 1
+  expected="$(state_field browserId 2>/dev/null || true)"
+  [ -n "$expected" ] || return 1
+  actual="$(cdp_browser_id "$port")" || return 1
+  [ "$actual" = "$expected" ] || return 1
+  /usr/bin/printf '%s\n' "$expected"
+}
+
 verified_cdp_endpoint() {
   local port="$1"
   port_belongs_to_codex "$port" || return 1
@@ -558,6 +600,7 @@ write_state() {
   local injector_started_at="$3"
   local codex_pid="$4"
   local session="${5:-applying}"
+  local browser_id="${6:-}"
   local node_ver="${NODE_VERSION:-unknown}"
   local bundle="${CODEX_BUNDLE:-}"
   local exe="${CODEX_EXE:-}"
@@ -565,13 +608,14 @@ write_state() {
   local team="${CODEX_TEAM_ID:-}"
   "$NODE" -e '
     const fs = require("node:fs");
-    const [file, version, port, pid, startedAt, injector, node, nodeVersion, bundle, exe, appVersion, teamId, root, themeDir, codexPid, arch, session] = process.argv.slice(1);
+    const [file, version, port, pid, startedAt, injector, node, nodeVersion, bundle, exe, appVersion, teamId, root, themeDir, codexPid, arch, session, browserId] = process.argv.slice(1);
     const state = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       platform: `darwin-${arch}`,
       skinVersion: version,
-      injectorProtocol: 3,
+      injectorProtocol: 4,
       port: Number(port),
+      browserId,
       injectorPid: Number(pid),
       injectorStartedAt: startedAt,
       injectorPath: injector,
@@ -599,7 +643,7 @@ write_state() {
     const temporary = `${file}.${process.pid}.tmp`;
     fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
     fs.renameSync(temporary, file);
-  ' "$STATE_PATH" "$SKIN_VERSION" "$port" "$injector_pid" "$injector_started_at" "$INJECTOR" "$NODE" "$node_ver" "$bundle" "$exe" "$app_ver" "$team" "$PROJECT_ROOT" "$THEME_DIR" "$codex_pid" "$(/usr/bin/uname -m)" "$session"
+  ' "$STATE_PATH" "$SKIN_VERSION" "$port" "$injector_pid" "$injector_started_at" "$INJECTOR" "$NODE" "$node_ver" "$bundle" "$exe" "$app_ver" "$team" "$PROJECT_ROOT" "$THEME_DIR" "$codex_pid" "$(/usr/bin/uname -m)" "$session" "$browser_id"
 }
 
 mark_state_active() {
@@ -643,6 +687,7 @@ stop_recorded_injector() {
   local saved_start
   local saved_node
   local saved_injector
+  local saved_browser_id
   if ! pid="$(state_field injectorPid 2>/dev/null)" || [ -z "${pid:-}" ]; then
     printf 'Dream Skin state is damaged or missing its injector PID; state was preserved.\n' >&2
     return 1
@@ -672,6 +717,7 @@ stop_recorded_injector() {
   saved_start="$(state_field injectorStartedAt 2>/dev/null || true)"
   saved_node="$(state_field nodePath 2>/dev/null || true)"
   saved_injector="$(state_field injectorPath 2>/dev/null || true)"
+  saved_browser_id="$(state_field browserId 2>/dev/null || true)"
   case "$saved_port" in
     ''|*[!0-9]*)
       printf 'Recorded Dream Skin injector port is missing or invalid; state was preserved.\n' >&2
@@ -690,7 +736,7 @@ stop_recorded_injector() {
     /bin/launchctl remove "$INJECTOR_JOB_LABEL" >/dev/null 2>&1 || true
     return 0
   }
-  if ! recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port"; then
+  if ! recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id"; then
     # The process may have exited between the initial kill -0 probe and the
     # identity check. A dead (or already reaped) recorded PID is safe to
     # forget; a live PID with mismatched identity is never signalled.
@@ -704,19 +750,19 @@ stop_recorded_injector() {
   /bin/launchctl remove "$INJECTOR_JOB_LABEL" >/dev/null 2>&1 || true
   /bin/kill -TERM "$pid" 2>/dev/null || true
   local deadline=$((SECONDS + 6))
-  while recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" \
+  while recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id" \
     && [ "$SECONDS" -lt "$deadline" ]; do
     /bin/sleep 0.2
   done
-  if recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port"; then
+  if recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id"; then
     /bin/kill -KILL "$pid" 2>/dev/null || true
   fi
   deadline=$((SECONDS + 2))
-  while recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" \
+  while recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id" \
     && [ "$SECONDS" -lt "$deadline" ]; do
     /bin/sleep 0.1
   done
-  if recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port"; then
+  if recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id"; then
     printf 'Could not stop the recorded Dream Skin injector (PID %s).\n' "$pid" >&2
     return 1
   fi
@@ -725,6 +771,7 @@ stop_recorded_injector() {
 
 launch_injector_daemon() {
   local port="$1"
+  local browser_id="$2"
   local pid=""
   local deadline=$((SECONDS + 10))
   : > "$INJECTOR_LOG"
@@ -734,7 +781,7 @@ launch_injector_daemon() {
   # SwiftBar may terminate background children when a click action finishes.
   # A submitted user job owns the watcher independently of that action.
   if /bin/launchctl submit -l "$INJECTOR_JOB_LABEL" -o "$INJECTOR_LOG" -e "$INJECTOR_ERROR_LOG" -- \
-    "$NODE" "$INJECTOR" --watch --port "$port" --theme-dir "$THEME_DIR" \
+    "$NODE" "$INJECTOR" --watch --port "$port" --browser-id "$browser_id" --theme-dir "$THEME_DIR" \
     --operation-state "$OPERATION_STATE_PATH" --operation-ack "$OPERATION_ACK_PATH" \
     >/dev/null 2>&1; then
     while [ "$SECONDS" -lt "$deadline" ]; do
@@ -750,7 +797,7 @@ launch_injector_daemon() {
   fi
 
   # Fallback for systems where launchctl submit is unavailable.
-  /usr/bin/nohup "$NODE" "$INJECTOR" --watch --port "$port" --theme-dir "$THEME_DIR" \
+  /usr/bin/nohup "$NODE" "$INJECTOR" --watch --port "$port" --browser-id "$browser_id" --theme-dir "$THEME_DIR" \
     --operation-state "$OPERATION_STATE_PATH" --operation-ack "$OPERATION_ACK_PATH" \
     >>"$INJECTOR_LOG" 2>>"$INJECTOR_ERROR_LOG" &
   pid="$!"
@@ -787,23 +834,25 @@ hot_reapply_theme() {
   local injector_mode=""
   local started_at=""
   local codex_pid=""
+  local browser_id=""
 
   # A generic HTTP listener is not enough for a hot re-apply: only use the
   # endpoint already verified as belonging to the official Codex process.
   ensure_node_runtime || return 1
   verified_cdp_endpoint "$port" || return 1
+  browser_id="$(cdp_browser_id "$port")" || return 1
   [ -n "$operation_token" ] || operation_token="$(new_operation_token)"
   write_operation_state applying "正在应用已选主题" "$operation_token" || return 1
   operation_args=(--operation-token "$operation_token")
 
   injector_protocol="$(state_field injectorProtocol 2>/dev/null || true)"
   injector_mode="$(state_field injectorMode 2>/dev/null || true)"
-  if [ "$injector_protocol" = "2" ] || [ "$injector_protocol" = "3" ]; then
+  if [ "$injector_protocol" = "2" ] || [ "$injector_protocol" = "3" ] || [ "$injector_protocol" = "4" ]; then
     inj_pid="$(/bin/ps -axo pid=,command= | /usr/bin/awk -v inj="$INJECTOR" -v port="$port" '
       index($0, inj) && index($0, "--watch") && index($0, "--port " port " --theme-dir ") { print $1; exit }
     ')"
   fi
-  if ! "$NODE" "$INJECTOR" --once --port "$port" --theme-dir "$THEME_DIR" \
+  if ! "$NODE" "$INJECTOR" --once --port "$port" --browser-id "$browser_id" --theme-dir "$THEME_DIR" \
     --timeout-ms "$timeout_ms" "${operation_args[@]}" >/dev/null 2>&1; then
     return 1
   fi
@@ -816,12 +865,12 @@ hot_reapply_theme() {
     return 0
   fi
   stop_recorded_injector 2>/dev/null || return 1
-  inj_pid="$(launch_injector_daemon "$port")"
+  inj_pid="$(launch_injector_daemon "$port" "$browser_id")"
   /bin/kill -0 "$inj_pid" 2>/dev/null || return 1
   started_at="$(process_started_at "$inj_pid")"
   codex_pid="$(codex_main_pids 2>/dev/null | /usr/bin/head -n 1)"
   [ -n "$started_at" ] || started_at="$(/bin/date)"
-  write_state "$port" "$inj_pid" "$started_at" "${codex_pid:-0}" active
+  write_state "$port" "$inj_pid" "$started_at" "${codex_pid:-0}" active "$browser_id"
   write_operation_state success "皮肤已应用" "$operation_token" || return 1
   return 0
 }

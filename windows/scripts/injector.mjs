@@ -7,6 +7,8 @@ import { readImageMetadata } from "./image-metadata.mjs";
 import {
   detectedVideoMedia,
   normalizeThemeColor,
+  normalizeThemeControls,
+  normalizeThemeStateEffects,
   normalizeThemeText,
   normalizeThemeVideo,
 } from "../assets/theme-package-validator.mjs";
@@ -457,7 +459,66 @@ async function listAppTargets(port, expectedBrowserId = null) {
       );
     }
   }
-  return targets.filter((item) => isValidCdpPageTarget(item, port));
+  return assertUniqueCdpTargets(targets.filter((item) => isValidCdpPageTarget(item, port)));
+}
+
+export function isAuxiliaryCommentTarget(target) {
+  return target?.type === "page" && target.url === "about:blank";
+}
+
+export function isNativeCommentTarget(target) {
+  return isAuxiliaryCommentTarget(target) &&
+    /(?:浏览器评论|browser comment)/i.test(String(target.title || ""));
+}
+
+async function cleanupStaleCommentTargets(port) {
+  let targets;
+  try {
+    targets = await fetchCdpJson(port, "/json/list");
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(targets)) return null;
+  const commentModeActive = targets.some(isNativeCommentTarget);
+
+  for (const target of targets.filter(isAuxiliaryCommentTarget)) {
+    let session;
+    try {
+      session = await connectTarget(target, port);
+      const hasSkinResidue = await session.evaluate(`(() => {
+        const root = document.documentElement;
+        const hasRootMarkers = [...(root?.attributes || [])].some((attribute) =>
+          attribute.name.startsWith('data-dream-') || attribute.name === 'data-ds-part');
+        const hasThemeVariables = [...(root?.style || [])].some((property) =>
+          property.startsWith('--dream-') || property.startsWith('--ds-'));
+        const sheets = window.__CODEX_DREAM_SKIN_STYLE_SHEETS__;
+        const hasSkinSheet = Boolean(sheets?.size && 'adoptedStyleSheets' in document &&
+          [...document.adoptedStyleSheets].some((sheet) => sheets.has(sheet)));
+        return Boolean(window.__CODEX_DREAM_SKIN_STATE__ || hasRootMarkers ||
+          hasThemeVariables || hasSkinSheet || document.getElementById('codex-dream-skin-style'));
+      })()`);
+      if (hasSkinResidue) {
+        await removeFromSession(session);
+        console.log(`[dream-skin] cleaned stale skin from native comment target ${target.id}`);
+      }
+    } catch {
+      // Native comment windows can close while the target list is being read.
+    } finally {
+      session?.close();
+    }
+  }
+  return commentModeActive;
+}
+
+export function assertUniqueCdpTargets(targets) {
+  const seen = new Set();
+  for (const target of targets) {
+    if (!target?.id || seen.has(target.id)) {
+      throw new Error(`CDP target list contains a duplicate page target id: ${target?.id || "<missing>"}`);
+    }
+    seen.add(target.id);
+  }
+  return targets;
 }
 
 async function connectBrowserIdentityAnchor(port, expectedBrowserId) {
@@ -557,6 +618,8 @@ export async function loadTheme(themeDir) {
   const image = normalizedText(raw.image, "image", null, 240);
   if (!image || path.isAbsolute(image)) throw new Error("Theme image must be a relative path");
   const videoConfig = normalizeThemeVideo(raw.video, "theme.video");
+  const stateEffects = normalizeThemeStateEffects(raw.stateEffects, "theme.stateEffects");
+  const controls = normalizeThemeControls(raw.controls, "theme.controls");
   if (videoConfig?.poster !== undefined && videoConfig.poster !== image) {
     throw new Error("Theme video poster must match theme image");
   }
@@ -630,6 +693,8 @@ export async function loadTheme(themeDir) {
     explicitColorKeys: rawColors ? colorKeys.filter((key) => Object.hasOwn(rawColors, key)) : [],
     colors,
   };
+  if (stateEffects) theme.stateEffects = stateEffects;
+  if (controls) theme.controls = controls;
   if (videoConfig) theme.video = { src: pathToFileURL(videoPath).href, performance: videoConfig.performance };
   const [themeStat, imageStat, safeCss] = await Promise.all([
     fs.stat(themePath),
@@ -1303,12 +1368,13 @@ export async function verifySession(
     const homeScope = result.scope?.baseState === 'home' || result.homePresent;
     const l1ScopePass = result.scope?.level === 'L1' &&
       Array.isArray(result.scope?.missingL1) && result.scope.missingL1.length === 0;
-    const genericStructurePass = l1ScopePass && Boolean(result.genericMain?.visible) &&
-      Boolean(result.genericInput?.visible || (homeScope && result.homeSurface?.visible));
+    const genericStructurePass = Boolean(result.genericMain?.visible) &&
+      Boolean(result.genericInput?.visible || (homeScope && result.homeSurface?.visible)) &&
+      (l1ScopePass || result.scope?.baseState === 'thread');
     const l0StructurePass = result.scope?.level === 'L0' &&
       result.scope?.baseState === 'settings' && Boolean(result.settingsAnchor?.visible);
-    const structurePass = l0StructurePass || (l1ScopePass &&
-      (Boolean(result.shell?.visible && result.sidebar?.visible) || genericStructurePass));
+    const structurePass = l0StructurePass || genericStructurePass || (l1ScopePass &&
+      Boolean(result.shell?.visible && result.sidebar?.visible));
     const documentPass = result.documentVisibility === 'visible' && !result.documentHidden;
     const viewportPass = result.viewport.width >= ${MIN_RENDERER_VIEWPORT_WIDTH} &&
       result.viewport.height >= ${MIN_RENDERER_VIEWPORT_HEIGHT};
@@ -1423,6 +1489,17 @@ async function runFinishOperation(options) {
 }
 
 async function runOneShot(options) {
+  const nativeCommentMode = await cleanupStaleCommentTargets(options.port);
+  if (nativeCommentMode === true && options.mode === "once") {
+    console.log(JSON.stringify({
+      mode: options.mode,
+      port: options.port,
+      skipped: true,
+      reason: "native-comment-mode",
+      targets: [],
+    }, null, 2));
+    return;
+  }
   const connected = await connectCodexTargets(options.port, options.timeoutMs, options.browserId);
   const operationToken = options.mode === "once" || options.mode === "remove"
     ? options.operationToken ?? nextOperationToken()
@@ -1551,6 +1628,7 @@ async function runWatch(options) {
   let lastListErrorLogAt = 0;
   let lastThemeErrorLogAt = 0;
   let lastStrongThemeAuditAt = 0;
+  let lastCommentCleanupAt = 0;
   let loadedPayload = null;
   let paused = false;
   const stop = () => { stopping = true; };
@@ -1599,6 +1677,10 @@ async function runWatch(options) {
       try {
         targets = await listAppTargets(options.port);
         listFailures = 0;
+        if (Date.now() - lastCommentCleanupAt >= 1000) {
+          lastCommentCleanupAt = Date.now();
+          await cleanupStaleCommentTargets(options.port);
+        }
       } catch (error) {
         listFailures += 1;
         const retryMs = Math.min(10000, 1000 * (2 ** Math.min(listFailures - 1, 4)));
@@ -1693,6 +1775,7 @@ async function runWatch(options) {
       }
       for (const [id, session] of sessions) {
         if (!activeIds.has(id) || session.closed) {
+          if (!session.closed) await removeFromSession(session).catch(() => {});
           await removeEarlyPayload(session, earlyScripts.get(id));
           earlyScripts.delete(id);
           fallbackTargets.delete(id);

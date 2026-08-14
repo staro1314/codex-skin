@@ -59,7 +59,9 @@ DEBUG_READY="false"
 verified_cdp_endpoint "$PORT" && DEBUG_READY="true"
 
 if [ "$DEBUG_READY" = "true" ]; then
-  "$NODE" "$INJECTOR" --remove --port "$PORT" --theme-dir "$THEME_DIR" --timeout-ms 8000 >/dev/null \
+  BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
+    || fail "The live CDP browser identity does not match the saved Dream Skin session."
+  "$NODE" "$INJECTOR" --remove --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 8000 >/dev/null \
     || fail "The live skin could not be removed and verified; restore stopped safely."
 elif [ "$CODEX_RUNNING" = "true" ] && [ "$RESTART_CODEX" = "false" ]; then
   fail "ChatGPT is still running but its saved CDP endpoint cannot be verified. Pass --restart-codex for a full restore."

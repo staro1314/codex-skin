@@ -40,7 +40,48 @@
 - Focused tool regression now passes 9/9, including the root launcher contract; PowerShell AST and Node syntax checks also pass.
 - Added `start-codex-skin.cmd` as the double-click user entry. It invokes the PowerShell launcher with `RemoteSigned`, closes on success, and pauses on failure without using `Bypass`.
 
+## Phase 3 configurable state effects
+
+- Added the optional `theme.json.stateEffects` contract for all normalized Codex visual states. Themes can configure a bounded edge color/opacity, media opacity, brightness, saturation, contrast, hue rotation, and one of four built-in motion profiles.
+- Kept schema version 1 and backward compatibility: omitted effects retain the previous built-in video behavior, while configured edge glow also works for image themes and never receives pointer events.
+- Shared package validation and both platform loaders reject unknown states/fields, unsupported motion names, invalid colors, and values outside the documented safety bounds before renderer injection.
+- Refactored the renderer to expose the active normalized effect as `window.__CODEX_DREAM_SKIN_STATE__.visualEffect`, apply it through repaired root CSS variables, and clean all effect attributes/variables during restore.
+- Focused protocol, loader, and dual-platform renderer regression passes 11/11. The full portable Node run reports 103 tests: 95 passed, 2 platform-skipped, and the same 6 known macOS/Unix environment failures on Windows. Phase 3 remains open only for real Codex state-signal capture and cross-version calibration.
+
+## Phase 4 visual control center
+
+- Added an optional, bounded `controls` contract for surface opacity, blur, radius, image zoom/dim, and reduced/standard/expressive motion. Shared and generated platform runtimes preserve backward compatibility for themes without the field.
+- Added a localhost-only visual control center with an authenticated API, opaque media handles, CSP, origin-protected mutations, validated in-memory uploads, immutable theme drafts, and atomic publish into the existing saved-theme library.
+- Added a deliberate instrument-console UI with live image/video composition, glass controls, color controls, and per-state visual effect preview for eight normalized Codex states.
+- Added `control-codex-skin.cmd` as the Windows double-click entry. It reuses a healthy local server, starts Node hidden when needed, keeps `RemoteSigned`, and opens the tokenized local URL automatically.
+- Added a narrow Windows action bridge that reuses `Use-DreamSkinSavedTheme`, `Set-DreamSkinPaused`, and `Invoke-DreamSkinLiveRemove`; full official-appearance restore remains a separate explicit recovery workflow.
+- Focused control-center, protocol, renderer, and Windows schema coverage passes 14/14. Real Codex interaction and performance validation remains intentionally deferred until the planned functionality is complete.
+- After updating the renderer contract assertion for the new image veil, the cross-platform renderer/control-center focus set passes 15/15. The complete portable Node run now contains 107 tests: 99 passed, 2 platform-skipped, and only the same 6 macOS/Unix environment failures remain on Windows (`release.yml`, Unix `/tmp`, and native macOS window prerequisites).
+- Added versioned official theme export to the control center. Packages contain normalized public theme fields, fixed media names, publisher/license/provenance metadata, per-file SHA-256, optional video, Safe CSS, and a generated license notice.
+- Exported ZIPs are built in memory, CRC/self-checked, validated from a temporary directory against both Windows and macOS contracts, and never cached as public files. A bounded atomic `export-history.json` rejects repeated versions and suggests the next patch version.
+- The focused export/control/runtime suite passes 16/16, including video byte preservation, internal-field exclusion, duplicate-version rejection, temporary cleanup, traversal/tamper rejection, and native Windows `ZipArchive` compatibility.
+- Final portable regression contains 109 tests: 101 passed, 2 platform-skipped, and the same 6 Windows-host macOS/Unix environment failures remain (`release.yml`, Unix `/tmp`, and native macOS window prerequisites). All new control-center and export tests passed.
+
 ## Errors Encountered
+
+## 2026-08-13 final continuation checkpoint
+
+- Phase 5 is complete. Added strict operation-state normalization and freshness checks, exact saved Browser ID matching in macOS status/recovery paths, and regression coverage for malformed, future, expired, and duplicate operation/target inputs.
+- Added a version-layered selector compatibility matrix. Known versions use only recorded evidence; unknown versions remain conservative and are never treated as live-compatible by fixtures alone.
+- Added `tools/release-doctor.mjs` and `tools/release-doctor.test.mjs`. The release doctor validates strict tag/version parity and all required release inputs.
+- Added a read-only `.github/workflows/release.yml` candidate pipeline. It checks out `${{ github.sha }}`, runs release/sync/tool checks, builds macOS and Windows candidates, and uploads artifacts; it does not create or overwrite GitHub Releases.
+- Focused release and lifecycle tests pass 7/7. Full portable regression: 116 total, 109 passed, 2 skipped, 5 expected Windows-host failures from Unix `/tmp` and native macOS window prerequisites. No new product regression was observed.
+- Real Codex validation remains an external prerequisite: local ports `9335-9339`, `9341-9345`, and `9222` exposed no verified loopback Codex CDP page target. `node tools/doctor-selectors.mjs --wait 0 --json` exited 2 by design, so no visual, state-signal, or performance claim is recorded.
+
+## Phase 5 security and compatibility hardening
+
+- Hardened the in-memory ZIP reader against pre-validation expansion pressure: declared output is budgeted before inflate, zlib receives a per-entry output ceiling, and local/central CRC and size fields must match.
+- Added rejection for overlapping local entry ranges and regression mutations for oversized declared output and mismatched local metadata. The focused control/export/runtime suite remains 16/16.
+- The next isolated change is macOS Browser ID session leasing; Windows already carries and validates a Browser ID through its injector lifecycle, while macOS currently validates only loopback target shape and Codex renderer markers.
+- Added macOS Browser ID leasing across startup, state schema 5, watcher launch, one-shot injection, verification, pause, restore, switching, Doctor, and community rollback verification.
+- Every target-list cycle now compares `/json/version` with the expected Browser ID. The watcher holds the browser WebSocket as a lifetime anchor and stops on identity closure or port reuse instead of attaching to the replacement process.
+- Browser identity and portable injector contract tests pass 14/14. Native macOS window-readiness remains a platform-only validation item and was not represented as passing on Windows.
+- The full portable regression now contains 111 tests: 103 passed, 2 platform-skipped, and the same 6 Windows-host macOS/Unix environment failures remain. Browser ID leasing introduced no new regression.
 
 | Error | Attempt | Resolution |
 |---|---|---|

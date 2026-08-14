@@ -14,6 +14,9 @@ test("root launcher delegates to the verified Windows start path", () => {
   assert.match(script, /\[switch\]\$Watch/);
   assert.match(script, /\$Capture -and \$Watch/);
   assert.match(script, /\$PSBoundParameters\.ContainsKey\('Port'\)/);
+  assert.match(script, /managedScriptRoot/);
+  assert.match(script, /Unblock-File -LiteralPath \$managedScript\.FullName/);
+  assert.match(script, /Zone\.Identifier=3/);
   assert.match(script, /-ExecutionPolicy', 'RemoteSigned/);
   assert.doesNotMatch(script, /ExecutionPolicy['\"]\s*,\s*['\"]Bypass/i);
 });

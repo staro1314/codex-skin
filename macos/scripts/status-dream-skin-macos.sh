@@ -65,11 +65,12 @@ injector_identity_matches() {
   local expected_node="$3"
   local expected_injector="$4"
   local expected_port="$5"
+  local expected_browser_id="$6"
   local command_line command_lower node_lower injector_lower actual_start
 
   case "$pid" in ''|*[!0-9]*) return 1 ;; esac
   [ "$pid" != "0" ] || return 1
-  [ -n "$expected_start" ] && [ -n "$expected_node" ] && [ -n "$expected_injector" ] || return 1
+  [ -n "$expected_start" ] && [ -n "$expected_node" ] && [ -n "$expected_injector" ] && [ -n "$expected_browser_id" ] || return 1
   case "$expected_port" in ''|*[!0-9]*) return 1 ;; esac
   /bin/kill -0 "$pid" 2>/dev/null || return 1
   command_line="$(/bin/ps -p "$pid" -o command= 2>/dev/null || true)"
@@ -79,10 +80,9 @@ injector_identity_matches() {
   injector_lower="$(printf '%s' "$expected_injector" | /usr/bin/tr '[:upper:]' '[:lower:]')"
   case "$command_lower" in "$node_lower "*) ;; *) return 1 ;; esac
   case "$command_lower" in *"$injector_lower"*--watch*) ;; *) return 1 ;; esac
-  # The watcher launch shape puts --theme-dir immediately after the port.
-  # Requiring that following token prevents 93410 from matching saved port
-  # 9341 via a loose prefix pattern.
-  case "$command_lower" in *"--port $expected_port --theme-dir "*) ;; *) return 1 ;; esac
+  # Requiring the complete port token followed by the Browser ID lease prevents
+  # both a loose 9341/93410 match and acceptance of a pre-lease watcher.
+  case "$command_lower" in *"--port $expected_port --browser-id $expected_browser_id --theme-dir "*) ;; *) return 1 ;; esac
   actual_start="$(/bin/ps -p "$pid" -o lstart= 2>/dev/null | /usr/bin/awk '{$1=$1; print}')"
   [ -n "$actual_start" ] && [ "$actual_start" = "$expected_start" ]
 }
@@ -102,9 +102,10 @@ if [ -f "$STATE_PATH" ]; then
   saved_start="$(read_json_text_field "$STATE_SNAPSHOT" injectorStartedAt)"
   saved_node="$(read_json_text_field "$STATE_SNAPSHOT" nodePath)"
   saved_injector="$(read_json_text_field "$STATE_SNAPSHOT" injectorPath)"
+  saved_browser_id="$(read_json_text_field "$STATE_SNAPSHOT" browserId)"
   APPLIED_THEME_ID="$(read_json_text_field "$STATE_SNAPSHOT" appliedThemeId)"
   APPLIED_THEME_NAME="$(read_json_text_field "$STATE_SNAPSHOT" appliedThemeName)"
-  if injector_identity_matches "${pid:-}" "$saved_start" "$saved_node" "$saved_injector" "$PORT"; then
+  if injector_identity_matches "${pid:-}" "$saved_start" "$saved_node" "$saved_injector" "$PORT" "$saved_browser_id"; then
     INJECTOR_ALIVE="true"
     case "${SESSION:-}" in
       applying) SESSION="applying" ;;
