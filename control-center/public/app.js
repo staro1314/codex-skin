@@ -887,7 +887,10 @@ elements.newThemeButton.addEventListener("click", openNewThemeDialog);
 elements.newThemeTypeImage.addEventListener("change", syncNewThemeFilePicker);
 elements.newThemeTypeVideo.addEventListener("change", syncNewThemeFilePicker);
 elements.newThemeCancel.addEventListener("click", closeNewThemeDialog);
-elements.newThemeConfirm.addEventListener("click", createNewTheme);
+elements.newThemeDialog.querySelector("form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  createNewTheme();
+});
 elements.newThemeDialog.addEventListener("cancel", () => elements.newThemeError.textContent = "");
 elements.deleteThemeButton.addEventListener("click", deleteTheme);
 elements.saveButton.addEventListener("click", () => saveTheme(false));

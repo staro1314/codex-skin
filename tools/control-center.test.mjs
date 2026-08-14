@@ -48,6 +48,11 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="delete-theme-button"/);
     assert.match(shellHtml, /id="media-mode-image"/);
     assert.match(shellHtml, /id="media-mode-video"/);
+    assert.match(shellHtml, /id="new-theme-dialog"/);
+    assert.match(shellHtml, /id="new-theme-type-image"/);
+    assert.match(shellHtml, /id="new-theme-type-video"/);
+    assert.match(shellHtml, /id="new-theme-file"/);
+    assert.match(shellHtml, /id="new-theme-confirm"[^>]+type="submit"/);
     assert.match(shellResponse.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
     const clientResponse = await fetch(`${center.origin}/app.js`);
@@ -60,6 +65,9 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(clientJs, /mediaMode: state\.mediaMode/);
     assert.match(clientJs, /className = "theme-delete"/);
     assert.match(clientJs, /deleteTheme\(theme\.id\)/);
+    assert.match(clientJs, /function createNewTheme\(\)/);
+    assert.match(clientJs, /mediaMode: type/);
+    assert.match(clientJs, /elements\.previewVideo\.load\(\)/);
 
     const denied = await fetch(`${center.origin}/api/bootstrap`);
     assert.equal(denied.status, 403);
@@ -97,7 +105,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const mediaResponse = await fetch(`${center.origin}/api/media/${bootstrap.themes[0].imageMediaId}`);
     assert.equal(mediaResponse.status, 200);
     assert.equal(mediaResponse.headers.get("content-type"), "image/jpeg");
-    assert.ok((await mediaResponse.arrayBuffer()).byteLength > 1000);
+    const sourceImageBytes = Buffer.from(await mediaResponse.arrayBuffer());
+    assert.ok(sourceImageBytes.byteLength > 1000);
 
     const forbiddenMutation = await fetch(`${center.origin}/api/themes`, {
       method: "POST",
@@ -160,6 +169,31 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(persisted.controls.motionLevel, "reduced");
     assert.equal(persisted.stateEffects.thinking.overlayOpacity, 0.14);
     assert.equal((await fs.readdir(path.join(stateRoot, "themes"))).some((name) => name.startsWith(".control-center-")), false);
+
+    const imageUploadResponse = await fetch(`${center.origin}/api/upload?kind=image`, {
+      method: "POST",
+      headers: { ...headers, Origin: center.origin, "Content-Type": "image/jpeg" },
+      body: sourceImageBytes,
+    });
+    assert.equal(imageUploadResponse.status, 201);
+    const imageUpload = await imageUploadResponse.json();
+    const imageSaveResponse = await fetch(`${center.origin}/api/themes`, {
+      method: "POST",
+      headers: { ...headers, Origin: center.origin, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: "bundled",
+        draft: { ...draft, name: "Image Upload Test" },
+        imageUploadId: imageUpload.uploadId,
+        inheritVideo: false,
+        mediaMode: "image",
+      }),
+    });
+    assert.equal(imageSaveResponse.status, 201);
+    const imageSaved = await imageSaveResponse.json();
+    assert.equal(imageSaved.theme.videoMediaId, null, "Image mode must not create a video");
+    assert.deepEqual((await fs.readdir(path.join(stateRoot, "themes", imageSaved.theme.id))).sort(), [
+      "background.jpg", "theme.css", "theme.json",
+    ]);
 
     const lifecycleSaveResponse = await fetch(`${center.origin}/api/themes`, {
       method: "POST",
