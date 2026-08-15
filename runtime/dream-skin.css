@@ -578,17 +578,20 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
   __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))::before {
-  content: none;
+  /* Wide mode paints the artwork on body and the workspace owns its glass
+     opacity. Disable the legacy vertical task-fade layer completely. */
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
 }
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
   __DREAM_SELECTOR_COMPOSER_CHROME__ {
-  background: var(--ds-immersive-composer-solid) !important;
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
   border: 0 !important;
   box-shadow:
-    0 10px 30px rgb(var(--ds-bg-rgb) / .20),
     inset 0 0 0 1px var(--ds-immersive-line),
-    inset 0 1px rgb(var(--ds-text-rgb) / .12) !important;
+    inset 0 1px rgb(var(--ds-text-rgb) / .16) !important;
   backdrop-filter: none !important;
 }
 
@@ -690,6 +693,21 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SE
   background: rgb(var(--ds-panel-rgb) / .44);
   box-shadow: 0 8px 24px rgb(var(--ds-bg-rgb) / .10);
   backdrop-filter: blur(7px) saturate(105%);
+}
+
+/* Turn diff cards inherit dark native token surfaces (.50/.70), which read as
+   a black block over the artwork. Keep the card and its scrolling file rows
+   on the same lighter glass language as the workspace. */
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  [class~="bg-surface-elevated-secondary/50"]:has(> [class~="group/turn-diff-header"]) {
+  background: rgb(var(--ds-panel-rgb) / .34) !important;
+  box-shadow: 0 0 0 .5px rgb(var(--ds-muted-rgb) / .16) !important;
+}
+
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  [class~="bg-surface-elevated-secondary/50"]:has(> [class~="group/turn-diff-header"])
+  [class~="bg-surface/70"] {
+  background: rgb(var(--ds-panel-rgb) / .28) !important;
 }
 
 html[data-dream-skin="active"][data-dream-shell="light"] __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) article {
@@ -1356,21 +1374,70 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_COMPOSER_CHROME__ p.placeholder:
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"])[data-dream-art-wide="true"]
   __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) div.sticky:has(input[type="text"]) {
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"])[data-dream-art-wide="true"]
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) div.sticky:has(input[type="text"])::before,
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"])[data-dream-art-wide="true"]
   __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) div.sticky:has(input[type="text"])::after {
+  content: none !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"])[data-dream-art-wide="true"]
   __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) div.no-drag:has(> input[type="text"]) {
-  background: var(--ds-immersive-composer) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: inset 0 0 0 1px var(--ds-immersive-line) !important;
+  backdrop-filter: none !important;
+}
+
+/* Codex 26.803 may expose the task composer through a CSS-module root and a
+   textarea/contenteditable instead of the legacy input contract. Keep that
+   outer shell translucent with only a restrained highlight edge. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [class*="_ComposerLayoutRoot_"]) {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
   border: 0 !important;
   box-shadow:
-    0 8px 22px rgb(var(--ds-bg-rgb) / .16),
-    inset 0 0 0 1px var(--ds-immersive-line) !important;
+    inset 0 0 0 1px var(--ds-immersive-line),
+    inset 0 1px rgb(var(--ds-text-rgb) / .16) !important;
   backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has(:is(input[type="text"], textarea, [contenteditable="true"], [role="textbox"])) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has(:is(input[type="text"], textarea, [contenteditable="true"], [role="textbox"]))::before,
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has(:is(input[type="text"], textarea, [contenteditable="true"], [role="textbox"]))::after {
+  content: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Codex 26.810 renders the remaining black band as a direct sticky-child
+   gradient, using from-surface/via-surface rather than the older token class.
+   The child appears with either bottom-0 or -bottom-1, so match the semantic
+   gradient tokens instead of one positional variant. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has(:is(input[type="text"], textarea, [contenteditable="true"], [role="textbox"]))
+  [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"][class~="from-surface"] {
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
 }
 
 /* Pull Requests and similar utility routes wrap their content in a native
@@ -1398,6 +1465,38 @@ html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHEL
 html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
   .thread-scroll-container .bg-gradient-to-t.from-token-main-surface-primary {
   background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
+  .thread-scroll-container .bg-gradient-to-t.from-token-main-surface-primary::before,
+html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
+  .thread-scroll-container .bg-gradient-to-t.from-token-main-surface-primary::after {
+  content: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Some Codex builds place the same fade beside, rather than inside, the
+   thread scroll surface. Match its semantic token anywhere in the workspace
+   so the full-width lower band cannot survive the route-specific wrapper. */
+html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
+  [class~="from-token-main-surface-primary"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
+  [class~="from-token-main-surface-primary"]::before,
+html[data-dream-skin="active"][data-dream-art-wide="true"] __DREAM_SELECTOR_SHELL_MAIN__
+  [class~="from-token-main-surface-primary"]::after {
+  content: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
 }
 
 html[data-dream-skin="active"] __DREAM_SELECTOR_HOME_ROUTE__ div:has(> .horizontal-scroll-fade-mask __DREAM_SELECTOR_PROJECT_SELECTOR__) {

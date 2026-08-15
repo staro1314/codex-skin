@@ -66,4 +66,38 @@ for (const file of files) {
       /Keep the workspace on the same glass opacity as the sidebar[\s\S]*?rgb\(var\(--ds-panel-rgb\) \/ \.46\),\s*rgb\(var\(--ds-bg-rgb\) \/ \.58\) 100%\) !important;/,
       "The wide task workspace must not introduce a darker second surface over the wallpaper.");
   });
+
+  test(`wide task composer host does not retain a full-width bottom shadow in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.match(css,
+      /Search routes ship an opaque sticky band[\s\S]*?div\.sticky:has\(input\[type="text"\]\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "The sticky composer host must not paint a second full-width shadow below the composer.");
+    assert.match(css,
+      /div\.sticky:has\(input\[type="text"\]\)::before,[\s\S]*?div\.sticky:has\(input\[type="text"\]\)::after\s*\{[\s\S]*?content:\s*none !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "Sticky composer pseudo-elements must not recreate the bottom shadow.");
+    assert.match(css,
+      /div\.no-drag:has\(> input\[type="text"\]\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*inset 0 0 0 1px var\(--ds-immersive-line\) !important;/,
+      "The input surface must stay transparent while retaining only its boundary line.");
+    assert.match(css,
+      /ComposerLayoutRoot[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\) !important;[\s\S]*?box-shadow:\s*\n?\s*inset 0 0 0 1px var\(--ds-immersive-line\),/,
+      "The current CSS-module composer root must use a translucent micro-highlight surface.");
+    assert.match(css,
+      /\.sticky:has\(:is\(input\[type="text"\], textarea, \[contenteditable="true"\], \[role="textbox"\]\)\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "Sticky hosts with modern textarea/contenteditable inputs must not retain the bottom shadow.");
+    assert.match(css,
+      /\[class~="from-token-main-surface-primary"\]\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?background-image:\s*none !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "All workspace-owned native bottom fade surfaces must be transparent.");
+    assert.match(css,
+      /Wide mode paints the artwork on body[\s\S]*?content:\s*none !important;[\s\S]*?background-image:\s*none !important;/,
+      "Wide task pages must not retain the legacy vertical task-fade pseudo-element.");
+    assert.match(css,
+      /Codex 26\.810 renders the remaining black band[\s\S]*?\.sticky:has\(:is\(input\[type="text"\], textarea, \[contenteditable="true"\], \[role="textbox"\]\)\)\s+\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\]\[class~="from-surface"\]\s*\{[\s\S]*?display:\s*none !important;/,
+      "The confirmed Codex 26.810 sticky-child gradient must be removed.");
+    assert.match(css,
+      /Turn diff cards inherit dark native token surfaces[\s\S]*?\[class~="bg-surface-elevated-secondary\/50"\]:has\(> \[class~="group\/turn-diff-header"\]\)\s*\{[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.34\) !important;[\s\S]*?box-shadow:\s*0 0 0 \.5px rgb\(var\(--ds-muted-rgb\) \/ \.16\) !important;/,
+      "Turn diff cards must use a lighter translucent surface and a restrained edge shadow.");
+    assert.match(css,
+      /Turn diff cards inherit dark native token surfaces[\s\S]*?\[class~="bg-surface-elevated-secondary\/50"\]:has\(> \[class~="group\/turn-diff-header"\]\)\s+\[class~="bg-surface\/70"\]\s*\{[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.28\) !important;/,
+      "Turn diff file rows must not retain the native opaque black surface.");
+  });
 }
