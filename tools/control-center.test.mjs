@@ -71,6 +71,22 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(clientJs, /elements\.previewVideo\.load\(\)/);
     assert.match(clientJs, /operationProgressLabel/);
     assert.match(clientJs, /classList\.add\("is-loading"\)/);
+    assert.match(clientJs, /const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";/,
+      "New themes must use the Arina Hashimoto preset as the system default parameter source.");
+    assert.match(clientJs,
+      /function systemDefaultTheme\(\)[\s\S]*?theme\.id === SYSTEM_DEFAULT_THEME_ID[\s\S]*?theme\.theme\?\.id === SYSTEM_DEFAULT_THEME_ID[\s\S]*?cleanThemeName\(theme\.name\) === "桥本有菜"/,
+      "The system default theme lookup must support bundled, active, and legacy Arina entries.");
+    assert.match(clientJs,
+      /const defaultTheme = systemDefaultTheme\(\) \?\? source;[\s\S]*?const draft = themeToDraft\(defaultTheme\.theme\);/,
+      "The new-theme draft must be initialized from the system default theme parameters.");
+    assert.match(clientJs,
+      /function optionalFieldsForTheme\(theme\)[\s\S]*?theme\?\.colorMode !== "explicit"[\s\S]*?!theme\?\.controls/,
+      "Optional parameter inheritance must follow the source theme declaration state, not runtime fallback values.");
+    assert.match(clientJs,
+      /function persistenceDraft\(draft, optionalFields = \{\}\)[\s\S]*?delete payload\.colors[\s\S]*?delete payload\.controls/,
+      "The editor must omit untouched optional parameters when persisting a new theme.");
+    assert.match(clientJs, /preserveOptionalFields: state\.optionalFields/,
+      "Theme saves must tell the server which optional parameter groups remain inherited.");
 
     const denied = await fetch(`${center.origin}/api/bootstrap`);
     assert.equal(denied.status, 403);
@@ -286,6 +302,47 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.deepEqual(refreshed.exports[saved.theme.id].versions, ["1.0.0"]);
     assert.equal(refreshed.exports[saved.theme.id].suggestedVersion, "1.0.1");
     assert.equal((await fs.readdir(stateRoot)).some((name) => name.startsWith(".control-center-export-")), false);
+  } finally {
+    await center.close();
+  }
+});
+
+test("new themes preserve optional parameters omitted by their system parameter source", async () => {
+  const center = await createControlCenter({
+    port: 0,
+    stateRoot: path.join(tempRoot, "optional-parameter-state"),
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    allowActions: false,
+  });
+  try {
+    const response = await fetch(`${center.origin}/api/themes`, {
+      method: "POST",
+      headers: {
+        "X-DreamSkin-Token": center.token,
+        Origin: center.origin,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sourceId: "bundled",
+        draft: {
+          name: "Arina Optional Parameters",
+          appearance: "auto",
+          art: { focusX: 0.72, focusY: 0.45, safeArea: "left", taskMode: "ambient" },
+          stateEffects: {},
+        },
+        preserveOptionalFields: { colors: true, controls: true },
+        inheritVideo: false,
+        mediaMode: "image",
+      }),
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 201, JSON.stringify(payload));
+    const persisted = JSON.parse(await fs.readFile(
+      path.join(tempRoot, "optional-parameter-state", "themes", payload.theme.id, "theme.json"),
+      "utf8",
+    ));
+    assert.equal(Object.hasOwn(persisted, "colors"), false);
+    assert.equal(Object.hasOwn(persisted, "controls"), false);
   } finally {
     await center.close();
   }

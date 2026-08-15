@@ -256,6 +256,7 @@ export async function createControlCenter(options = {}) {
     if (body.videoUploadId && videoUpload?.kind !== "video") throw Object.assign(new Error("Video upload expired"), { status: 400 });
     const saved = await store.save({
       draft: body.draft,
+      preserveOptionalFields: body.preserveOptionalFields,
       sourceId: updateId ?? body.sourceId,
       imageUpload,
       videoUpload,

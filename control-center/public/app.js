@@ -21,6 +21,7 @@ const FALLBACK_CONTROLS = {
   imageDim: 0.18,
   motionLevel: "standard",
 };
+const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";
 
 const TOKEN_STORAGE_KEY = "dream-skin-control-token";
 const query = new URLSearchParams(location.search);
@@ -38,6 +39,7 @@ const state = {
   themes: [],
   selectedId: null,
   draft: null,
+  optionalFields: { colors: false, controls: false },
   currentState: "idle",
   imageUploadId: null,
   videoUploadId: null,
@@ -144,8 +146,33 @@ function themeToDraft(theme) {
   };
 }
 
+function optionalFieldsForTheme(theme) {
+  return {
+    colors: theme?.colorMode !== "explicit",
+    controls: !theme?.controls,
+  };
+}
+
+function loadDraft(theme) {
+  state.draft = themeToDraft(theme);
+  state.optionalFields = optionalFieldsForTheme(theme);
+}
+
+function persistenceDraft(draft, optionalFields = {}) {
+  const payload = deepClone(draft);
+  if (optionalFields.colors) delete payload.colors;
+  if (optionalFields.controls) delete payload.controls;
+  return payload;
+}
+
 function selectedTheme() {
   return state.themes.find((theme) => theme.id === state.selectedId);
+}
+
+function systemDefaultTheme() {
+  return state.themes.find((theme) => theme.id === SYSTEM_DEFAULT_THEME_ID
+    || theme.theme?.id === SYSTEM_DEFAULT_THEME_ID
+    || cleanThemeName(theme.name) === "桥本有菜");
 }
 
 function kindLabel(kind) {
@@ -460,7 +487,7 @@ function selectTheme(id) {
   if (!theme) return;
   if (state.dirty && state.selectedId !== id && !window.confirm("当前草稿尚未保存，切换主题会丢失这些调校。继续吗？")) return;
   state.selectedId = id;
-  state.draft = themeToDraft(theme.theme);
+  loadDraft(theme.theme);
   state.newDraft = false;
   state.imageUploadId = null;
   state.videoUploadId = null;
@@ -524,7 +551,7 @@ function setEditorTab(tab) {
 function resetDraft() {
   const theme = selectedTheme();
   if (!theme || !state.draft) return;
-  state.draft = themeToDraft(theme.theme);
+  loadDraft(theme.theme);
   state.newDraft = false;
   state.imageUploadId = null;
   state.videoUploadId = null;
@@ -547,7 +574,7 @@ function createNewDraft() {
   const theme = selectedTheme();
   if (!theme || !state.draft) return;
   if (state.dirty && !window.confirm("当前草稿尚未保存，创建新草稿会丢失这些调校。继续吗？")) return;
-  state.draft = themeToDraft(theme.theme);
+  loadDraft(theme.theme);
   state.draft.name = `${cleanThemeName(theme.name)} New Theme`;
   state.newDraft = true;
   state.imageUploadId = null;
@@ -617,13 +644,16 @@ async function createNewTheme() {
       body: file,
       headers: { "Content-Type": file.type || "application/octet-stream" },
     });
-    const draft = themeToDraft({ name });
+    const defaultTheme = systemDefaultTheme() ?? source;
+    const draft = themeToDraft(defaultTheme.theme);
+    const optionalFields = optionalFieldsForTheme(defaultTheme.theme);
     draft.name = name;
     const payload = await api("/api/themes", {
       method: "POST",
       body: JSON.stringify({
         sourceId: source.id,
-        draft,
+        draft: persistenceDraft(draft, optionalFields),
+        preserveOptionalFields: optionalFields,
         imageUploadId: type === "image" ? uploadResult.uploadId : null,
         videoUploadId: type === "video" ? uploadResult.uploadId : null,
         inheritVideo: false,
@@ -766,7 +796,8 @@ async function saveTheme(applyAfter) {
       method: updateCurrent ? "PUT" : "POST",
       body: JSON.stringify({
         sourceId: state.selectedId,
-        draft: state.draft,
+        draft: persistenceDraft(state.draft, state.optionalFields),
+        preserveOptionalFields: state.optionalFields,
         imageUploadId: state.imageUploadId,
         videoUploadId: state.videoUploadId,
         inheritVideo: state.mediaMode === "video" && elements.inheritVideo.checked,
@@ -850,6 +881,8 @@ for (const input of document.querySelectorAll("[data-path]")) {
   input.addEventListener("input", () => {
     const value = input.type === "range" ? Number(input.value) : input.value;
     setPath(state.draft, input.dataset.path, value);
+    const [group] = input.dataset.path.split(".");
+    if (group === "colors" || group === "controls") state.optionalFields[group] = false;
     if (input.type === "range") updateRange(input);
     markDirty();
     renderPreview();

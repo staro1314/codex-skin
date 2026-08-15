@@ -118,8 +118,26 @@ function makeId(name) {
   return `custom-${slug || "theme"}-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
 }
 
-function normalizedDraft(value, fallbackTheme) {
+function normalizeOptionalFields(value) {
+  if (value === undefined) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    fail("preserveOptionalFields must be an object");
+  }
+  const allowed = new Set(["colors", "controls"]);
+  if (Object.keys(value).some((key) => !allowed.has(key))) {
+    fail("preserveOptionalFields contains an unsupported field");
+  }
+  for (const key of allowed) {
+    if (value[key] !== undefined && typeof value[key] !== "boolean") {
+      fail(`preserveOptionalFields.${key} must be boolean`);
+    }
+  }
+  return value;
+}
+
+function normalizedDraft(value, fallbackTheme, preserveOptionalFields) {
   if (!value || typeof value !== "object" || Array.isArray(value)) fail("Theme draft must be an object");
+  const optionalFields = normalizeOptionalFields(preserveOptionalFields);
   const name = text(value.name, "Untitled Theme", 80, "name");
   const appearance = value.appearance ?? fallbackTheme.appearance ?? "auto";
   if (!APPEARANCES.has(appearance)) fail("appearance is unsupported");
@@ -130,7 +148,7 @@ function normalizedDraft(value, fallbackTheme) {
   if (!TASK_MODES.has(taskMode)) fail("art.taskMode is unsupported");
   const fallbackColors = fallbackTheme.colors ?? {};
   const values = value.colors && typeof value.colors === "object" ? value.colors : {};
-  const colors = {
+  const colors = optionalFields.colors && value.colors === undefined ? undefined : {
     background: color(values.background, fallbackColors.background ?? "#071116", "colors.background"),
     panel: color(values.panel, fallbackColors.panel ?? "#0b1a20", "colors.panel"),
     panelAlt: color(values.panelAlt, fallbackColors.panelAlt ?? "#10272c", "colors.panelAlt"),
@@ -142,6 +160,9 @@ function normalizedDraft(value, fallbackTheme) {
     muted: color(values.muted, fallbackColors.muted ?? "#9ebdb3", "colors.muted"),
     line: color(values.line, fallbackColors.line ?? "rgba(124, 255, 70, .28)", "colors.line"),
   };
+  const controls = optionalFields.controls && value.controls === undefined
+    ? undefined
+    : normalizeThemeControls(value.controls ?? fallbackTheme.controls ?? {});
   return {
     name,
     appearance,
@@ -151,8 +172,8 @@ function normalizedDraft(value, fallbackTheme) {
       safeArea,
       taskMode,
     },
-    colors,
-    controls: normalizeThemeControls(value.controls ?? fallbackTheme.controls ?? {}),
+    ...(colors ? { colors } : {}),
+    ...(controls ? { controls } : {}),
     stateEffects: normalizeThemeStateEffects(value.stateEffects ?? fallbackTheme.stateEffects ?? {}),
     videoPerformance: value.videoPerformance ?? fallbackTheme.video?.performance ?? "balanced",
   };
@@ -238,14 +259,14 @@ export class ThemeStore {
     return { themes, warnings, paused: await fs.access(this.pauseFile).then(() => true, () => false) };
   }
 
-  async save({ draft, sourceId, imageUpload, videoUpload, inheritVideo = true, mediaMode, updateId = null }) {
+  async save({ draft, sourceId, preserveOptionalFields, imageUpload, videoUpload, inheritVideo = true, mediaMode, updateId = null }) {
     const snapshot = await this.list();
     const source = updateId
       ? snapshot.themes.find((entry) => entry.id === updateId && entry.kind === "saved")
       : snapshot.themes.find((entry) => entry.id === sourceId) ?? snapshot.themes[0];
     if (!source) fail("No valid source theme is available", 409);
     if (updateId && source.id !== updateId) fail("Saved theme not found", 404);
-    const normalized = normalizedDraft(draft, source.theme);
+    const normalized = normalizedDraft(draft, source.theme, preserveOptionalFields);
     if (!new Set(["eco", "balanced", "immersive"]).has(normalized.videoPerformance)) {
       fail("videoPerformance is unsupported");
     }
@@ -276,8 +297,8 @@ export class ThemeStore {
       image: imageName,
       appearance: normalized.appearance,
       art: normalized.art,
-      colors: normalized.colors,
-      controls: normalized.controls,
+      ...(normalized.colors ? { colors: normalized.colors } : {}),
+      ...(normalized.controls ? { controls: normalized.controls } : {}),
       stateEffects: normalized.stateEffects,
       ...(video ? { video: { src: videoName, performance: normalized.videoPerformance } } : {}),
     };
