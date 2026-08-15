@@ -53,6 +53,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="new-theme-type-video"/);
     assert.match(shellHtml, /id="new-theme-file"/);
     assert.match(shellHtml, /id="new-theme-confirm"[^>]+type="submit"/);
+    assert.match(shellHtml, /id="operation-progress"/);
     assert.match(shellResponse.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
     const clientResponse = await fetch(`${center.origin}/app.js`);
@@ -68,6 +69,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(clientJs, /function createNewTheme\(\)/);
     assert.match(clientJs, /mediaMode: type/);
     assert.match(clientJs, /elements\.previewVideo\.load\(\)/);
+    assert.match(clientJs, /operationProgressLabel/);
+    assert.match(clientJs, /classList\.add\("is-loading"\)/);
 
     const denied = await fetch(`${center.origin}/api/bootstrap`);
     assert.equal(denied.status, 403);
@@ -283,6 +286,37 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.deepEqual(refreshed.exports[saved.theme.id].versions, ["1.0.0"]);
     assert.equal(refreshed.exports[saved.theme.id].suggestedVersion, "1.0.1");
     assert.equal((await fs.readdir(stateRoot)).some((name) => name.startsWith(".control-center-export-")), false);
+  } finally {
+    await center.close();
+  }
+});
+
+test("control center surfaces a recoverable Windows action failure", async () => {
+  const center = await createControlCenter({
+    platform: "win32",
+    port: 0,
+    stateRoot: path.join(tempRoot, "action-error-state"),
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    actionRunner: async () => {
+      throw Object.assign(new Error("internal action detail"), {
+        publicMessage: "Windows theme action failed; retry after the current operation finishes.",
+      });
+    },
+  });
+  try {
+    const response = await fetch(`${center.origin}/api/action`, {
+      method: "POST",
+      headers: {
+        "X-DreamSkin-Token": center.token,
+        Origin: center.origin,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "pause" }),
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      error: "Windows theme action failed; retry after the current operation finishes.",
+    });
   } finally {
     await center.close();
   }

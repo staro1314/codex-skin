@@ -54,6 +54,7 @@ const state = {
   mediaMode: "image",
   newDraft: false,
   connected: false,
+  busyButton: null,
 };
 
 const elements = Object.fromEntries([
@@ -66,7 +67,8 @@ const elements = Object.fromEntries([
   "effect-brightness-output", "effect-saturation", "effect-saturation-output", "effect-hue", "effect-hue-output",
   "export-version", "publisher-name", "publisher-id", "export-license", "export-summary", "export-ai",
   "export-history-note", "save-status", "reset-button", "pause-button", "resume-button", "apply-button", "save-button",
-  "export-button", "save-apply-button", "toast", "new-theme-dialog", "new-theme-name", "new-theme-type-image",
+  "export-button", "save-apply-button", "action-dock", "operation-progress", "operation-progress-label", "operation-progress-time",
+  "toast", "new-theme-dialog", "new-theme-name", "new-theme-type-image",
   "new-theme-type-video", "new-theme-file", "new-theme-file-label", "new-theme-file-hint", "new-theme-error",
   "new-theme-cancel", "new-theme-confirm",
 ].map((id) => [id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()), document.getElementById(id)]));
@@ -161,8 +163,47 @@ function updateSelectionSummary() {
   elements.previewFingerprint.textContent = theme?.fingerprint ? `ID ${theme.fingerprint.slice(0, 12)}` : "未载入主题数据";
 }
 
-function setBusy(busy, label = "") {
-  state.busy = busy;
+let operationTimer = null;
+let operationStartedAt = 0;
+
+function clearBusyButton(button) {
+  if (!button) return;
+  button.classList.remove("is-loading");
+  button.removeAttribute("aria-busy");
+  delete button.dataset.loadingLabel;
+}
+
+function updateOperationClock() {
+  const elapsed = Math.max(0, Math.floor((performance.now() - operationStartedAt) / 1000));
+  elements.operationProgressTime.textContent = `${elapsed}s`;
+}
+
+function setBusy(busy, label = "", button = null) {
+  if (busy) {
+    clearBusyButton(state.busyButton);
+    state.busy = true;
+    state.busyButton = button;
+    operationStartedAt = performance.now();
+    clearInterval(operationTimer);
+    operationTimer = window.setInterval(updateOperationClock, 250);
+    elements.operationProgressLabel.textContent = label || "正在执行本地操作";
+    elements.operationProgressTime.textContent = "0s";
+    elements.operationProgress.hidden = false;
+    elements.actionDock.setAttribute("aria-busy", "true");
+    if (button) {
+      button.dataset.loadingLabel = label || "处理中";
+      button.setAttribute("aria-busy", "true");
+      button.classList.add("is-loading");
+    }
+  } else {
+    clearBusyButton(state.busyButton);
+    state.busy = false;
+    state.busyButton = null;
+    clearInterval(operationTimer);
+    operationTimer = null;
+    elements.operationProgress.hidden = true;
+    elements.actionDock.setAttribute("aria-busy", "false");
+  }
   updateActionAvailability();
   updateEditorAvailability();
   if (busy) elements.saveStatus.textContent = label || "正在执行本地操作";
@@ -719,7 +760,7 @@ async function saveTheme(applyAfter) {
     toast("请先选择已保存主题；内置主题或新建草稿请使用“保存为新主题”", true);
     return;
   }
-  setBusy(true, applyAfter ? "正在保存并应用" : "正在保存新主题");
+  setBusy(true, applyAfter ? "正在保存并应用" : "正在保存新主题", applyAfter ? elements.saveApplyButton : elements.saveButton);
   try {
     const payload = await api(updateCurrent ? `/api/themes/${encodeURIComponent(theme.id)}` : "/api/themes", {
       method: updateCurrent ? "PUT" : "POST",
@@ -765,7 +806,8 @@ async function deleteTheme(themeId = state.selectedId) {
 }
 
 async function action(name, themeId = state.selectedId) {
-  setBusy(true, name === "apply" ? "正在应用主题" : name === "pause" ? "正在暂停皮肤" : "正在继续显示");
+  const button = name === "apply" ? elements.applyButton : name === "pause" ? elements.pauseButton : elements.resumeButton;
+  setBusy(true, name === "apply" ? "正在应用主题" : name === "pause" ? "正在暂停皮肤" : "正在继续显示", button);
   try {
     const result = await api("/api/action", { method: "POST", body: JSON.stringify({ action: name, themeId }) });
     toast(result.message || "操作已完成");

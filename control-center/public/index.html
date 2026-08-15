@@ -218,11 +218,16 @@
     </aside>
   </main>
 
-  <footer class="action-dock">
-    <div class="save-readout">
+  <footer id="action-dock" class="action-dock" aria-busy="false">
+    <div class="save-readout" aria-live="polite">
       <span class="eyebrow">WORKSPACE STATUS</span>
       <strong id="save-status">参数尚未修改</strong>
       <small id="action-help">选择主题后可开始调校</small>
+      <span id="operation-progress" class="operation-progress" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <i aria-hidden="true"></i>
+        <span id="operation-progress-label">本地操作处理中</span>
+        <b id="operation-progress-time">0s</b>
+      </span>
     </div>
     <div class="dock-actions">
       <button id="reset-button" class="button ghost" type="button">恢复草稿</button>

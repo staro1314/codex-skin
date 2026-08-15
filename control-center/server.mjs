@@ -30,6 +30,7 @@ const SECURITY_HEADERS = Object.freeze({
   "X-Frame-Options": "DENY",
   "Content-Security-Policy": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
 });
+const WINDOWS_ACTION_TIMEOUT_MS = 120_000;
 
 function defaultStateRoot(platform = process.platform) {
   if (platform === "win32") {
@@ -117,14 +118,33 @@ async function runWindowsAction({ action, themeId, stateRoot }) {
     "-StateRoot", stateRoot,
   ];
   if (themeId) args.push("-ThemeId", themeId);
-  const { stdout } = await execFileAsync("powershell.exe", args, {
-    cwd: projectRoot,
-    encoding: "utf8",
-    timeout: 30_000,
-    windowsHide: true,
-  });
-  const line = stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
-  return line ? JSON.parse(line) : { ok: true, action };
+  try {
+    const { stdout } = await execFileAsync("powershell.exe", args, {
+      cwd: projectRoot,
+      encoding: "utf8",
+      timeout: WINDOWS_ACTION_TIMEOUT_MS,
+      windowsHide: true,
+    });
+    const line = stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
+    return line ? JSON.parse(line) : { ok: true, action };
+  } catch (error) {
+    const raw = [error?.stderr, error?.stdout, error?.message]
+      .filter(Boolean)
+      .join("\n");
+    const timedOut = error?.code === "ETIMEDOUT" || error?.killed || error?.signal === "SIGTERM";
+    const message = timedOut
+      ? "Windows 主题操作超过 120 秒未完成，请检查 Codex 会话后重试。"
+      : /Node\.js \d+ or newer is required/i.test(raw)
+        ? "需要 Node.js 22 或更高版本，请重新打开控制中心后重试。"
+        : /access to the path|access is denied/i.test(raw)
+          ? "无法写入活动主题文件，可能有其他主题操作正在占用；请稍后重试。"
+          : "Windows 主题操作失败，请稍后重试。";
+    throw Object.assign(new Error(message), {
+      status: timedOut ? 504 : 500,
+      publicMessage: message,
+      cause: error,
+    });
+  }
 }
 
 async function writeStateFile(stateFile, state) {
@@ -325,8 +345,9 @@ export async function createControlCenter(options = {}) {
       }
       return json(res, 404, { error: "Not found" });
     } catch (error) {
-      return json(res, errorStatus(error), {
-        error: errorStatus(error) === 500 ? "Control Center operation failed" : error.message,
+      const status = errorStatus(error);
+      return json(res, status, {
+        error: status === 500 ? error.publicMessage ?? "Control Center operation failed" : error.message,
         ...(options.exposeErrors ? { detail: error?.stack ?? String(error) } : {}),
       });
     }
