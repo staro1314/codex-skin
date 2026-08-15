@@ -566,10 +566,11 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
   __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__)) {
+  /* Keep the workspace on the same glass opacity as the sidebar. The
+     task-specific veil made the main pane read as a second opaque surface. */
   background: linear-gradient(90deg,
-    var(--ds-task-immersive-edge),
-    var(--ds-task-immersive-mid) 64%,
-    var(--ds-task-immersive-far)) !important;
+    rgb(var(--ds-panel-rgb) / .46),
+    rgb(var(--ds-bg-rgb) / .58) 100%) !important;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;

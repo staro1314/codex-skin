@@ -59,4 +59,11 @@ for (const file of files) {
     assert.match(css, lightShadowRule,
       "Full task mode must retain the light-shell Markdown contrast shadow (#309).");
   });
+
+  test(`wide task workspace matches the sidebar glass opacity in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.match(css,
+      /Keep the workspace on the same glass opacity as the sidebar[\s\S]*?rgb\(var\(--ds-panel-rgb\) \/ \.46\),\s*rgb\(var\(--ds-bg-rgb\) \/ \.58\) 100%\) !important;/,
+      "The wide task workspace must not introduce a darker second surface over the wallpaper.");
+  });
 }
