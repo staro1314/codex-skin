@@ -39,11 +39,7 @@
     rgb(var(--ds-bg-rgb) / .56) 0%,
     rgb(var(--ds-bg-rgb) / .36) 48%,
     rgb(var(--ds-bg-rgb) / .12) 100%);
-  --ds-task-fade: linear-gradient(180deg,
-    rgb(var(--ds-bg-rgb) / .10) 0%,
-    rgb(var(--ds-bg-rgb) / .18) 32%,
-    rgb(var(--ds-bg-rgb) / .76) 68%,
-    rgb(var(--ds-bg-rgb) / 1) 100%);
+  --ds-task-fade: none;
   --ds-task-full-veil: linear-gradient(
     rgb(var(--ds-bg-rgb) / .10),
     rgb(var(--ds-bg-rgb) / .10));
@@ -89,11 +85,7 @@ html[data-dream-skin="active"][data-dream-shell="light"] {
     rgb(var(--ds-bg-rgb) / .68) 0%,
     rgb(var(--ds-bg-rgb) / .40) 48%,
     rgb(var(--ds-bg-rgb) / .12) 100%);
-  --ds-task-fade: linear-gradient(180deg,
-    rgb(var(--ds-bg-rgb) / .08) 0%,
-    rgb(var(--ds-bg-rgb) / .22) 34%,
-    rgb(var(--ds-bg-rgb) / .78) 70%,
-    rgb(var(--ds-bg-rgb) / 1) 100%);
+  --ds-task-fade: none;
   --ds-task-full-veil: linear-gradient(
     rgb(var(--ds-panel-rgb) / .10),
     rgb(var(--ds-panel-rgb) / .10));
@@ -263,6 +255,34 @@ html[data-dream-skin="active"] body::after {
   box-shadow: inset 0 0 max(14vw, 120px) var(--dream-state-color, transparent);
   opacity: var(--dream-state-overlay-opacity, 0);
   transition: opacity .32s cubic-bezier(.22, 1, .36, 1) !important;
+}
+
+/* Overlay dialogs stay on the artwork glass layer. Keep the approval-like
+   page dialogs readable without bringing back Codex's opaque surface,
+   elevation shadow, or a second pseudo-element gradient. */
+html[data-dream-skin="active"] :is([role="dialog"], [aria-modal="true"], [data-ds-part="dialog"]) {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
+  border: 1px solid var(--ds-immersive-line) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--ds-immersive-line),
+    inset 0 1px rgb(var(--ds-text-rgb) / .16) !important;
+  backdrop-filter: none !important;
+  color: var(--ds-text) !important;
+}
+
+html[data-dream-skin="active"] :is([role="dialog"], [aria-modal="true"], [data-ds-part="dialog"])::before,
+html[data-dream-skin="active"] :is([role="dialog"], [aria-modal="true"], [data-ds-part="dialog"])::after {
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-dream-skin="active"]:has(:is([role="dialog"], [aria-modal="true"], [data-ds-part="dialog"])) body::after {
+  content: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
 }
 
 /* The browser workbench is a native Electron webview. Keep the skin from

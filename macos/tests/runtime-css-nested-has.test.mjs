@@ -67,6 +67,13 @@ for (const file of files) {
       "The wide task workspace must not introduce a darker second surface over the wallpaper.");
   });
 
+  test(`task artwork does not define a bottom fade layer in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.match(css,
+      /--ds-task-fade:\s*none;/,
+      "The task workspace must not paint a black bottom gradient behind the composer or approval chrome.");
+  });
+
   test(`wide task composer host does not retain a full-width bottom shadow in ${file}`, () => {
     const css = readFileSync(join(root, file), "utf8");
     assert.match(css,
@@ -99,5 +106,18 @@ for (const file of files) {
     assert.match(css,
       /Turn diff cards inherit dark native token surfaces[\s\S]*?\[class~="bg-surface-elevated-secondary\/50"\]:has\(> \[class~="group\/turn-diff-header"\]\)\s+\[class~="bg-surface\/70"\]\s*\{[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.28\) !important;/,
       "Turn diff file rows must not retain the native opaque black surface.");
+  });
+
+  test(`overlay dialogs use the same transparent micro-highlight treatment in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.match(css,
+      /Overlay dialogs stay on the artwork glass layer[\s\S]*?:is\(\[role="dialog"\], \[aria-modal="true"\], \[data-ds-part="dialog"\]\)\s*\{[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\) !important;[\s\S]*?background-image:\s*none !important;[\s\S]*?box-shadow:\s*\n?\s*inset 0 0 0 1px var\(--ds-immersive-line\),[\s\S]*?backdrop-filter:\s*none !important;/,
+      "Overlay dialogs must not retain an opaque native surface or a large drop shadow.");
+    assert.match(css,
+      /:is\(\[role="dialog"\], \[aria-modal="true"\], \[data-ds-part="dialog"\]\)::before,[\s\S]*?::after\s*\{[\s\S]*?content:\s*none !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "Overlay dialog pseudo-elements must not recreate a gradient shadow.");
+    assert.match(css,
+      /:has\(:is\(\[role="dialog"\], \[aria-modal="true"\], \[data-ds-part="dialog"\]\)\) body::after\s*\{[\s\S]*?content:\s*none !important;[\s\S]*?box-shadow:\s*none !important;[\s\S]*?opacity:\s*0 !important;/,
+      "The global state glow must be disabled while an in-page dialog is open.");
   });
 }
