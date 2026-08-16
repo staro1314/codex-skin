@@ -190,12 +190,13 @@ async function safeCssFor(source) {
 }
 
 export class ThemeStore {
-  constructor({ stateRoot, bundledThemeRoot }) {
+  constructor({ stateRoot, bundledThemeRoot, videoCoverPath }) {
     this.stateRoot = path.resolve(stateRoot);
     this.savedRoot = path.join(this.stateRoot, "themes");
     this.activeRoot = path.join(this.stateRoot, "active-theme");
     this.pauseFile = path.join(this.stateRoot, "paused");
     this.bundledThemeRoot = path.resolve(bundledThemeRoot);
+    this.videoCoverPath = path.resolve(videoCoverPath);
   }
 
   async initialize() {
@@ -272,10 +273,15 @@ export class ThemeStore {
     }
     const selectedMediaMode = mediaMode ?? (videoUpload || (inheritVideo && source._videoPath) ? "video" : "image");
     if (!["image", "video"].includes(selectedMediaMode)) fail("mediaMode must be image or video");
-    const image = imageUpload ?? validateUploadedMedia(
-      "image",
-      await readRegular(source._imagePath, MAX_IMAGE_BYTES, "Source image"),
-    );
+    const image = selectedMediaMode === "video"
+      ? validateUploadedMedia(
+        "image",
+        await readRegular(this.videoCoverPath, MAX_IMAGE_BYTES, "Universal video cover"),
+      )
+      : imageUpload ?? validateUploadedMedia(
+        "image",
+        await readRegular(source._imagePath, MAX_IMAGE_BYTES, "Source image"),
+      );
     let video = selectedMediaMode === "video" ? videoUpload ?? null : null;
     if (!video && selectedMediaMode === "video" && inheritVideo && source._videoPath) {
       video = validateUploadedMedia(

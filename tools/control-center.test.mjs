@@ -53,8 +53,12 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="new-theme-type-video"/);
     assert.match(shellHtml, /id="new-theme-file"/);
     assert.match(shellHtml, /id="new-theme-confirm"[^>]+type="submit"/);
-    assert.match(shellHtml, /视频主题需要保留封面图/,
-      "The new-theme dialog must explain that video themes keep a poster image for fallback.");
+    assert.match(shellHtml, /视频主题统一使用合规静态封面/,
+      "The new-theme dialog must explain that video themes use the shared compliant cover.");
+    assert.match(shellHtml, /不需要上传照片/,
+      "The new-theme dialog must make clear that video creation does not require a photo upload.");
+    assert.match(shellHtml, /id="image-upload-label"/,
+      "The image upload label must be able to identify a video cover separately from a static background.");
     assert.match(shellHtml, /id="operation-progress"/);
     assert.match(shellResponse.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
@@ -62,6 +66,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(clientResponse.status, 200);
     const clientJs = await clientResponse.text();
     assert.match(clientJs, /\/api\/export/);
+    assert.doesNotMatch(clientJs, /captureVideoPoster/,
+      "Video theme creation must not derive a cover from each video's aspect ratio.");
+    assert.match(clientJs, /VIDEO_THEME_COVER_URL/,
+      "The control center must preview the shared compliant video cover.");
     assert.match(clientJs, /sessionStorage/);
     assert.match(clientJs, /method: updateCurrent \? "PUT" : "POST"/);
     assert.match(clientJs, /method: "DELETE"/);
@@ -71,10 +79,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(clientJs, /function createNewTheme\(\)/);
     assert.match(clientJs, /mediaMode: type/);
     assert.match(clientJs, /elements\.previewVideo\.load\(\)/);
-    assert.match(clientJs, /视频主题 \/ 封面图 \+ 视频/,
-      "Video themes must be labeled as a video plus its required poster, not as an unexplained photo upload.");
-    assert.match(clientJs, /母版封面图/,
-      "The save status must identify an inherited poster image as the video fallback source.");
+    assert.match(clientJs, /视频主题 \/ 统一封面/,
+      "Video themes must be labeled as using the shared cover, not as an unexplained photo upload.");
+    assert.match(clientJs, /统一封面/,
+      "The save status must identify the shared cover source.");
     assert.match(clientJs, /operationProgressLabel/);
     assert.match(clientJs, /classList\.add\("is-loading"\)/);
     assert.match(clientJs, /const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";/,
@@ -133,6 +141,12 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const sourceImageBytes = Buffer.from(await mediaResponse.arrayBuffer());
     assert.ok(sourceImageBytes.byteLength > 1000);
 
+    const universalCoverResponse = await fetch(`${center.origin}/video-theme-cover.png`);
+    assert.equal(universalCoverResponse.status, 200);
+    assert.equal(universalCoverResponse.headers.get("content-type"), "image/png");
+    const universalCoverBytes = Buffer.from(await universalCoverResponse.arrayBuffer());
+    assert.ok(universalCoverBytes.byteLength > 1000);
+
     const forbiddenMutation = await fetch(`${center.origin}/api/themes`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
@@ -170,6 +184,13 @@ test("control center serves an authenticated theme editor and saves immutable dr
     });
     assert.equal(videoUploadResponse.status, 201);
     const videoUpload = await videoUploadResponse.json();
+    const coverUploadResponse = await fetch(`${center.origin}/api/upload?kind=image`, {
+      method: "POST",
+      headers: { ...headers, Origin: center.origin, "Content-Type": "image/jpeg" },
+      body: sourceImageBytes,
+    });
+    assert.equal(coverUploadResponse.status, 201);
+    const coverUpload = await coverUploadResponse.json();
     const saveResponse = await fetch(`${center.origin}/api/themes`, {
       method: "POST",
       headers: { ...headers, Origin: center.origin, "Content-Type": "application/json" },
@@ -177,19 +198,28 @@ test("control center serves an authenticated theme editor and saves immutable dr
         sourceId: "bundled",
         draft,
         inheritVideo: false,
+        imageUploadId: coverUpload.uploadId,
         videoUploadId: videoUpload.uploadId,
+        mediaMode: "video",
       }),
     });
     const savedText = await saveResponse.text();
     assert.equal(saveResponse.status, 201, savedText);
     const saved = JSON.parse(savedText);
     assert.match(saved.theme.id, /^custom-control-center-test-/);
+    assert.ok(saved.theme.imageMediaId, "Video themes must persist the shared cover image");
+    assert.ok(saved.theme.videoMediaId, "Video themes must persist the video upload");
     assert.equal(saved.theme.theme.controls.surfaceBlur, 22);
     assert.equal(saved.theme.theme.stateEffects.thinking.motion, "pulse");
 
     const directory = path.join(stateRoot, "themes", saved.theme.id);
     const files = (await fs.readdir(directory)).sort();
-    assert.deepEqual(files, ["background.jpg", "background.mp4", "theme.css", "theme.json"]);
+    assert.deepEqual(files, ["background.mp4", "background.png", "theme.css", "theme.json"]);
+    assert.deepEqual(
+      await fs.readFile(path.join(directory, "background.png")),
+      universalCoverBytes,
+      "Every saved video theme must use the same canonical cover bytes.",
+    );
     const persisted = JSON.parse(await fs.readFile(path.join(directory, "theme.json"), "utf8"));
     assert.equal(persisted.controls.motionLevel, "reduced");
     assert.equal(persisted.stateEffects.thinking.overlayOpacity, 0.14);
@@ -282,7 +312,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const archive = Buffer.from(await exportResponse.arrayBuffer());
     const exportedFiles = readZipEntries(archive);
     assert.deepEqual([...exportedFiles.keys()].sort(), [
-      "LICENSE.txt", "background.jpg", "background.mp4", "manifest.json", "theme.css", "theme.json",
+      "LICENSE.txt", "background.mp4", "background.png", "manifest.json", "theme.css", "theme.json",
     ]);
     const manifest = JSON.parse(exportedFiles.get("manifest.json").toString("utf8"));
     const exportedTheme = JSON.parse(exportedFiles.get("theme.json").toString("utf8"));
@@ -295,6 +325,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(exportedTheme.controls.surfaceBlur, 22);
     assert.equal(exportedTheme.video.src, "background.mp4");
     assert.deepEqual(exportedFiles.get("background.mp4"), tinyMp4);
+    assert.deepEqual(exportedFiles.get("background.png"), universalCoverBytes);
     assert.equal(Object.hasOwn(exportedTheme, "artMetadata"), false);
 
     const duplicateResponse = await fetch(`${center.origin}/api/export`, {

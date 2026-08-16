@@ -22,6 +22,7 @@ const FALLBACK_CONTROLS = {
   motionLevel: "standard",
 };
 const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";
+const VIDEO_THEME_COVER_URL = "/video-theme-cover.png";
 
 const TOKEN_STORAGE_KEY = "dream-skin-control-token";
 const query = new URLSearchParams(location.search);
@@ -64,7 +65,7 @@ const elements = Object.fromEntries([
   "theme-count", "theme-list", "theme-search", "library-match", "library-empty", "preview-name",
   "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "preview-image",
   "preview-video", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
-  "image-upload", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
+  "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
   "effect-overlay", "effect-overlay-output", "effect-media", "effect-media-output", "effect-brightness",
   "effect-brightness-output", "effect-saturation", "effect-saturation-output", "effect-hue", "effect-hue-output",
   "export-version", "publisher-name", "publisher-id", "export-license", "export-summary", "export-ai",
@@ -90,6 +91,10 @@ async function api(path, options = {}) {
 
 function mediaUrl(id) {
   return id ? `/api/media/${encodeURIComponent(id)}` : "";
+}
+
+function releaseObjectUrl(value) {
+  if (typeof value === "string" && value.startsWith("blob:")) URL.revokeObjectURL(value);
 }
 
 function deepClone(value) {
@@ -185,7 +190,7 @@ function updateSelectionSummary() {
   elements.selectionNote.textContent = state.newDraft
     ? `新建草稿 / 基于 ${theme ? cleanThemeName(theme.name) : "当前主题"}`
     : theme
-    ? `${kindLabel(theme.kind)}主题 / ${theme.theme.video ? "视频主题 / 封面图 + 视频" : "图片背景"}`
+    ? `${kindLabel(theme.kind)}主题 / ${theme.theme.video ? "视频主题 / 统一封面" : "图片背景"}`
     : "选择主题后开始调校";
   elements.previewFingerprint.textContent = theme?.fingerprint ? `ID ${theme.fingerprint.slice(0, 12)}` : "未载入主题数据";
 }
@@ -269,10 +274,13 @@ function updateEditorAvailability() {
 function updateMediaModeUI() {
   elements.mediaModeImage.checked = state.mediaMode === "image";
   elements.mediaModeVideo.checked = state.mediaMode === "video";
+  const video = state.mediaMode === "video";
+  elements.imageUploadLabel.textContent = video ? "统一视频封面" : "更换图片";
+  elements.imageUploadHint.textContent = video ? "所有视频主题共用" : "PNG / JPG / WEBP";
   const imageButton = elements.imageUpload.closest(".upload-button");
   const videoButton = elements.videoUpload.closest(".upload-button");
-  imageButton?.classList.toggle("is-muted", state.mediaMode === "video");
-  videoButton?.classList.toggle("is-muted", state.mediaMode === "image");
+  imageButton?.classList.toggle("is-muted", video);
+  videoButton?.classList.toggle("is-muted", !video);
   updateEditorAvailability();
 }
 
@@ -309,7 +317,7 @@ function updateSaveStatus() {
     return;
   }
   const image = state.mediaMode === "video"
-    ? state.imageUploadId ? "新封面图" : "母版封面图"
+    ? "统一封面"
     : state.imageUploadId ? "新图片" : "母版图片";
   const video = state.mediaMode === "video"
     ? state.videoUploadId ? "新视频" : elements.inheritVideo.checked ? "继承视频" : "无视频"
@@ -411,17 +419,22 @@ function renderPreview() {
   elements.previewFingerprint.textContent = theme?.fingerprint ? `ID ${theme.fingerprint.slice(0, 12)}` : "未保存草稿";
 }
 
-function setPreviewMedia(theme) {
-  if (state.localImageUrl) URL.revokeObjectURL(state.localImageUrl);
-  if (state.localVideoUrl) URL.revokeObjectURL(state.localVideoUrl);
-  state.localImageUrl = null;
-  state.localVideoUrl = null;
-  elements.previewImage.src = mediaUrl(theme.imageMediaId);
+function setPreviewMedia(theme, preserveLocal = false) {
+  if (!preserveLocal) {
+    releaseObjectUrl(state.localImageUrl);
+    releaseObjectUrl(state.localVideoUrl);
+    state.localImageUrl = null;
+    state.localVideoUrl = null;
+  }
+  elements.previewImage.src = state.localImageUrl
+    || (state.mediaMode === "video" ? VIDEO_THEME_COVER_URL : mediaUrl(theme.imageMediaId));
   elements.previewVideo.pause();
   elements.previewVideo.removeAttribute("src");
   elements.previewVideo.load();
-  if (state.mediaMode === "video" && theme.videoMediaId && elements.inheritVideo.checked) {
-    elements.previewVideo.src = mediaUrl(theme.videoMediaId);
+  const videoSource = state.localVideoUrl || (state.mediaMode === "video"
+    && theme.videoMediaId && elements.inheritVideo.checked ? mediaUrl(theme.videoMediaId) : "");
+  if (videoSource) {
+    elements.previewVideo.src = videoSource;
     elements.previewVideo.load();
     elements.previewVideo.play().catch(() => {});
   }
@@ -455,7 +468,7 @@ function renderThemeList() {
     const title = document.createElement("b");
     title.textContent = cleanThemeName(theme.name);
     const meta = document.createElement("small");
-    meta.textContent = `${kindLabel(theme.kind)} / ${theme.theme.video ? "视频主题 / 封面图 + 视频" : "图片背景"}`;
+    meta.textContent = `${kindLabel(theme.kind)} / ${theme.theme.video ? "视频主题 / 统一封面" : "图片背景"}`;
     copy.append(title, meta);
     if (theme.kind === "saved") {
       const badge = document.createElement("span");
@@ -604,7 +617,9 @@ function syncNewThemeFilePicker() {
   const video = selectedNewThemeType() === "video";
   elements.newThemeFile.accept = video ? "video/mp4,video/webm" : "image/png,image/jpeg,image/webp";
   elements.newThemeFileLabel.textContent = video ? "上传视频" : "上传图片";
-  elements.newThemeFileHint.textContent = video ? "MP4 / WEBM，最大 32 MiB" : "PNG / JPG / WEBP，最大 10 MiB";
+  elements.newThemeFileHint.textContent = video
+    ? "MP4 / WEBM，所有视频主题共用统一封面"
+    : "PNG / JPG / WEBP，最大 10 MiB";
   elements.newThemeFile.value = "";
   elements.newThemeError.textContent = "";
 }
@@ -641,11 +656,9 @@ async function createNewTheme() {
   setBusy(true, "正在创建新主题");
   elements.newThemeConfirm.disabled = true;
   try {
-    const uploadResult = await api(`/api/upload?kind=${type}`, {
-      method: "POST",
-      body: file,
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-    });
+    const uploadResult = type === "video"
+      ? { videoUpload: await uploadMedia("video", file) }
+      : { imageUpload: await uploadMedia("image", file) };
     const defaultTheme = systemDefaultTheme() ?? source;
     const draft = themeToDraft(defaultTheme.theme);
     const optionalFields = optionalFieldsForTheme(defaultTheme.theme);
@@ -656,8 +669,8 @@ async function createNewTheme() {
         sourceId: source.id,
         draft: persistenceDraft(draft, optionalFields),
         preserveOptionalFields: optionalFields,
-        imageUploadId: type === "image" ? uploadResult.uploadId : null,
-        videoUploadId: type === "video" ? uploadResult.uploadId : null,
+        imageUploadId: type === "video" ? null : uploadResult.imageUpload.uploadId,
+        videoUploadId: type === "video" ? uploadResult.videoUpload.uploadId : null,
         inheritVideo: false,
         mediaMode: type,
       }),
@@ -675,33 +688,50 @@ async function createNewTheme() {
   }
 }
 
+async function uploadMedia(kind, file) {
+  return api(`/api/upload?kind=${kind}`, {
+    method: "POST",
+    body: file,
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+  });
+}
+
 async function upload(kind, file) {
-  const result = await api(`/api/upload?kind=${kind}`, { method: "POST", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
-  if (kind === "image") {
-    state.imageUploadId = result.uploadId;
-    state.videoUploadId = null;
-    elements.videoUpload.value = "";
-    if (state.localVideoUrl) URL.revokeObjectURL(state.localVideoUrl);
-    state.localVideoUrl = null;
-    setMediaMode("image");
-    if (state.localImageUrl) URL.revokeObjectURL(state.localImageUrl);
-    state.localImageUrl = URL.createObjectURL(file);
-    elements.previewImage.src = state.localImageUrl;
-  } else {
-    state.videoUploadId = result.uploadId;
+  if (kind === "video") {
+    const videoUpload = await uploadMedia("video", file);
     state.imageUploadId = null;
-    elements.imageUpload.value = "";
-    if (state.localImageUrl) URL.revokeObjectURL(state.localImageUrl);
-    state.localImageUrl = null;
+    state.videoUploadId = videoUpload.uploadId;
+    elements.inheritVideo.checked = false;
     setMediaMode("video");
-    if (state.localVideoUrl) URL.revokeObjectURL(state.localVideoUrl);
+    releaseObjectUrl(state.localImageUrl);
+    state.localImageUrl = VIDEO_THEME_COVER_URL;
+    releaseObjectUrl(state.localVideoUrl);
     state.localVideoUrl = URL.createObjectURL(file);
+    elements.previewImage.src = state.localImageUrl;
     elements.previewVideo.src = state.localVideoUrl;
     elements.previewVideo.play().catch(() => {});
+    markDirty();
+    renderPreview();
+    toast("视频已校验，将使用统一合规封面；保存后写入主题库");
+    return;
   }
+  if (state.mediaMode === "video") {
+    toast("视频主题使用统一封面，不需要上传照片", true);
+    return;
+  }
+  const result = await uploadMedia("image", file);
+  state.imageUploadId = result.uploadId;
+  state.videoUploadId = null;
+  elements.videoUpload.value = "";
+  releaseObjectUrl(state.localVideoUrl);
+  state.localVideoUrl = null;
+  setMediaMode("image");
+  releaseObjectUrl(state.localImageUrl);
+  state.localImageUrl = URL.createObjectURL(file);
+  elements.previewImage.src = state.localImageUrl;
   markDirty();
   renderPreview();
-  toast(`${kind === "image" ? "图片" : "视频"}已校验，保存后写入主题库`);
+  toast("图片已校验，保存后写入主题库");
 }
 
 async function refresh(selectId = null) {
@@ -902,18 +932,19 @@ function changeMediaMode(mode) {
   if (mode === "image") {
     state.videoUploadId = null;
     elements.videoUpload.value = "";
-    if (state.localVideoUrl) URL.revokeObjectURL(state.localVideoUrl);
+    releaseObjectUrl(state.localVideoUrl);
     state.localVideoUrl = null;
+    releaseObjectUrl(state.localImageUrl);
+    state.localImageUrl = null;
     elements.inheritVideo.checked = false;
   } else {
     state.imageUploadId = null;
-    elements.imageUpload.value = "";
-    if (state.localImageUrl) URL.revokeObjectURL(state.localImageUrl);
-    state.localImageUrl = null;
-    elements.inheritVideo.checked = Boolean(theme?.videoMediaId);
+    releaseObjectUrl(state.localImageUrl);
+    state.localImageUrl = VIDEO_THEME_COVER_URL;
+    elements.inheritVideo.checked = Boolean(state.videoUploadId || theme?.videoMediaId);
   }
   setMediaMode(mode, true);
-  if (theme) setPreviewMedia(theme);
+  if (theme) setPreviewMedia(theme, true);
   renderPreview();
 }
 elements.mediaModeImage.addEventListener("change", () => changeMediaMode("image"));

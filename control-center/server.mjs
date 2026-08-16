@@ -19,6 +19,7 @@ const publicRoot = path.join(moduleRoot, "public");
 const STATIC_FILES = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/video-theme-cover.png", ["video-theme-cover.png", "image/png"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
 ]);
 const SECURITY_HEADERS = Object.freeze({
@@ -165,6 +166,7 @@ export async function createControlCenter(options = {}) {
   const store = new ThemeStore({
     stateRoot,
     bundledThemeRoot: options.bundledThemeRoot ?? path.join(projectRoot, "windows", "assets"),
+    videoCoverPath: options.videoCoverPath ?? path.join(publicRoot, "video-theme-cover.png"),
   });
   const clientVersion = options.clientVersion
     ?? (await fs.readFile(path.join(projectRoot, "windows", "VERSION"), "utf8")).trim();
