@@ -379,7 +379,8 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The renderer must not inject a duplicate title into Codex's native header.");
   assert.doesNotMatch(css, /content:\s*var\(--dream-skin-status/,
     "The renderer must not inject a duplicate status badge into Codex's native header.");
-  assert.match(css, /content:\s*var\(--dream-skin-quote/);
+  assert.doesNotMatch(css, /content:\s*var\(--dream-skin-quote/,
+    "The renderer must not paint a decorative quote signature over the composer.");
   assert.match(css, /--ds-task-full-veil/);
   assert.match(css, /data-dream-task-mode="full"/);
   assert.match(css, /data-dream-state-motion="pulse"/);

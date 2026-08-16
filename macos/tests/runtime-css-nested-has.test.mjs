@@ -120,4 +120,14 @@ for (const file of files) {
       /:has\(:is\(\[role="dialog"\], \[aria-modal="true"\], \[data-ds-part="dialog"\]\)\) body::after\s*\{[\s\S]*?content:\s*none !important;[\s\S]*?box-shadow:\s*none !important;[\s\S]*?opacity:\s*0 !important;/,
       "The global state glow must be disabled while an in-page dialog is open.");
   });
+
+  test(`theme chrome does not add signature text or decorative dots in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(css, /content:\s*var\(--dream-skin-name/,
+      "The home hero must not add a duplicate theme-name signature.");
+    assert.doesNotMatch(css, /content:\s*var\(--dream-skin-quote/,
+      "The workspace must not add a decorative quote signature.");
+    assert.doesNotMatch(css, /button\[aria-label\^="切换模式"\]::after/,
+      "The native mode switch must not receive an extra decorative dot.");
+  });
 }
