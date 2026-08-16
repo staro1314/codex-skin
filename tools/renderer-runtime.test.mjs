@@ -31,7 +31,7 @@ function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
   modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
-  locationHref = "app://-/index.html",
+  locationHref = "app://-/index.html", visibilityState = "visible",
 } = {}) {
   const attrs = new Map();
   const rootStyle = styleDeclaration();
@@ -214,6 +214,8 @@ function makeFixture({
     documentElement: root,
     head: root,
     body,
+    visibilityState,
+    hidden: visibilityState === "hidden",
     adoptedStyleSheets: adopted ? [] : undefined,
     createElement(tag) {
       if (tag === "style") return makeStyleNode();
@@ -514,13 +516,25 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(video.videoNodes[0].src, "file:///theme/background.mp4");
   assert.equal(video.videoNodes[0].playCount, 1);
   video.listeners.get("window:blur")();
-  assert.equal(video.attrs.get("data-dream-media"), "poster");
-  assert.equal(video.videoNodes[0].pauseCount, 2,
-    "Blur must pause the video and keep the poster visible");
+  assert.equal(video.attrs.get("data-dream-media"), "video",
+    "Blur must not replace a visible video with its poster");
+  assert.equal(video.videoNodes[0].pauseCount, 1,
+    "Blur may pause the video without changing the rendered media layer");
   video.listeners.get("window:focus")();
   assert.equal(video.attrs.get("data-dream-media"), "video");
   assert.equal(video.videoNodes[0].playCount, 2,
     "Focus may resume a healthy balanced video");
+  video.document.visibilityState = "hidden";
+  video.document.hidden = true;
+  video.listeners.get("document:visibilitychange")();
+  assert.equal(video.attrs.get("data-dream-media"), "poster",
+    "A truly hidden document must use the static poster fallback");
+  video.document.visibilityState = "visible";
+  video.document.hidden = false;
+  video.listeners.get("document:visibilitychange")();
+  assert.equal(video.attrs.get("data-dream-media"), "video",
+    "Returning from a hidden document must restore the video layer");
+  assert.equal(video.videoNodes[0].playCount, 3);
   video.videoNodes[0].mediaListeners.get("error")();
   assert.equal(video.attrs.get("data-dream-media"), "poster");
   assert.equal(video.rootStyle.values.get("--dream-skin-art"), 'url("blob:fixture-1")');

@@ -166,8 +166,7 @@
 
   const videoPerformance = ["eco", "balanced", "immersive"].includes(VIDEO?.performance)
     ? VIDEO.performance : "balanced";
-  const documentIsVisible = () => windowFocused
-    && document.visibilityState !== "hidden" && !document.hidden;
+  const documentIsVisible = () => document.visibilityState !== "hidden" && !document.hidden;
   const reducedMotion = () => Boolean(motionQuery?.matches);
   const setVideoStyle = (name, value) => {
     if (videoNode?.style?.setProperty) videoNode.style.setProperty(name, value);
@@ -211,6 +210,7 @@
     // Keep the static image as the poster until the first frame is available;
     // the CSS variable is removed only after the browser accepts playback.
     setStyleProperty(root, "--dream-skin-art", "none");
+    if (!windowFocused) return;
     try {
       const playback = videoNode.play?.();
       Promise.resolve(playback).then(() => {
@@ -1240,7 +1240,6 @@
   blurHandler = () => {
     windowFocused = false;
     videoNode?.pause?.();
-    ensure({ root: true });
   };
   focusHandler = () => {
     windowFocused = true;
