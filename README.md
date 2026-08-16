@@ -45,6 +45,8 @@ Dream Skin 启动器 / 托盘 / 菜单栏
 
 普通用户应优先使用 [GitHub Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) 中对应平台的安装包。源码安装和诊断流程请分别阅读平台 README。
 
+Codex Desktop 升级后的选择器取证、共享资产同步、原生审批窗口边界、测试、实机验收和发布流程见 [`docs/codex-upgrade-playbook.md`](./docs/codex-upgrade-playbook.md)。
+
 ## 从源码运行
 
 ### Windows
