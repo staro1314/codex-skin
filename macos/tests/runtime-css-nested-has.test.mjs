@@ -74,6 +74,16 @@ for (const file of files) {
       "The task workspace must not paint a black bottom gradient behind the composer or approval chrome.");
   });
 
+  test(`video layering does not rewrite body portal positioning in ${file}`, () => {
+    const css = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(css,
+      /html\[data-dream-skin="active"\]\[data-dream-media="video"\]\s+body\s*>\s*:not\(\[data-dream-skin-video\]\)\s*\{[\s\S]*?position:\s*relative;/,
+      "Video layering must not rewrite fixed/absolute portal positions under body.");
+    assert.match(css,
+      /html\[data-dream-skin="active"\]\[data-dream-media="video"\]\s+body\s*>\s*#root\s*\{[\s\S]*?position:\s*relative;[\s\S]*?z-index:\s*1;/,
+      "Only the application root should be raised above the fixed video layer.");
+  });
+
   test(`wide task composer host does not retain a full-width bottom shadow in ${file}`, () => {
     const css = readFileSync(join(root, file), "utf8");
     assert.match(css,

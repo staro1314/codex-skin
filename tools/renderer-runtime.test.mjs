@@ -31,7 +31,8 @@ function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
   modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
-  locationHref = "app://-/index.html", visibilityState = "visible",
+  locationHref = "app://-/index.html", visibilityState = "visible", overlay = false,
+  legacyVideoPortalSheet = false,
 } = {}) {
   const attrs = new Map();
   const rootStyle = styleDeclaration();
@@ -183,6 +184,10 @@ function makeFixture({
     register(".composer-surface-chrome", partFixtures.composer);
     register('.composer-surface-chrome [class*="_footer_"]', partFixtures.composerToolbar);
   }
+  if (overlay) {
+    partFixtures.overlay = makeDomNode("overlay-menu", body);
+    register('[role="menu"]', partFixtures.overlay);
+  }
   const makeStyleNode = () => {
     const node = {
       id: "",
@@ -216,7 +221,12 @@ function makeFixture({
     body,
     visibilityState,
     hidden: visibilityState === "hidden",
-    adoptedStyleSheets: adopted ? [] : undefined,
+    adoptedStyleSheets: adopted ? (legacyVideoPortalSheet ? [{
+      cssRules: [{
+        selectorText: 'html[data-dream-skin="active"][data-dream-media="video"] body > :not([data-dream-skin-video])',
+        style: { position: "relative" },
+      }],
+    }] : []) : undefined,
     createElement(tag) {
       if (tag === "style") return makeStyleNode();
       if (tag === "video") return makeVideoNode();
@@ -576,6 +586,41 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(stateBridgeRuntime.visualState.state, "approval");
   stateBridgeRuntime.clearVisualState();
   assert.equal(stateBridgeRuntime.visualState.state, "idle");
+
+  const staleVideoPortal = makeFixture({ nativeAppearance: "dark", threadRoute: true, legacyVideoPortalSheet: true });
+  vm.runInNewContext(staleVideoPortal.payloadFor({
+    video: { src: "file:///theme/background.mp4", performance: "balanced" },
+  }), staleVideoPortal.context);
+  assert.equal(staleVideoPortal.document.adoptedStyleSheets.length, 1,
+    "The current renderer sheet must remain installed after stale-sheet cleanup.");
+  assert.equal(staleVideoPortal.document.adoptedStyleSheets.some((sheet) =>
+    sheet.cssRules?.some((rule) => rule.selectorText?.includes("body > :not([data-dream-skin-video])"))), false,
+  "Reinjection must remove the legacy video portal positioning sheet.");
+
+  const videoOverlay = makeFixture({ nativeAppearance: "dark", threadRoute: true, overlay: true });
+  vm.runInNewContext(videoOverlay.payloadFor({
+    video: { src: "file:///theme/background.mp4", performance: "balanced" },
+    stateEffects: {
+      overlay: {
+        overlayOpacity: 0.08,
+        mediaOpacity: 0.72,
+        brightness: 0.86,
+        saturation: 0.7,
+        contrast: 1.06,
+        hueRotate: 12,
+        motion: "alert",
+      },
+    },
+  }), videoOverlay.context);
+  const videoOverlayRuntime = videoOverlay.window.__CODEX_DREAM_SKIN_STATE__;
+  assert.equal(videoOverlayRuntime.visualState.state, "overlay");
+  assert.equal(videoOverlay.rootStyle.values.get("--dream-state-media-opacity"), "1",
+    "Interaction menus must not dim a video theme.");
+  assert.equal(videoOverlay.rootStyle.values.get("--dream-state-brightness"), "1");
+  assert.equal(videoOverlay.rootStyle.values.get("--dream-state-saturation"), "1");
+  assert.equal(videoOverlay.rootStyle.values.get("--dream-state-contrast"), "1");
+  assert.equal(videoOverlay.rootStyle.values.get("--dream-state-hue"), "0deg");
+  assert.equal(videoOverlay.attrs.get("data-dream-state-motion"), "none");
 
   const customEffect = makeFixture({ nativeAppearance: "dark", threadRoute: true });
   vm.runInNewContext(customEffect.payloadFor({

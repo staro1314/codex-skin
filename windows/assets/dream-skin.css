@@ -215,7 +215,7 @@ html[data-dream-skin="active"][data-dream-media="video"] body {
   background: transparent !important;
 }
 
-html[data-dream-skin="active"][data-dream-media="video"] body > :not([data-dream-skin-video]) {
+html[data-dream-skin="active"][data-dream-media="video"] body > #root {
   position: relative;
   z-index: 1;
 }

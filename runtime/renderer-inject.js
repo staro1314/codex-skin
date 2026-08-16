@@ -7,6 +7,8 @@
   const DISABLED_KEY = "__CODEX_DREAM_SKIN_DISABLED__";
   const STYLE_REGISTRY_KEY = "__CODEX_DREAM_SKIN_STYLE_SHEETS__";
   const STYLE_ID = "codex-dream-skin-style";
+  const LEGACY_VIDEO_PORTAL_SELECTOR =
+    'html[data-dream-skin="active"][data-dream-media="video"] body > :not([data-dream-skin-video])';
   const SHELL_ATTR = "data-dream-shell";
   const PART_ATTR = "data-ds-part";
   const previous = window[STATE_KEY];
@@ -312,15 +314,23 @@
     const requestedMotion = ["none", "pulse", "flash", "alert"].includes(configured.motion)
       ? configured.motion : defaults.motion;
     const motion = CONTROLS.motionLevel === "reduced" ? "none" : requestedMotion;
+    const interactionOverlay = state === "overlay";
     return {
       color,
       overlayOpacity: boundedEffectNumber(configured.overlayOpacity, 0, 0, 0.35),
-      mediaOpacity: boundedEffectNumber(configured.mediaOpacity, defaults.mediaOpacity, 0, 1),
-      brightness: boundedEffectNumber(configured.brightness, defaults.brightness, 0.5, 1.35),
-      saturation: boundedEffectNumber(configured.saturation, defaults.saturation, 0, 2),
-      contrast: boundedEffectNumber(configured.contrast, defaults.contrast, 0.5, 1.5),
-      hueRotate: boundedEffectNumber(configured.hueRotate, defaults.hueRotate, -180, 180),
-      motion,
+      // Menus, popovers, and dialogs are interaction overlays, not visual
+      // task states. Keep the live video unchanged while they are open.
+      mediaOpacity: interactionOverlay ? 1
+        : boundedEffectNumber(configured.mediaOpacity, defaults.mediaOpacity, 0, 1),
+      brightness: interactionOverlay ? 1
+        : boundedEffectNumber(configured.brightness, defaults.brightness, 0.5, 1.35),
+      saturation: interactionOverlay ? 1
+        : boundedEffectNumber(configured.saturation, defaults.saturation, 0, 2),
+      contrast: interactionOverlay ? 1
+        : boundedEffectNumber(configured.contrast, defaults.contrast, 0.5, 1.5),
+      hueRotate: interactionOverlay ? 0
+        : boundedEffectNumber(configured.hueRotate, defaults.hueRotate, -180, 180),
+      motion: interactionOverlay ? "none" : motion,
     };
   };
 
@@ -728,6 +738,23 @@
   });
 
   const installStyle = () => {
+    const hasLegacyVideoPortalRule = (rules) => {
+      for (const rule of rules || []) {
+        if (typeof rule?.selectorText === "string" &&
+          rule.selectorText.includes(LEGACY_VIDEO_PORTAL_SELECTOR)) return true;
+        if (rule?.cssRules && hasLegacyVideoPortalRule(rule.cssRules)) return true;
+      }
+      return false;
+    };
+    try {
+      if ("adoptedStyleSheets" in document) {
+        const current = [...document.adoptedStyleSheets];
+        const retained = current.filter((candidate) => {
+          try { return !hasLegacyVideoPortalRule(candidate.cssRules); } catch { return true; }
+        });
+        if (retained.length !== current.length) document.adoptedStyleSheets = retained;
+      }
+    } catch {}
     try {
       if (!("adoptedStyleSheets" in document) || typeof CSSStyleSheet !== "function") {
         throw new Error("Constructable stylesheets are unavailable");
