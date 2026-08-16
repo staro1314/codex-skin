@@ -726,6 +726,7 @@ export async function loadTheme(themeDir) {
     theme,
     themePath,
     imagePath: realImagePath,
+    videoPath,
     imageBytes,
     safeCss: safeCss?.source ?? "",
     safeCssRuntime: safeCss?.runtimeSource ?? "",
@@ -962,6 +963,41 @@ async function connectCodexTargets(port, timeoutMs, expectedBrowserId) {
 
 async function applyToSession(session, payload) {
   return session.evaluate(payload);
+}
+
+const VIDEO_TRANSFER_CHUNK_BYTES = 192 * 1024;
+const VIDEO_TRANSFER_KEY = "__CODEX_DREAM_SKIN_VIDEO_TRANSFER__";
+
+export async function installVideoBlob(session, loadedPayload) {
+  if (!loadedPayload?.videoPath || !loadedPayload.theme?.video) return false;
+  const videoPath = loadedPayload.videoPath;
+  const extension = path.extname(videoPath).toLowerCase();
+  const mime = extension === ".webm" ? "video/webm" : "video/mp4";
+  await validateVideoAsset(videoPath, extension);
+  const bytes = await fs.readFile(videoPath);
+  if (bytes.length < 1 || bytes.length > MAX_VIDEO_BYTES) {
+    throw new Error(`Theme video must be between 1 byte and ${MAX_VIDEO_BYTES / 1024 / 1024} MB`);
+  }
+  const begin = await session.evaluate(
+    `window[${JSON.stringify(VIDEO_TRANSFER_KEY)}]?.begin(${JSON.stringify(mime)}) === true`,
+  );
+  if (begin !== true) throw new Error("Renderer video transfer helper is unavailable");
+  for (let offset = 0; offset < bytes.length; offset += VIDEO_TRANSFER_CHUNK_BYTES) {
+    const chunk = bytes.subarray(offset, Math.min(offset + VIDEO_TRANSFER_CHUNK_BYTES, bytes.length));
+    await session.evaluate(
+      `window[${JSON.stringify(VIDEO_TRANSFER_KEY)}]?.chunk(${JSON.stringify(chunk.toString("base64"))})`,
+    );
+  }
+  const finished = await session.evaluate(
+    `window[${JSON.stringify(VIDEO_TRANSFER_KEY)}]?.finish() === true`,
+  );
+  if (finished !== true) throw new Error("Renderer rejected the transferred video blob");
+  return true;
+}
+
+async function applyLoadedPayload(session, loadedPayload) {
+  await applyToSession(session, loadedPayload.payload);
+  await installVideoBlob(session, loadedPayload);
 }
 
 export function earlyPayloadFor(payload, revision) {
@@ -1539,7 +1575,7 @@ async function runOneShot(options) {
               `正在应用「${loadedPayload.theme.name}」…`,
             );
           }
-          await applyToSession(session, payload);
+          await applyLoadedPayload(session, loadedPayload);
           await new Promise((resolve) => setTimeout(resolve, 850));
         }
         if (options.reload) {
@@ -1552,7 +1588,7 @@ async function runOneShot(options) {
                 `正在应用「${loadedPayload.theme.name}」…`,
               );
             }
-            await applyToSession(session, payload);
+            await applyLoadedPayload(session, loadedPayload);
           }
         }
         if (operationToken) {
@@ -1650,7 +1686,7 @@ async function runWatch(options) {
     session.on("Page.loadEventFired", () => {
       if (!fallbackTargets.get(id)) return;
       setTimeout(() => {
-        const operation = paused ? removeFromSession(session) : applyToSession(session, loadedPayload.payload);
+        const operation = paused ? removeFromSession(session) : applyLoadedPayload(session, loadedPayload);
         operation.catch((error) => {
           if (Date.now() - lastReinjectErrorLogAt >= 30000) {
             console.error(`[dream-skin] reinject failed for ${target.id}: ${error.message}`);
@@ -1754,7 +1790,7 @@ async function runWatch(options) {
               if (nextEarlyScript) earlyScripts.set(id, nextEarlyScript);
               else earlyScripts.delete(id);
               await removeEarlyPayload(session, previousEarlyScript);
-              await applyToSession(session, loadedPayload.payload);
+              await applyLoadedPayload(session, loadedPayload);
             }
           } catch (error) {
             console.error(`[dream-skin] live theme update failed for ${id}: ${error.message}`);
@@ -1829,7 +1865,8 @@ async function runWatch(options) {
             ).catch(() => false);
           }
           if (paused) await removeFromSession(session);
-          else if (!earlyApplied) await applyToSession(session, loadedPayload.payload);
+          else if (!earlyApplied) await applyLoadedPayload(session, loadedPayload);
+          else if (!paused) await installVideoBlob(session, loadedPayload);
           sessions.set(target.id, session);
           if (earlyScriptId) earlyScripts.set(target.id, earlyScriptId);
           targetFailures.delete(target.id);

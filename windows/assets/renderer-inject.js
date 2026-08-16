@@ -2,6 +2,8 @@
 ((cssText, artDataUrl, themeConfig) => {
   const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
+  const VIDEO_SOURCE_KEY = "__CODEX_DREAM_SKIN_VIDEO_SOURCE__";
+  const VIDEO_TRANSFER_KEY = "__CODEX_DREAM_SKIN_VIDEO_TRANSFER__";
   const DISABLED_KEY = "__CODEX_DREAM_SKIN_DISABLED__";
   const STYLE_REGISTRY_KEY = "__CODEX_DREAM_SKIN_STYLE_SHEETS__";
   const STYLE_ID = "codex-dream-skin-style";
@@ -110,6 +112,8 @@
   let styleSheet = null;
   let stylePaintRepairTimer = null;
   let videoNode = null;
+  let videoSourceOverride = null;
+  let videoSourceBlobUrl = null;
   let videoFailed = false;
   let motionQuery = null;
   let motionHandler = null;
@@ -198,7 +202,7 @@
       videoNode.playsInline = true;
       videoNode.preload = videoPerformance === "immersive" ? "auto" : "metadata";
       videoNode.poster = artUrl;
-      videoNode.src = VIDEO.src;
+      videoNode.src = videoSourceOverride || VIDEO.src;
       videoNode.addEventListener?.("error", () => markVideoFallback(root), { once: true });
       (document.body || document.documentElement)?.appendChild?.(videoNode);
     }
@@ -217,6 +221,48 @@
       markVideoFallback(root);
     }
   };
+
+  const setVideoSource = (source) => {
+    const normalized = String(source ?? "");
+    if (!normalized.startsWith("blob:")) return false;
+    if (videoSourceBlobUrl && videoSourceBlobUrl !== normalized) {
+      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    }
+    videoSourceBlobUrl = normalized;
+    videoSourceOverride = normalized;
+    videoFailed = false;
+    videoNode?.pause?.();
+    videoNode?.remove?.();
+    videoNode = null;
+    ensure({ root: true });
+    return true;
+  };
+  const videoTransfer = {
+    chunks: [],
+    mime: "video/mp4",
+    begin(mime) {
+      this.chunks = [];
+      this.mime = String(mime || "video/mp4");
+      return true;
+    },
+    chunk(base64) {
+      const binary = atob(String(base64 || ""));
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      this.chunks.push(bytes);
+      return this.chunks.length;
+    },
+    finish() {
+      const url = URL.createObjectURL(new Blob(this.chunks, { type: this.mime }));
+      this.chunks = [];
+      return setVideoSource(url);
+    },
+    abort() {
+      this.chunks = [];
+    },
+  };
+  window[VIDEO_SOURCE_KEY] = setVideoSource;
+  window[VIDEO_TRANSFER_KEY] = videoTransfer;
 
   const cssString = (value) => JSON.stringify(String(value ?? ""));
 
@@ -1139,9 +1185,17 @@
     if (document.getElementById(STYLE_ID) === styleNode) document.getElementById(STYLE_ID)?.remove();
     if (styleRegistry.size === 0) delete window[STYLE_REGISTRY_KEY];
     if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
+    videoTransfer.abort();
+    if (videoSourceBlobUrl) {
+      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    }
+    videoSourceBlobUrl = null;
+    videoSourceOverride = null;
     videoNode?.pause?.();
     videoNode?.remove?.();
     videoNode = null;
+    delete window[VIDEO_SOURCE_KEY];
+    delete window[VIDEO_TRANSFER_KEY];
     delete window[STATE_KEY];
     return true;
   };

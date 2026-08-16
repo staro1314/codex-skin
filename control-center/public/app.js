@@ -185,7 +185,7 @@ function updateSelectionSummary() {
   elements.selectionNote.textContent = state.newDraft
     ? `新建草稿 / 基于 ${theme ? cleanThemeName(theme.name) : "当前主题"}`
     : theme
-    ? `${kindLabel(theme.kind)}主题 / ${theme.theme.video ? "图片 + 视频" : "图片背景"}`
+    ? `${kindLabel(theme.kind)}主题 / ${theme.theme.video ? "视频主题 / 封面图 + 视频" : "图片背景"}`
     : "选择主题后开始调校";
   elements.previewFingerprint.textContent = theme?.fingerprint ? `ID ${theme.fingerprint.slice(0, 12)}` : "未载入主题数据";
 }
@@ -308,7 +308,9 @@ function updateSaveStatus() {
     elements.actionHelp.textContent = "选择主题后可开始调校";
     return;
   }
-  const image = state.imageUploadId ? "新图片" : "母版图片";
+  const image = state.mediaMode === "video"
+    ? state.imageUploadId ? "新封面图" : "母版封面图"
+    : state.imageUploadId ? "新图片" : "母版图片";
   const video = state.mediaMode === "video"
     ? state.videoUploadId ? "新视频" : elements.inheritVideo.checked ? "继承视频" : "无视频"
     : "图片模式";
@@ -453,7 +455,7 @@ function renderThemeList() {
     const title = document.createElement("b");
     title.textContent = cleanThemeName(theme.name);
     const meta = document.createElement("small");
-    meta.textContent = `${kindLabel(theme.kind)} / ${theme.theme.video ? "图片 + 视频" : "图片背景"}`;
+    meta.textContent = `${kindLabel(theme.kind)} / ${theme.theme.video ? "视频主题 / 封面图 + 视频" : "图片背景"}`;
     copy.append(title, meta);
     if (theme.kind === "saved") {
       const badge = document.createElement("span");

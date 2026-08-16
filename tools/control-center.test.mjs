@@ -53,6 +53,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="new-theme-type-video"/);
     assert.match(shellHtml, /id="new-theme-file"/);
     assert.match(shellHtml, /id="new-theme-confirm"[^>]+type="submit"/);
+    assert.match(shellHtml, /视频主题需要保留封面图/,
+      "The new-theme dialog must explain that video themes keep a poster image for fallback.");
     assert.match(shellHtml, /id="operation-progress"/);
     assert.match(shellResponse.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
@@ -69,6 +71,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(clientJs, /function createNewTheme\(\)/);
     assert.match(clientJs, /mediaMode: type/);
     assert.match(clientJs, /elements\.previewVideo\.load\(\)/);
+    assert.match(clientJs, /视频主题 \/ 封面图 \+ 视频/,
+      "Video themes must be labeled as a video plus its required poster, not as an unexplained photo upload.");
+    assert.match(clientJs, /母版封面图/,
+      "The save status must identify an inherited poster image as the video fallback source.");
     assert.match(clientJs, /operationProgressLabel/);
     assert.match(clientJs, /classList\.add\("is-loading"\)/);
     assert.match(clientJs, /const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";/,

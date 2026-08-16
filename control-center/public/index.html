@@ -148,7 +148,7 @@
             <label class="text-field"><span>主题名称</span><input id="theme-name" maxlength="80" autocomplete="off" placeholder="给这套视觉取个名字"></label>
             <div class="media-mode" role="radiogroup" aria-label="媒体类型">
               <label class="media-option"><input id="media-mode-image" name="media-mode" type="radio" value="image" checked><span>图片主题</span><small>静态背景，性能更稳</small></label>
-              <label class="media-option"><input id="media-mode-video" name="media-mode" type="radio" value="video"><span>视频主题</span><small>上传或继承视频</small></label>
+              <label class="media-option"><input id="media-mode-video" name="media-mode" type="radio" value="video"><span>视频主题</span><small>动态背景，保留封面图回退</small></label>
             </div>
             <div class="upload-grid">
               <label class="upload-button"><span>更换图片</span><small>PNG / JPG / WEBP</small><input id="image-upload" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -246,7 +246,7 @@
     <form method="dialog" class="new-theme-form">
       <div class="dialog-kicker">NEW THEME</div>
       <h2 id="new-theme-title">新增主题</h2>
-      <p class="dialog-description">选择媒体类型并上传素材，确认后会创建主题并进入编辑器。</p>
+      <p class="dialog-description">选择媒体类型并上传素材；视频主题需要保留封面图作为播放失败时的回退画面，未上传时会沿用当前主题封面。</p>
       <label class="text-field">
         <span>主题名称</span>
         <input id="new-theme-name" maxlength="80" autocomplete="off" placeholder="例如：夜航蓝图">

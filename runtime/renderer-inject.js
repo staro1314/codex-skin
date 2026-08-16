@@ -2,6 +2,8 @@
 ((cssText, artDataUrl, themeConfig) => {
   const SELECTOR_CONTRACT = __DREAM_SKIN_SELECTORS_JSON__;
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
+  const VIDEO_SOURCE_KEY = "__CODEX_DREAM_SKIN_VIDEO_SOURCE__";
+  const VIDEO_TRANSFER_KEY = "__CODEX_DREAM_SKIN_VIDEO_TRANSFER__";
   const DISABLED_KEY = "__CODEX_DREAM_SKIN_DISABLED__";
   const STYLE_REGISTRY_KEY = "__CODEX_DREAM_SKIN_STYLE_SHEETS__";
   const STYLE_ID = "codex-dream-skin-style";
@@ -110,6 +112,8 @@
   let styleSheet = null;
   let stylePaintRepairTimer = null;
   let videoNode = null;
+  let videoSourceOverride = null;
+  let videoSourceBlobUrl = null;
   let videoFailed = false;
   let motionQuery = null;
   let motionHandler = null;
@@ -198,7 +202,7 @@
       videoNode.playsInline = true;
       videoNode.preload = videoPerformance === "immersive" ? "auto" : "metadata";
       videoNode.poster = artUrl;
-      videoNode.src = VIDEO.src;
+      videoNode.src = videoSourceOverride || VIDEO.src;
       videoNode.addEventListener?.("error", () => markVideoFallback(root), { once: true });
       (document.body || document.documentElement)?.appendChild?.(videoNode);
     }
@@ -217,6 +221,48 @@
       markVideoFallback(root);
     }
   };
+
+  const setVideoSource = (source) => {
+    const normalized = String(source ?? "");
+    if (!normalized.startsWith("blob:")) return false;
+    if (videoSourceBlobUrl && videoSourceBlobUrl !== normalized) {
+      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    }
+    videoSourceBlobUrl = normalized;
+    videoSourceOverride = normalized;
+    videoFailed = false;
+    videoNode?.pause?.();
+    videoNode?.remove?.();
+    videoNode = null;
+    ensure({ root: true });
+    return true;
+  };
+  const videoTransfer = {
+    chunks: [],
+    mime: "video/mp4",
+    begin(mime) {
+      this.chunks = [];
+      this.mime = String(mime || "video/mp4");
+      return true;
+    },
+    chunk(base64) {
+      const binary = atob(String(base64 || ""));
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      this.chunks.push(bytes);
+      return this.chunks.length;
+    },
+    finish() {
+      const url = URL.createObjectURL(new Blob(this.chunks, { type: this.mime }));
+      this.chunks = [];
+      return setVideoSource(url);
+    },
+    abort() {
+      this.chunks = [];
+    },
+  };
+  window[VIDEO_SOURCE_KEY] = setVideoSource;
+  window[VIDEO_TRANSFER_KEY] = videoTransfer;
 
   const cssString = (value) => JSON.stringify(String(value ?? ""));
 
@@ -1139,9 +1185,17 @@
     if (document.getElementById(STYLE_ID) === styleNode) document.getElementById(STYLE_ID)?.remove();
     if (styleRegistry.size === 0) delete window[STYLE_REGISTRY_KEY];
     if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
+    videoTransfer.abort();
+    if (videoSourceBlobUrl) {
+      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    }
+    videoSourceBlobUrl = null;
+    videoSourceOverride = null;
     videoNode?.pause?.();
     videoNode?.remove?.();
     videoNode = null;
+    delete window[VIDEO_SOURCE_KEY];
+    delete window[VIDEO_TRANSFER_KEY];
     delete window[STATE_KEY];
     return true;
   };
