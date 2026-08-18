@@ -70,7 +70,7 @@ const elements = Object.fromEntries([
   "effect-brightness-output", "effect-saturation", "effect-saturation-output", "effect-hue", "effect-hue-output",
   "export-version", "publisher-name", "publisher-id", "export-license", "export-summary", "export-ai",
   "export-history-note", "save-status", "reset-button", "pause-button", "resume-button", "apply-button", "save-button",
-  "export-button", "save-apply-button", "action-dock", "operation-progress", "operation-progress-label", "operation-progress-time",
+  "export-button", "save-apply-button", "start-codex-button", "restore-button", "action-dock", "operation-progress", "operation-progress-label", "operation-progress-time",
   "toast", "new-theme-dialog", "new-theme-name", "new-theme-type-image",
   "new-theme-type-video", "new-theme-file", "new-theme-file-label", "new-theme-file-hint", "new-theme-error",
   "new-theme-cancel", "new-theme-confirm",
@@ -249,6 +249,8 @@ function updateActionAvailability() {
   elements.applyButton.disabled = state.busy || !state.actionsEnabled || !savedSelected;
   elements.pauseButton.disabled = state.busy || !state.actionsEnabled || state.paused;
   elements.resumeButton.disabled = state.busy || !state.actionsEnabled || !state.paused;
+  elements.startCodexButton.disabled = state.busy || !state.actionsEnabled;
+  elements.restoreButton.disabled = state.busy || !state.actionsEnabled;
   elements.saveButton.disabled = state.busy || !hasDraft;
   elements.exportButton.disabled = state.busy || !savedSelected;
   elements.saveApplyButton.disabled = state.busy || !state.actionsEnabled || !hasDraft || !savedSelected;
@@ -869,8 +871,15 @@ async function deleteTheme(themeId = state.selectedId) {
 }
 
 async function action(name, themeId = state.selectedId) {
-  const button = name === "apply" ? elements.applyButton : name === "pause" ? elements.pauseButton : elements.resumeButton;
-  setBusy(true, name === "apply" ? "正在应用主题" : name === "pause" ? "正在暂停皮肤" : "正在继续显示", button);
+  const button = name === "apply" ? elements.applyButton
+    : name === "pause" ? elements.pauseButton
+      : name === "resume" ? elements.resumeButton
+        : name === "start" ? elements.startCodexButton : elements.restoreButton;
+  const label = name === "apply" ? "正在应用主题"
+    : name === "pause" ? "正在暂停皮肤"
+      : name === "resume" ? "正在继续显示"
+        : name === "start" ? "正在启动并验证 Codex" : "正在恢复官方外观";
+  setBusy(true, label, button);
   try {
     const result = await api("/api/action", { method: "POST", body: JSON.stringify({ action: name, themeId }) });
     toast(result.message || "操作已完成");
@@ -990,6 +999,8 @@ for (const [input, key, output] of [
 elements.applyButton.addEventListener("click", () => action("apply"));
 elements.pauseButton.addEventListener("click", () => action("pause"));
 elements.resumeButton.addEventListener("click", () => action("resume"));
+elements.startCodexButton.addEventListener("click", () => action("start", null));
+elements.restoreButton.addEventListener("click", () => action("restore", null));
 elements.resetButton.addEventListener("click", resetDraft);
 elements.newThemeButton.addEventListener("click", openNewThemeDialog);
 elements.newThemeTypeImage.addEventListener("change", syncNewThemeFilePicker);

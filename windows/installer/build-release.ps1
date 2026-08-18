@@ -3,6 +3,8 @@ param(
   [string]$OutputDirectory,
   [string]$IsccPath,
   [string]$NodeArchivePath,
+  [string]$DotnetPath,
+  [string]$WebView2RuntimePath,
   [string]$WorkingDirectory,
   [switch]$KeepWorkingDirectory
 )
@@ -94,6 +96,25 @@ function Resolve-IsccExecutable {
     if (Test-Path -LiteralPath $resolved -PathType Leaf) { return $resolved }
   }
   throw 'Inno Setup 6 compiler (ISCC.exe) was not found. Install Inno Setup 6 or pass -IsccPath.'
+}
+
+function Resolve-DotnetExecutable {
+  param([string]$RequestedPath)
+  if ($RequestedPath) {
+    $resolved = Resolve-ReleasePath -Path $RequestedPath -BasePath $repositoryRoot
+    if (Test-Path -LiteralPath $resolved -PathType Leaf) { return $resolved }
+    throw "The requested dotnet executable does not exist: $resolved"
+  }
+  $command = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
+  if ($command) { return $command.Source }
+  $candidates = @(
+    (Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'),
+    (Join-Path ${env:ProgramFiles(x86)} 'dotnet\dotnet.exe')
+  )
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { return $candidate }
+  }
+  throw 'The .NET SDK executable was not found. Install the .NET 8 SDK or pass -DotnetPath.'
 }
 
 function Copy-ReleaseDirectory {
@@ -303,6 +324,19 @@ if ($publicPresetThemeHash -cne $publicPresetThemeSha256) {
   throw "The reviewed public preset metadata changed. Expected $publicPresetThemeSha256, found $publicPresetThemeHash."
 }
 $compiler = Resolve-IsccExecutable -RequestedPath $IsccPath
+$dotnet = Resolve-DotnetExecutable -RequestedPath $DotnetPath
+$clientProjectPath = Join-Path (Join-Path $windowsRoot 'client') 'CodexDreamSkin.Client.csproj'
+if (-not (Test-Path -LiteralPath $clientProjectPath -PathType Leaf)) {
+  throw "The Windows client project is missing: $clientProjectPath"
+}
+if (-not $WebView2RuntimePath) {
+  throw 'A fixed WebView2 Runtime directory is required for the Windows client package. Pass -WebView2RuntimePath.'
+}
+$WebView2RuntimePath = Resolve-ReleasePath -Path $WebView2RuntimePath -BasePath $repositoryRoot
+if (-not (Test-Path -LiteralPath $WebView2RuntimePath -PathType Container) -or
+  -not (Test-Path -LiteralPath (Join-Path $WebView2RuntimePath 'msedgewebview2.exe') -PathType Leaf)) {
+  throw "The fixed WebView2 Runtime directory is incomplete: $WebView2RuntimePath"
+}
 
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repositoryRoot 'release' }
 $OutputDirectory = Resolve-ReleasePath -Path $OutputDirectory -BasePath $repositoryRoot
@@ -348,11 +382,15 @@ try {
   $stageRoot = Join-Path $WorkingDirectory 'stage'
   $payloadRoot = Join-Path $stageRoot 'payload'
   $nodeRoot = Join-Path (Join-Path $payloadRoot 'runtime') 'node'
+  $clientRoot = Join-Path $payloadRoot 'client'
   $languageRoot = Join-Path $stageRoot 'languages'
   New-Item -ItemType Directory -Path $payloadRoot | Out-Null
   New-Item -ItemType Directory -Path $languageRoot | Out-Null
   Copy-ReleaseDirectory -Source (Join-Path $windowsRoot 'assets') -Destination (Join-Path $payloadRoot 'assets')
   Copy-ReleaseDirectory -Source (Join-Path $windowsRoot 'scripts') -Destination (Join-Path $payloadRoot 'scripts')
+  Copy-ReleaseDirectory -Source (Join-Path $repositoryRoot 'control-center') -Destination (Join-Path $payloadRoot 'control-center')
+  Copy-ReleaseDirectory -Source (Join-Path $repositoryRoot 'runtime') -Destination (Join-Path $payloadRoot 'runtime')
+  Copy-ReleaseDirectory -Source $WebView2RuntimePath -Destination (Join-Path $payloadRoot 'runtime\webview2')
   Copy-ReleaseDirectory -Source $publicPresetRoot `
     -Destination (Join-Path $payloadRoot 'presets\preset-gothic-void-crusade')
   Copy-Item -LiteralPath $publicPresetImagePath `
@@ -387,6 +425,12 @@ try {
   }
   Write-DreamSkinIcon -Path (Join-Path (Join-Path $payloadRoot 'assets') 'codex-dream-skin.ico')
 
+  $clientPublishRoot = Join-Path $WorkingDirectory 'client-publish'
+  & $dotnet publish $clientProjectPath --configuration Release --runtime win-x64 `
+    --self-contained false --output $clientPublishRoot --nologo
+  if ($LASTEXITCODE -ne 0) { throw ".NET client publish failed with exit code $LASTEXITCODE." }
+  Copy-ReleaseDirectory -Source $clientPublishRoot -Destination $clientRoot
+
   $expectedPayloadFiles = @(
     'VERSION',
     'assets\dream-reference.jpg',
@@ -416,6 +460,19 @@ try {
     'scripts\tray-dream-skin.ps1',
     'scripts\validate-safe-css-file.mjs',
     'scripts\verify-dream-skin.ps1',
+    'control-center\server.mjs',
+    'control-center\theme-store.mjs',
+    'control-center\theme-exporter.mjs',
+    'control-center\zip-writer.mjs',
+    'control-center\public\index.html',
+    'control-center\public\app.js',
+    'control-center\public\styles.css',
+    'control-center\public\video-theme-cover.png',
+    'runtime\image-metadata.mjs',
+    'runtime\safe-css-validator.mjs',
+    'runtime\theme-package-validator.mjs',
+    'runtime\webview2\msedgewebview2.exe',
+    'client\CodexDreamSkin.Client.exe',
     'runtime\node\node.exe',
     'runtime\node\LICENSE'
   )

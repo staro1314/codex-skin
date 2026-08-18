@@ -66,6 +66,7 @@ try {
 
   $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $stateRoot
   if ($Uninstall) {
+    Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
     $restoreRequired = (Test-Path -LiteralPath $engine.Root -PathType Container) -or
       (Test-Path -LiteralPath (Join-Path $stateRoot 'config.before-dream-skin.toml') -PathType Leaf)
@@ -140,6 +141,21 @@ try {
     'runtime\node\node.exe',
     'runtime\node\LICENSE'
   )
+  if (Test-Path -LiteralPath (Join-Path $payloadRoot 'control-center') -PathType Container) {
+    $requiredEngineFiles += @(
+      'control-center\server.mjs',
+      'control-center\theme-store.mjs',
+      'control-center\theme-exporter.mjs',
+      'control-center\zip-writer.mjs',
+      'control-center\public\index.html',
+      'control-center\public\app.js',
+      'control-center\public\styles.css',
+      'control-center\public\video-theme-cover.png'
+    )
+  }
+  if (Test-Path -LiteralPath (Join-Path $payloadRoot 'client\CodexDreamSkin.Client.exe') -PathType Leaf) {
+    $requiredEngineFiles += 'client\CodexDreamSkin.Client.exe'
+  }
   $missingEngineFiles = @($requiredEngineFiles | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $engine.Root $_) -PathType Leaf)
   })
@@ -149,6 +165,7 @@ try {
 
   if ($needsInstall) {
     Wait-DreamSkinCodexClosedForSetup
+    Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
     & (Join-Path $payloadScripts 'install-dream-skin.ps1') -NoShortcuts
     $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $stateRoot
@@ -164,7 +181,10 @@ try {
     }
   }
 
-  if ($LaunchTray -and -not (Test-DreamSkinTrayActive)) {
+  $clientPath = $engine.Client
+  if ($LaunchTray -and (Test-Path -LiteralPath $clientPath -PathType Leaf)) {
+    Start-Process -FilePath $clientPath -ArgumentList '--background' -WindowStyle Hidden | Out-Null
+  } elseif ($LaunchTray -and -not (Test-DreamSkinTrayActive)) {
     $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
     $argumentLine = '-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ' +
       (ConvertTo-DreamSkinProcessArgument -Value $engine.Tray)

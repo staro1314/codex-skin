@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { ThemeExporter } from "./theme-exporter.mjs";
 import { ThemeStore, validateUploadedMedia } from "./theme-store.mjs";
 
@@ -109,8 +109,8 @@ function publicTheme(entry, mediaIds) {
   };
 }
 
-async function runWindowsAction({ action, themeId, stateRoot }) {
-  const script = path.join(projectRoot, "windows", "scripts", "control-center-action.ps1");
+async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, workingRoot }) {
+  const script = path.join(runtimeRoot, "scripts", "control-center-action.ps1");
   const args = [
     "-NoProfile",
     "-ExecutionPolicy", "RemoteSigned",
@@ -121,7 +121,7 @@ async function runWindowsAction({ action, themeId, stateRoot }) {
   if (themeId) args.push("-ThemeId", themeId);
   try {
     const { stdout } = await execFileAsync("powershell.exe", args, {
-      cwd: projectRoot,
+      cwd: workingRoot,
       encoding: "utf8",
       timeout: WINDOWS_ACTION_TIMEOUT_MS,
       windowsHide: true,
@@ -163,19 +163,28 @@ export async function createControlCenter(options = {}) {
   const port = Number.isInteger(options.port) ? options.port : 0;
   const token = options.token ?? randomBytes(24).toString("base64url");
   const stateRoot = path.resolve(options.stateRoot ?? defaultStateRoot(platform));
+  const runtimeRoot = path.resolve(options.runtimeRoot ?? path.join(projectRoot, "windows"));
+  const injectorPath = path.join(runtimeRoot, "scripts", "injector.mjs");
+  const { loadTheme } = await import(pathToFileURL(injectorPath).href);
   const store = new ThemeStore({
     stateRoot,
-    bundledThemeRoot: options.bundledThemeRoot ?? path.join(projectRoot, "windows", "assets"),
+    bundledThemeRoot: options.bundledThemeRoot ?? path.join(runtimeRoot, "assets"),
     videoCoverPath: options.videoCoverPath ?? path.join(publicRoot, "video-theme-cover.png"),
+    loadTheme,
   });
   const clientVersion = options.clientVersion
-    ?? (await fs.readFile(path.join(projectRoot, "windows", "VERSION"), "utf8")).trim();
+    ?? (await fs.readFile(path.join(runtimeRoot, "VERSION"), "utf8")).trim();
   const exporter = new ThemeExporter({ stateRoot, store, clientVersion });
   const uploads = new Map();
   const media = new Map();
   const mediaIds = new Map();
   const allowActions = options.allowActions ?? true;
-  const actionRunner = options.actionRunner ?? runWindowsAction;
+  const embedded = options.embedded === true;
+  const actionRunner = options.actionRunner ?? ((action) => runWindowsAction({
+    ...action,
+    runtimeRoot,
+    workingRoot: runtimeRoot,
+  }));
   let origin = "";
 
   function authorize(req, mutating = false) {
@@ -203,7 +212,14 @@ export async function createControlCenter(options = {}) {
       registerMedia(entry._videoPath);
     }
     json(res, 200, {
-      app: { version: "1.1.0", platform, stateRoot, clientVersion, actionsEnabled: allowActions && platform === "win32" },
+      app: {
+        version: "1.2.0",
+        platform,
+        stateRoot,
+        clientVersion,
+        embedded,
+        actionsEnabled: allowActions && platform === "win32",
+      },
       paused: snapshot.paused,
       warnings: snapshot.warnings,
       themes: snapshot.themes.map((entry) => publicTheme(entry, mediaIds)),
@@ -334,7 +350,7 @@ export async function createControlCenter(options = {}) {
         if (!allowActions) return json(res, 409, { error: "Platform actions are disabled" });
         if (platform !== "win32") return json(res, 501, { error: "Control Center actions currently require Windows" });
         const body = await readJson(req);
-        if (!new Set(["apply", "pause", "resume"]).has(body.action)) {
+        if (!new Set(["apply", "pause", "resume", "start", "restore"]).has(body.action)) {
           return json(res, 400, { error: "Unknown action" });
         }
         let themeId = null;
@@ -370,6 +386,8 @@ export async function createControlCenter(options = {}) {
     url,
     token,
     stateRoot,
+    runtimeRoot,
+    embedded,
     startedAt: new Date().toISOString(),
   });
   return {
@@ -386,7 +404,11 @@ function parseArguments(argv) {
   const result = {};
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
-    if (!new Set(["--port", "--state-file", "--state-root"]).has(flag)) throw new Error(`Unknown argument: ${flag}`);
+    if (flag === "--embedded") {
+      result.embedded = true;
+      continue;
+    }
+    if (!new Set(["--port", "--state-file", "--state-root", "--runtime-root"]).has(flag)) throw new Error(`Unknown argument: ${flag}`);
     const value = argv[index + 1];
     if (!value) throw new Error(`Missing value for ${flag}`);
     result[flag.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;

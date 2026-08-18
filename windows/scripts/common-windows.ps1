@@ -63,6 +63,9 @@ function Get-DreamSkinRuntimeEnginePaths {
     Root = $root
     Scripts = $scripts
     Runtime = Join-Path $root 'runtime'
+    ControlCenter = Join-Path $root 'control-center'
+    ClientDirectory = Join-Path $root 'client'
+    Client = Join-Path $root 'client\CodexDreamSkin.Client.exe'
     Version = Join-Path $root 'VERSION'
     CommunityApply = Join-Path $scripts 'apply-community-theme.ps1'
     Start = Join-Path $scripts 'start-dream-skin.ps1'
@@ -89,6 +92,49 @@ function Test-DreamSkinTrayActive {
   } finally {
     if ($acquired) { try { $mutex.ReleaseMutex() } catch {} }
     $mutex.Dispose()
+  }
+}
+
+function Test-DreamSkinClientActive {
+  param([string]$ClientPath = (Get-DreamSkinRuntimeEnginePaths).Client)
+  if (-not $ClientPath) { return $false }
+  try { $normalized = [System.IO.Path]::GetFullPath($ClientPath) } catch { return $false }
+  try {
+    $processes = Get-CimInstance Win32_Process -Filter "Name = 'CodexDreamSkin.Client.exe'" -ErrorAction Stop
+    foreach ($process in $processes) {
+      if ($process.ExecutablePath -and
+        [System.IO.Path]::GetFullPath($process.ExecutablePath).Equals($normalized, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+      }
+    }
+  } catch { return $false }
+  return $false
+}
+
+function Stop-DreamSkinClientProcess {
+  param(
+    [string]$ClientPath = (Get-DreamSkinRuntimeEnginePaths).Client,
+    [switch]$RequireStopped
+  )
+  if (-not $ClientPath) { return }
+  try { $normalized = [System.IO.Path]::GetFullPath($ClientPath) } catch { throw 'The Dream Skin client path is invalid.' }
+  $failures = @()
+  try {
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'CodexDreamSkin.Client.exe'" -ErrorAction Stop |
+      Where-Object { $_.ExecutablePath -and
+        [System.IO.Path]::GetFullPath($_.ExecutablePath).Equals($normalized, [System.StringComparison]::OrdinalIgnoreCase) })
+    foreach ($process in $processes) {
+      try {
+        Stop-Process -Id ([int]$process.ProcessId) -Force -ErrorAction Stop
+        Wait-Process -Id ([int]$process.ProcessId) -Timeout 5 -ErrorAction SilentlyContinue
+      } catch { $failures += "PID $($process.ProcessId): $($_.Exception.Message)" }
+    }
+  } catch { $failures += $_.Exception.Message }
+  if ($failures.Count -gt 0 -and $RequireStopped) {
+    throw 'Could not close the Codex Dream Skin client: ' + ($failures -join '; ')
+  }
+  if ($RequireStopped -and (Test-DreamSkinClientActive -ClientPath $normalized)) {
+    throw 'The Codex Dream Skin client is still active. Exit it and retry the operation.'
   }
 }
 
@@ -215,6 +261,31 @@ function Install-DreamSkinRuntimeEngine {
   if ($sourceHasBundledRuntime) {
     $required += @('runtime\node\node.exe', 'runtime\node\LICENSE')
   }
+  $optionalSourceDirectories = @()
+  foreach ($optionalDirectory in @('control-center', 'client')) {
+    $optionalPath = Join-Path $sourceRoot $optionalDirectory
+    if (Test-Path -LiteralPath $optionalPath -PathType Container) {
+      $optionalSourceDirectories += $optionalDirectory
+    }
+  }
+  if ($optionalSourceDirectories -contains 'control-center') {
+    $required += @(
+      'control-center\server.mjs',
+      'control-center\theme-store.mjs',
+      'control-center\theme-exporter.mjs',
+      'control-center\zip-writer.mjs',
+      'control-center\public\index.html',
+      'control-center\public\app.js',
+      'control-center\public\styles.css',
+      'control-center\public\video-theme-cover.png'
+    )
+  }
+  if ($optionalSourceDirectories -contains 'client') {
+    $required += @(
+      'client\CodexDreamSkin.Client.exe',
+      'runtime\webview2\msedgewebview2.exe'
+    )
+  }
   foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $relative) -PathType Leaf)) {
       throw "Dream Skin runtime source is incomplete: $relative"
@@ -224,6 +295,7 @@ function Install-DreamSkinRuntimeEngine {
   if ($sourceHasBundledRuntime) {
     $sourceDirectories += 'runtime'
   }
+  $sourceDirectories += $optionalSourceDirectories
   foreach ($directoryName in $sourceDirectories) {
     $sourceDirectory = Join-Path $sourceRoot $directoryName
     if ((Test-DreamSkinPathEqual -Left $fullStateRoot -Right $sourceDirectory) -or

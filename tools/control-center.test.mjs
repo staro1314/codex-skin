@@ -60,6 +60,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="image-upload-label"/,
       "The image upload label must be able to identify a video cover separately from a static background.");
     assert.match(shellHtml, /id="operation-progress"/);
+    assert.match(shellHtml, /id="start-codex-button"/);
+    assert.match(shellHtml, /id="restore-button"/);
     assert.match(shellResponse.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
     const clientResponse = await fetch(`${center.origin}/app.js`);
@@ -109,6 +111,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(bootstrapResponse.status, 200);
     const bootstrap = await bootstrapResponse.json();
     assert.equal(bootstrap.app.actionsEnabled, false);
+    assert.equal(bootstrap.app.embedded, false);
     assert.equal(bootstrap.themes.length, 1);
     assert.equal(bootstrap.themes[0].kind, "bundled");
     assert.equal(Object.hasOwn(bootstrap.themes[0], "_directory"), false);
@@ -416,6 +419,41 @@ test("control center surfaces a recoverable Windows action failure", async () =>
   }
 });
 
+test("embedded control center exposes the verified Codex start action", async () => {
+  const calls = [];
+  const center = await createControlCenter({
+    platform: "win32",
+    embedded: true,
+    port: 0,
+    stateRoot: path.join(tempRoot, "embedded-action-state"),
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    actionRunner: async (request) => {
+      calls.push(request);
+      return { ok: true, action: request.action, message: "started" };
+    },
+  });
+  try {
+    const headers = {
+      "X-DreamSkin-Token": center.token,
+      Origin: center.origin,
+      "Content-Type": "application/json",
+    };
+    const bootstrap = await fetch(`${center.origin}/api/bootstrap`, {
+      headers: { "X-DreamSkin-Token": center.token },
+    }).then((response) => response.json());
+    assert.equal(bootstrap.app.embedded, true);
+    const response = await fetch(`${center.origin}/api/action`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ action: "start" }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, [{ action: "start", themeId: null, stateRoot: path.join(tempRoot, "embedded-action-state") }]);
+  } finally {
+    await center.close();
+  }
+});
+
 test("ZIP writer rejects tampering and unsafe entry names", () => {
   const archive = createZip([
     { name: "theme.json", bytes: Buffer.from('{"schemaVersion":1}\n') },
@@ -511,4 +549,7 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.match(action, /Use-DreamSkinSavedTheme/);
   assert.match(action, /Invoke-DreamSkinLiveRemove/);
   assert.match(action, /Set-DreamSkinPaused/);
+  assert.match(action, /start-dream-skin\.ps1/);
+  assert.match(action, /restore-dream-skin\.ps1/);
+  assert.match(action, /RestoreBaseTheme/);
 });

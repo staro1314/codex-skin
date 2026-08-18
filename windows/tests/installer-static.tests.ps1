@@ -96,22 +96,31 @@ if ($definition.Contains('Root: HKLM') -or
 if (-not $definition.Contains('#define PersistentPowerShellPath "{win}\System32\WindowsPowerShell\v1.0\powershell.exe"')) {
   throw 'Persistent shortcuts and URL handlers must use a System32 PowerShell path that 64-bit launchers can access.'
 }
-$persistentCommandEntries = @(
+$clientShortcutEntries = @(
   'Name: "{group}\Codex Dream Skin"',
-  'Name: "{userstartup}\Codex Dream Skin"',
-  'Subkey: "Software\Classes\dreamskin\shell\open\command"'
+  'Name: "{userstartup}\Codex Dream Skin"'
 )
-foreach ($entry in $persistentCommandEntries) {
+foreach ($entry in $clientShortcutEntries) {
   $line = ([regex]::Match(
       $definition,
       '(?m)^.*' + [regex]::Escape($entry) + '.*$'
     )).Value
-  if (-not $line.Contains('{#PersistentPowerShellPath}')) {
-    throw "Persistent command does not use the browser-accessible PowerShell path: $entry"
+  if (-not $line.Contains('CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe')) {
+    throw "Persistent shortcut does not target the native client: $entry"
   }
-  if ($line.Contains('{#PowerShellPath}') -or $line.Contains('{sysnative}')) {
-    throw "Persistent command still references sysnative, which 64-bit launchers cannot access: $entry"
+  if ($line.Contains('{#PowerShellPath}') -or $line.Contains('{#PersistentPowerShellPath}')) {
+    throw "Native client shortcut still launches through PowerShell: $entry"
   }
+}
+$protocolLine = ([regex]::Match(
+    $definition,
+    '(?m)^.*Subkey: "Software\\Classes\\dreamskin\\shell\\open\\command".*$'
+  )).Value
+if (-not $protocolLine.Contains('{#PersistentPowerShellPath}')) {
+  throw 'The dreamskin protocol handler must continue to use the browser-accessible PowerShell path.'
+}
+if ($protocolLine.Contains('{#PowerShellPath}') -or $protocolLine.Contains('{sysnative}')) {
+  throw 'The dreamskin protocol handler still references sysnative, which 64-bit launchers cannot access.'
 }
 
 $uninstallStepIndex = $definition.IndexOf(

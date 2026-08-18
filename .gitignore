@@ -29,3 +29,7 @@ docs/unified-skin-runtime-plan.md
 
 # local CodeGraph index and daemon state
 .codegraph/
+
+# native Windows client build output
+windows/client/bin/
+windows/client/obj/

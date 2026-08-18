@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('apply', 'pause', 'resume')]
+  [ValidateSet('apply', 'pause', 'resume', 'start', 'restore')]
   [string]$Action,
 
   [Parameter(Mandatory = $true)]
@@ -16,6 +16,35 @@ $ErrorActionPreference = 'Stop'
 
 $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
 $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
+
+if ($Action -in @('start', 'restore')) {
+  $scriptName = if ($Action -eq 'start') { 'start-dream-skin.ps1' } else { 'restore-dream-skin.ps1' }
+  $script = Join-Path $PSScriptRoot $scriptName
+  if (-not (Test-Path -LiteralPath $script -PathType Leaf)) {
+    throw "The verified Codex $Action script is missing."
+  }
+  $scriptOutput = @()
+  if ($Action -eq 'start') {
+    $scriptOutput = @(& $script -PromptRestart 2>&1)
+  } else {
+    $scriptOutput = @(& $script -RestoreBaseTheme -PromptRestart 2>&1)
+  }
+  $cancelled = [bool]($scriptOutput | Where-Object { "$($_)" -match 'cancelled' })
+  if ($cancelled) {
+    $message = 'Operation cancelled; Codex was not changed.'
+  } elseif ($Action -eq 'start') {
+    $message = 'Codex started and the active theme was verified.'
+  } else {
+    $message = 'Codex was restored to its official appearance.'
+  }
+  [pscustomobject]@{
+    ok = -not $cancelled
+    action = $Action
+    message = $message
+  } | ConvertTo-Json -Compress
+  exit 0
+}
+
 $operationLock = Enter-DreamSkinOperationLock -TimeoutMilliseconds 10000
 $result = $null
 try {

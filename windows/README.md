@@ -11,6 +11,7 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 - Windows 10 或更高版本（x64；安装器声明 Windows 10 为最低版本）。
 - 从 Microsoft Store 安装且已注册到当前用户的官方 `OpenAI.Codex` 应用。
 - Release Setup.exe 已内置 Node.js；只有从源码运行时才需要 `PATH` 中有 Node.js 22 或更高版本。
+- Release Setup.exe 同时安装原生 `CodexDreamSkin.Client.exe`、固定版 WebView2 Runtime 和本地控制中心资源；正式客户端不依赖系统浏览器。
 - Windows PowerShell 5.1 或更高版本（安装器会在后台调用，普通用户不需要打开它）。
 
 ## Release 安装（推荐普通用户）
@@ -31,10 +32,10 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1
 ```
 
-安装器会校验官方 Codex Store 包和 Node.js，保存可恢复的外观配置，并初始化本地主题仓库。默认还会创建这些快捷方式：
+安装器会校验官方 Codex Store 包和 Node.js，保存可恢复的外观配置，并初始化本地主题仓库。正式 Setup 还会把控制中心安装为原生客户端；默认还会创建这些快捷方式：
 
-- `Codex Dream Skin`：启动或重新应用皮肤。
-- `Codex Dream Skin - Tray`：打开系统托盘主题控制。
+- `Codex Dream Skin`：打开原生控制中心客户端。
+- `Codex Dream Skin - Tray`：以后台模式启动客户端并驻留系统托盘。
 - `Codex Dream Skin - Restore`：恢复官方外观并关闭已保存的 CDP 会话。
 
 源码安装命令与日常快捷方式都使用 `RemoteSigned`，不会绕过系统或企业组策略。安装器会先校验运行时副本的 SHA-256，再仅对 `%LOCALAPPDATA%\CodexDreamSkin\engine` 中受管的 PowerShell 副本清除下载区标记。
@@ -51,7 +52,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 
 ## 启动与验证
 
-推荐从 `Codex Dream Skin` 快捷方式启动。它发现 Codex 已经运行时会先询问是否重启。
+推荐从 `Codex Dream Skin` 快捷方式启动客户端。关闭窗口只会隐藏到托盘；从托盘退出客户端才会停止其内部控制中心服务。客户端的“启动 / 重新应用 Codex”仍会调用经过验证的 PowerShell 启动流程，并在 Codex 已经运行时先询问是否重启。
 
 命令行启动：
 
@@ -86,7 +87,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\doctor-d
 
 ## 更换和保存主题
 
-打开 `Codex Dream Skin - Tray` 后可以：
+打开 `Codex Dream Skin` 客户端后可以（后台启动时也可从托盘双击打开）：
 
 - 更换 PNG、JPEG 或 WebP 背景图。
 - 导入普通 `.zip` 主题包到“已保存主题”（不支持 `.dreamskin`）。

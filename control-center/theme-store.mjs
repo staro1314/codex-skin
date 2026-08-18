@@ -10,7 +10,6 @@ import {
 } from "../runtime/theme-package-validator.mjs";
 import { readImageMetadata } from "../runtime/image-metadata.mjs";
 import { decodeAndValidateSafeCss } from "../runtime/safe-css-validator.mjs";
-import { loadTheme } from "../windows/scripts/injector.mjs";
 
 const MAX_THEME_BYTES = 1024 * 1024;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -190,13 +189,15 @@ async function safeCssFor(source) {
 }
 
 export class ThemeStore {
-  constructor({ stateRoot, bundledThemeRoot, videoCoverPath }) {
+  constructor({ stateRoot, bundledThemeRoot, videoCoverPath, loadTheme: themeLoader }) {
     this.stateRoot = path.resolve(stateRoot);
     this.savedRoot = path.join(this.stateRoot, "themes");
     this.activeRoot = path.join(this.stateRoot, "active-theme");
     this.pauseFile = path.join(this.stateRoot, "paused");
     this.bundledThemeRoot = path.resolve(bundledThemeRoot);
     this.videoCoverPath = path.resolve(videoCoverPath);
+    this.loadTheme = themeLoader;
+    if (typeof this.loadTheme !== "function") throw new TypeError("ThemeStore requires a theme loader");
   }
 
   async initialize() {
@@ -210,7 +211,7 @@ export class ThemeStore {
     const rawBytes = await readRegular(path.join(resolved, "theme.json"), MAX_THEME_BYTES, "theme.json");
     let raw;
     try { raw = JSON.parse(rawBytes.toString("utf8")); } catch { fail(`Theme ${id} has invalid JSON`, 409); }
-    const loaded = await loadTheme(resolved);
+    const loaded = await this.loadTheme(resolved);
     const videoName = typeof raw.video?.src === "string" ? raw.video.src : null;
     const videoPath = loaded.theme.video?.src ? fileURLToPath(loaded.theme.video.src) : null;
     return {
@@ -318,7 +319,7 @@ export class ThemeStore {
         fs.writeFile(path.join(stage, "theme.css"), await safeCssFor(source), { flag: "wx" }),
         ...(video ? [fs.writeFile(path.join(stage, videoName), video.bytes, { flag: "wx" })] : []),
       ]);
-      await loadTheme(stage);
+      await this.loadTheme(stage);
     } catch (error) {
       await fs.rm(stage, { recursive: true, force: true });
       throw error;
