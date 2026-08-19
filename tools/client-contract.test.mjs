@@ -36,15 +36,24 @@ test("native client is an embedded WebView2 host with a single-instance boundary
 });
 
 test("installed entry points target the native client while browser control remains source-only", async () => {
-  const [installer, installScript, bootstrap, browserLauncher] = await Promise.all([
+  const [installer, installScript, bootstrap, browserLauncher, macosLauncher] = await Promise.all([
     fs.readFile(path.join(projectRoot, "windows", "installer", "codex-dream-skin.iss"), "utf8"),
     fs.readFile(path.join(projectRoot, "windows", "scripts", "install-dream-skin.ps1"), "utf8"),
     fs.readFile(path.join(projectRoot, "windows", "installer", "setup-bootstrap.ps1"), "utf8"),
     fs.readFile(path.join(projectRoot, "control-codex-skin.ps1"), "utf8"),
+    fs.readFile(path.join(projectRoot, "macos", "scripts", "start-dream-skin-macos.sh"), "utf8"),
   ]);
   assert.match(installer, /CodexDreamSkin\\engine\\client\\CodexDreamSkin\.Client\.exe/);
   assert.match(installScript, /\$clientPath|\$engine\.Client/);
+  assert.match(installScript, /Install-DreamSkinBaseTheme/);
+  assert.match(installScript, /Get-DreamSkinCodexProcesses/);
   assert.match(bootstrap, /CodexDreamSkin\.Client\.exe/);
+  assert.match(bootstrap, /Install-DreamSkinRuntimeEngine -SkillRoot \$payloadRoot -StateRoot \$stateRoot/);
+  assert.match(bootstrap, /Initialize-DreamSkinThemeStore -SkillRoot \$engine\.Root -StateRoot \$stateRoot/);
+  assert.doesNotMatch(bootstrap, /Wait-DreamSkinCodexClosedForSetup/);
+  assert.doesNotMatch(bootstrap, /Join-Path \$payloadScripts 'install-dream-skin\.ps1'/);
   assert.match(browserLauncher, /Start-Process -FilePath "\$\(\$state\.url\)"/);
   assert.match(browserLauncher, /control-center\.json/);
+  assert.doesNotMatch(browserLauncher, /CodexDreamSkin\.Client/);
+  assert.doesNotMatch(macosLauncher, /CodexDreamSkin\.Client|setup-bootstrap|control-center[\\/]server\.mjs/);
 });

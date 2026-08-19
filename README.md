@@ -45,13 +45,23 @@ Dream Skin 启动器 / 托盘 / 菜单栏
 
 普通用户应优先使用 [GitHub Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) 中对应平台的安装包。源码安装和诊断流程请分别阅读平台 README。
 
+## 三类启动入口
+
+项目严格区分三类入口，任何一类的打包或启动调整都不能改写另外两类：
+
+1. **Windows 原生程序**：Release Setup.exe 安装 `CodexDreamSkin.Client.exe`，由客户端内嵌控制中心；安装阶段只部署运行时，应用皮肤和重启 Codex 由客户端操作负责。
+2. **macOS 原生程序**：DMG/菜单栏应用使用 `macos/` 下自己的 Swift 与 shell 入口，不调用 Windows 或浏览器控制中心流程。
+3. **浏览器测试入口**：仓库根目录的 `control-codex-skin.cmd`（控制中心浏览器测试）与 `start-codex-skin.cmd`（换肤浏览器测试/诊断）只服务开发测试，仍打开外部浏览器，不属于正式产品入口。
+
+浏览器测试入口继续使用源码测试流程；Windows 打包安装流程不得调用浏览器测试入口或其旧的即时应用流程。
+
 Codex Desktop 升级后的选择器取证、共享资产同步、原生审批窗口边界、测试、实机验收和发布流程见 [`docs/codex-upgrade-playbook.md`](./docs/codex-upgrade-playbook.md)。
 
 ## 从源码运行
 
 ### Windows
 
-关闭 Codex 后，在 `windows/` 目录运行：
+浏览器测试/源码流程仍使用原有脚本。在 `windows/` 目录运行前需要关闭 Codex，因为该脚本会立即写入 `config.toml` 并应用基础皮肤；它不被正式 Windows Setup 调用：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1

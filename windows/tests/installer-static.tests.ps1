@@ -205,11 +205,17 @@ foreach ($requiredRepairContract in @(
   'runtime\node\LICENSE',
   '$missingEngineFiles.Count -eq 0',
   'A newer Codex Dream Skin',
-  'The installer payload is missing its bundled Node.js runtime'
+  'The installer payload is missing its bundled Node.js runtime',
+  'Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot',
+  'Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $stateRoot'
 )) {
   if (-not $bootstrap.Contains($requiredRepairContract)) {
     throw "Installer same-version repair coverage is missing: $requiredRepairContract"
   }
+}
+if ($bootstrap.Contains('Wait-DreamSkinCodexClosedForSetup') -or
+  $bootstrap.Contains("Join-Path `$payloadScripts 'install-dream-skin.ps1'")) {
+  throw 'Packaged Windows installation must not reuse the browser/source install flow or require Codex to exit.'
 }
 
 foreach ($requiredUninstallBinding in @(

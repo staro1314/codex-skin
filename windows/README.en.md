@@ -27,12 +27,13 @@ access. An unsigned download may occasionally trigger SmartScreen; use
 and never disable Defender. Updates are new Setup.exe packages installed over
 the existing copy; themes and images are retained.
 
-Run the installer after Codex has fully exited. Normal use does not require administrator access or ownership changes under WindowsApps.
+Release Setup only deploys the native client, control center, and managed runtime. It does not modify Codex `config.toml`, so Codex may remain open during installation or update; only an older Dream Skin client/tray is stopped so managed files can be replaced. The client asks about restarting Codex later when the user chooses to apply the skin. Normal use does not require administrator access or ownership changes under WindowsApps.
 
 ## Advanced: install from source
 
-Ordinary users can skip this section. Open PowerShell in the repository's
-`windows` directory and run:
+Ordinary users can skip this section. This is the browser/source test install
+flow and it immediately writes `config.toml`; Release Setup does not call it.
+Open PowerShell in the repository's `windows` directory and run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1
@@ -54,7 +55,10 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 
 ## Update
 
-Exit the Dream Skin tray and close Codex, update the checkout (`git pull`, or download the latest source again), then rerun the install command above. The installer atomically replaces the managed runtime and rebuilds its shortcuts without deleting the active theme, saved themes, or imported images.
+For source-install updates, exit the Dream Skin tray and close Codex before
+updating the checkout and rerunning the install command above. Release Setup
+updates only require the Dream Skin client/tray to exit; it atomically replaces
+the managed runtime and rebuilds shortcuts without deleting themes or images.
 
 ## Launch and verify
 

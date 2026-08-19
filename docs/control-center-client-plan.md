@@ -1,7 +1,7 @@
 # Codex Dream Skin 控制中心客户端化方案
 
 日期：2026-08-18
-范围：Windows 控制中心客户端化；macOS 菜单栏应用暂不改造。
+范围：Windows 控制中心客户端化；macOS 菜单栏应用暂不改造。项目入口分为三类并严格隔离：Windows 原生程序、macOS 原生程序、浏览器测试入口。
 
 ## 目标
 
@@ -71,6 +71,15 @@ POST /api/action
 Node 服务仍作为客户端内部后台引擎存在，但用户不会看到服务窗口，也不会直接接触服务端口。生产模式增加 `--embedded` 和 `--runtime-root` 参数；开发模式继续允许浏览器访问，供测试使用。
 
 ## 打包与入口
+
+安装阶段只属于 Windows 原生程序链路：它复制客户端和受管运行时，不调用
+`windows/scripts/install-dream-skin.ps1`，不修改 Codex `config.toml`，也不要求
+Codex 退出。用户在客户端中点击启动皮肤后，才由客户端动作链路负责配置变更和
+必要的 Codex 重启。
+
+浏览器测试入口（仓库根目录 `control-codex-skin.cmd`、
+`start-codex-skin.cmd`）继续保留原有外部浏览器和源码脚本流程；macOS 入口继续
+使用 `macos/` 自己的菜单栏/脚本流程。Windows 打包流程的变化不得反向修改这两类入口。
 
 安装包继续使用现有 Inno Setup：
 

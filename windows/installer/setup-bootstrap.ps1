@@ -34,25 +34,6 @@ function Show-DreamSkinBootstrapMessage {
   )
 }
 
-function Wait-DreamSkinCodexClosedForSetup {
-  while ($true) {
-    $registered = @(Get-DreamSkinRegisteredCodexInstalls)
-    $running = @($registered | Where-Object { (Get-DreamSkinCodexProcesses -Codex $_).Count -gt 0 })
-    if ($running.Count -eq 0) { return }
-    if ($Silent) { throw 'Close Codex before installing or updating Codex Dream Skin.' }
-    Add-Type -AssemblyName System.Windows.Forms
-    $choice = [System.Windows.Forms.MessageBox]::Show(
-      'Codex is currently running. Close it, then click Retry to continue setup.',
-      'Codex Dream Skin Setup',
-      [System.Windows.Forms.MessageBoxButtons]::RetryCancel,
-      [System.Windows.Forms.MessageBoxIcon]::Information
-    )
-    if ($choice -ne [System.Windows.Forms.DialogResult]::Retry) {
-      throw 'Setup was cancelled because Codex is still running.'
-    }
-  }
-}
-
 try {
   if ($Install -and ($LaunchTray -or $Uninstall)) {
     throw 'Choose exactly one installer bootstrap action.'
@@ -108,7 +89,6 @@ try {
     ([version]$installedVersion) -gt ([version]$payloadVersion)) {
     throw "A newer Codex Dream Skin v$installedVersion is already installed. Download that version or newer instead of downgrading to v$payloadVersion."
   }
-  $backupExists = Test-Path -LiteralPath (Join-Path $stateRoot 'config.before-dream-skin.toml') -PathType Leaf
   $requiredEngineFiles = @(
     'VERSION',
     'assets\codex-dream-skin.ico',
@@ -160,14 +140,16 @@ try {
     -not (Test-Path -LiteralPath (Join-Path $engine.Root $_) -PathType Leaf)
   })
   $engineComplete = $missingEngineFiles.Count -eq 0
+  # The packaged client install is deployment-only. It must not touch Codex's
+  # config.toml or require Codex to exit; the client action owns apply/restart.
   $needsInstall = $Install -or $payloadVersion -cne $installedVersion -or
-    -not $backupExists -or -not $engineComplete
+    -not $engineComplete
 
   if ($needsInstall) {
-    Wait-DreamSkinCodexClosedForSetup
     Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
-    & (Join-Path $payloadScripts 'install-dream-skin.ps1') -NoShortcuts
+    $engine = Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot
+    $null = Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $stateRoot
     $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $stateRoot
     $committedVersion = if (Test-Path -LiteralPath $engine.Version -PathType Leaf) {
       ([System.IO.File]::ReadAllText($engine.Version)).Trim()
@@ -175,8 +157,7 @@ try {
     $missingEngineFiles = @($requiredEngineFiles | Where-Object {
       -not (Test-Path -LiteralPath (Join-Path $engine.Root $_) -PathType Leaf)
     })
-    if ($committedVersion -cne $payloadVersion -or $missingEngineFiles.Count -gt 0 -or
-      -not (Test-Path -LiteralPath (Join-Path $stateRoot 'config.before-dream-skin.toml') -PathType Leaf)) {
+    if ($committedVersion -cne $payloadVersion -or $missingEngineFiles.Count -gt 0) {
       throw 'Runtime installation did not commit a complete managed engine.'
     }
   }
