@@ -227,7 +227,7 @@ foreach ($requiredRepairContract in @(
   }
 }
 foreach ($requiredClientActionContract in @(
-  '_actionHttp = new() { Timeout = TimeSpan.FromSeconds(130) }',
+  '_actionHttp = new() { Timeout = TimeSpan.FromSeconds(190) }',
   '_actionHttp.SendAsync',
   'Get-DreamSkinLiveSessionContext -StateRoot $StateRoot'
 )) {

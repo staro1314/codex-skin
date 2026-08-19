@@ -11,7 +11,7 @@ internal sealed class RuntimeSupervisor : IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly ClientOptions _options;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(2) };
-    private readonly HttpClient _actionHttp = new() { Timeout = TimeSpan.FromSeconds(130) };
+    private readonly HttpClient _actionHttp = new() { Timeout = TimeSpan.FromSeconds(190) };
     private Process? _ownedProcess;
     private bool _disposed;
 

@@ -10,6 +10,12 @@ param(
   [string]$ThemeId
 )
 
+# Windows PowerShell 5.1 writes redirected stdout using the active system
+# code page by default. The Node host reads this stream as UTF-8.
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common-windows.ps1')
 . (Join-Path $PSScriptRoot 'theme-windows.ps1')

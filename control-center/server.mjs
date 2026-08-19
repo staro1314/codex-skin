@@ -31,7 +31,7 @@ const SECURITY_HEADERS = Object.freeze({
   "X-Frame-Options": "DENY",
   "Content-Security-Policy": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
 });
-const WINDOWS_ACTION_TIMEOUT_MS = 120_000;
+const WINDOWS_ACTION_TIMEOUT_MS = 180_000;
 
 function defaultStateRoot(platform = process.platform) {
   if (platform === "win32") {
@@ -134,7 +134,7 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
       .join("\n");
     const timedOut = error?.code === "ETIMEDOUT" || error?.killed || error?.signal === "SIGTERM";
     const message = timedOut
-      ? "Windows 主题操作超过 120 秒未完成，请检查 Codex 会话后重试。"
+      ? "Windows 主题操作超过 180 秒未完成，请检查 Codex 会话后重试。"
       : /Node\.js \d+ or newer is required/i.test(raw)
         ? "需要 Node.js 22 或更高版本，请重新打开控制中心后重试。"
         : /access to the path|access is denied/i.test(raw)

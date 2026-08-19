@@ -553,6 +553,8 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.match(action, /请点击“启动 \/ 重新应用 Codex”/);
   assert.match(action, /start-dream-skin\.ps1/);
   assert.match(action, /\$script -RestartExisting/);
+  assert.match(action, /\$OutputEncoding = \$utf8/);
+  assert.match(action, /\[Console\]::OutputEncoding = \$utf8/);
   assert.match(action, /restore-dream-skin\.ps1/);
   assert.match(action, /RestoreBaseTheme/);
 });

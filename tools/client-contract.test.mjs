@@ -29,7 +29,7 @@ test("native client is an embedded WebView2 host with a single-instance boundary
   assert.doesNotMatch(windowHost, /Process\.Start/);
   assert.match(runtime, /--embedded/);
   assert.match(runtime, /--runtime-root/);
-  assert.match(runtime, /_actionHttp = new\(\) \{ Timeout = TimeSpan\.FromSeconds\(130\) \}/);
+  assert.match(runtime, /_actionHttp = new\(\) \{ Timeout = TimeSpan\.FromSeconds\(190\) \}/);
   assert.match(runtime, /_actionHttp\.SendAsync/);
   assert.doesNotMatch(runtime, /Pause cleared\. A running watcher/);
   assert.match(runtime, /TryReuseExistingAsync/);
