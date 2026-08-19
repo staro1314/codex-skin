@@ -73,8 +73,9 @@ Source: "{#StageRoot}\NOTICE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StageRoot}\payload\*"; DestDir: "{app}\payload"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
-Name: "{userstartup}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--background"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"; Tasks: startup
+Name: "{group}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
+Name: "{userdesktop}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
+Name: "{userstartup}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--background --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"; Tasks: startup
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\dreamskin"; ValueType: string; ValueName: ""; ValueData: "URL:DreamSkin Protocol"; Flags: uninsdeletekey

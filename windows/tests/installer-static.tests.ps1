@@ -98,6 +98,7 @@ if (-not $definition.Contains('#define PersistentPowerShellPath "{win}\System32\
 }
 $clientShortcutEntries = @(
   'Name: "{group}\Codex Dream Skin"',
+  'Name: "{userdesktop}\Codex Dream Skin"',
   'Name: "{userstartup}\Codex Dream Skin"'
 )
 foreach ($entry in $clientShortcutEntries) {
@@ -167,6 +168,11 @@ foreach ($requiredBuilderContract in @(
   '$publicPresetThemeSha256',
   '$innoChineseLanguageSha256',
   '$innoSetupLicenseSha256',
+  '$webView2BootstrapperUrl',
+  '[string]$WebView2BootstrapperPath',
+  'Get-AuthenticodeSignature -LiteralPath $webView2Bootstrapper',
+  'MicrosoftEdgeWebView2Setup.exe',
+  "'dependencies\MicrosoftEdgeWebView2Setup.exe'",
   'Copy-Item -LiteralPath $innoChineseLanguagePath',
   "'preset-gothic-void-crusade'",
   "'presets\preset-gothic-void-crusade'",
@@ -203,7 +209,9 @@ foreach ($requiredRepairContract in @(
   'scripts\check-update.ps1',
   'runtime\node\node.exe',
   'runtime\node\LICENSE',
+  'dependencies\MicrosoftEdgeWebView2Setup.exe',
   '$missingEngineFiles.Count -eq 0',
+  'Ensure-DreamSkinWebView2Runtime',
   'A newer Codex Dream Skin',
   'The installer payload is missing its bundled Node.js runtime',
   'Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot',
@@ -216,6 +224,11 @@ foreach ($requiredRepairContract in @(
 if ($bootstrap.Contains('Wait-DreamSkinCodexClosedForSetup') -or
   $bootstrap.Contains("Join-Path `$payloadScripts 'install-dream-skin.ps1'")) {
   throw 'Packaged Windows installation must not reuse the browser/source install flow or require Codex to exit.'
+}
+if ($builder.Contains('WebView2RuntimePath') -or
+  $builder.Contains('Copy-ReleaseDirectory -Source $WebView2RuntimePath') -or
+  $builder.Contains("'runtime\webview2\msedgewebview2.exe'")) {
+  throw 'The Windows release must not package the full fixed WebView2 runtime.'
 }
 
 foreach ($requiredUninstallBinding in @(

@@ -11,7 +11,7 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 - Windows 10 或更高版本（x64；安装器声明 Windows 10 为最低版本）。
 - 从 Microsoft Store 安装且已注册到当前用户的官方 `OpenAI.Codex` 应用。
 - Release Setup.exe 已内置 Node.js；只有从源码运行时才需要 `PATH` 中有 Node.js 22 或更高版本。
-- Release Setup.exe 同时安装原生 `CodexDreamSkin.Client.exe`、固定版 WebView2 Runtime 和本地控制中心资源；正式客户端不依赖系统浏览器。
+- Release Setup.exe 安装原生 `CodexDreamSkin.Client.exe`、本地控制中心资源，并携带约 2 MB 的 Microsoft WebView2 Evergreen Bootstrapper；只有系统缺少 WebView2 Runtime 时才补装依赖，不把整套固定版浏览器运行时打进包内。正式客户端仍不打开外部浏览器。
 - Windows PowerShell 5.1 或更高版本（安装器会在后台调用，普通用户不需要打开它）。
 
 ## Release 安装（推荐普通用户）
@@ -34,7 +34,7 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1
 ```
 
-安装器会校验官方 Codex Store 包和 Node.js，保存可恢复的外观配置，并初始化本地主题仓库。正式 Setup 还会把控制中心安装为原生客户端；默认还会创建这些快捷方式：
+安装器会校验官方 Codex Store 包和 Node.js，按需安装 WebView2 Runtime，保存可恢复的外观配置，并初始化本地主题仓库。正式 Setup 还会把控制中心安装为原生客户端；默认还会创建这些快捷方式：
 
 - `Codex Dream Skin`：打开原生控制中心客户端。
 - `Codex Dream Skin - Tray`：以后台模式启动客户端并驻留系统托盘。

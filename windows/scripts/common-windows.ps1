@@ -281,10 +281,7 @@ function Install-DreamSkinRuntimeEngine {
     )
   }
   if ($optionalSourceDirectories -contains 'client') {
-    $required += @(
-      'client\CodexDreamSkin.Client.exe',
-      'runtime\webview2\msedgewebview2.exe'
-    )
+    $required += 'client\CodexDreamSkin.Client.exe'
   }
   foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $relative) -PathType Leaf)) {

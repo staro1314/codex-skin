@@ -10,18 +10,20 @@ diagnostic surface only.
 
 ## Development
 
-Run the project with an installed .NET 8 SDK and pass the explicit development
-fallback when the fixed WebView2 Runtime is not staged:
+Run the project with an installed .NET 8 SDK and an installed WebView2
+Evergreen Runtime:
 
 ```powershell
-dotnet run --project windows/client/CodexDreamSkin.Client.csproj -- --allow-evergreen-webview2 --show
+dotnet run --project windows/client/CodexDreamSkin.Client.csproj -- --show
 ```
 
-The fallback is intentionally opt-in and is not used by the installed client.
+The `--allow-evergreen-webview2` flag remains available for development
+diagnostics, but the installed client uses the system WebView2 Runtime and
+never opens an external browser.
 
 ## Release payload
 
-`windows/installer/build-release.ps1` publishes this project and requires a
-fixed WebView2 Runtime directory containing `msedgewebview2.exe`. The runtime
-is copied to `engine/runtime/webview2`; if it is missing, Setup creation fails
-instead of producing a package that depends on the system browser.
+`windows/installer/build-release.ps1` publishes this project and packages the
+small Microsoft WebView2 Evergreen Bootstrapper. Setup runs it only when the
+system WebView2 Runtime is missing, so the release package does not contain a
+full fixed-version browser runtime.

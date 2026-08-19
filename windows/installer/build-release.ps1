@@ -4,7 +4,7 @@ param(
   [string]$IsccPath,
   [string]$NodeArchivePath,
   [string]$DotnetPath,
-  [string]$WebView2RuntimePath,
+  [string]$WebView2BootstrapperPath,
   [string]$WorkingDirectory,
   [switch]$KeepWorkingDirectory
 )
@@ -34,6 +34,7 @@ $publicPresetImagePath = Join-Path $publicPresetRoot 'background.jpg'
 $publicPresetThemePath = Join-Path $publicPresetRoot 'theme.json'
 $publicPresetImageSha256 = 'b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42'
 $publicPresetThemeSha256 = '8316c6ad29e3b84806358ab4a730c7e063b261e379179b9608cf751c282d66a7'
+$webView2BootstrapperUrl = 'https://go.microsoft.com/fwlink/?linkid=2124703'
 
 function Read-ReleaseTextFile {
   param([Parameter(Mandatory = $true)][string]$Path)
@@ -329,15 +330,6 @@ $clientProjectPath = Join-Path (Join-Path $windowsRoot 'client') 'CodexDreamSkin
 if (-not (Test-Path -LiteralPath $clientProjectPath -PathType Leaf)) {
   throw "The Windows client project is missing: $clientProjectPath"
 }
-if (-not $WebView2RuntimePath) {
-  throw 'A fixed WebView2 Runtime directory is required for the Windows client package. Pass -WebView2RuntimePath.'
-}
-$WebView2RuntimePath = Resolve-ReleasePath -Path $WebView2RuntimePath -BasePath $repositoryRoot
-if (-not (Test-Path -LiteralPath $WebView2RuntimePath -PathType Container) -or
-  -not (Test-Path -LiteralPath (Join-Path $WebView2RuntimePath 'msedgewebview2.exe') -PathType Leaf)) {
-  throw "The fixed WebView2 Runtime directory is incomplete: $WebView2RuntimePath"
-}
-
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repositoryRoot 'release' }
 $OutputDirectory = Resolve-ReleasePath -Path $OutputDirectory -BasePath $repositoryRoot
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
@@ -356,6 +348,23 @@ if ($WorkingDirectory) {
 }
 
 try {
+  $webView2Bootstrapper = if ($WebView2BootstrapperPath) {
+    Resolve-ReleasePath -Path $WebView2BootstrapperPath -BasePath $repositoryRoot
+  } else {
+    $downloadedBootstrapper = Join-Path $WorkingDirectory 'MicrosoftEdgeWebView2Setup.exe'
+    Write-Host 'Downloading the small Microsoft WebView2 Evergreen Bootstrapper...'
+    Invoke-WebRequest -UseBasicParsing -Uri $webView2BootstrapperUrl -OutFile $downloadedBootstrapper
+    $downloadedBootstrapper
+  }
+  if (-not (Test-Path -LiteralPath $webView2Bootstrapper -PathType Leaf)) {
+    throw "The WebView2 Evergreen Bootstrapper does not exist: $webView2Bootstrapper"
+  }
+  $webView2Signature = Get-AuthenticodeSignature -LiteralPath $webView2Bootstrapper
+  if ($webView2Signature.Status -ne 'Valid' -or
+    $webView2Signature.SignerCertificate.Subject -notmatch '(?i)Microsoft') {
+    throw 'The WebView2 Evergreen Bootstrapper is not signed by Microsoft.'
+  }
+
   $archivePath = if ($NodeArchivePath) {
     Resolve-ReleasePath -Path $NodeArchivePath -BasePath $repositoryRoot
   } else {
@@ -382,15 +391,17 @@ try {
   $stageRoot = Join-Path $WorkingDirectory 'stage'
   $payloadRoot = Join-Path $stageRoot 'payload'
   $nodeRoot = Join-Path (Join-Path $payloadRoot 'runtime') 'node'
+  $dependencyRoot = Join-Path $payloadRoot 'dependencies'
   $clientRoot = Join-Path $payloadRoot 'client'
   $languageRoot = Join-Path $stageRoot 'languages'
   New-Item -ItemType Directory -Path $payloadRoot | Out-Null
   New-Item -ItemType Directory -Path $languageRoot | Out-Null
+  New-Item -ItemType Directory -Path $dependencyRoot | Out-Null
   Copy-ReleaseDirectory -Source (Join-Path $windowsRoot 'assets') -Destination (Join-Path $payloadRoot 'assets')
   Copy-ReleaseDirectory -Source (Join-Path $windowsRoot 'scripts') -Destination (Join-Path $payloadRoot 'scripts')
   Copy-ReleaseDirectory -Source (Join-Path $repositoryRoot 'control-center') -Destination (Join-Path $payloadRoot 'control-center')
   Copy-ReleaseDirectory -Source (Join-Path $repositoryRoot 'runtime') -Destination (Join-Path $payloadRoot 'runtime')
-  Copy-ReleaseDirectory -Source $WebView2RuntimePath -Destination (Join-Path $payloadRoot 'runtime\webview2')
+  Copy-Item -LiteralPath $webView2Bootstrapper -Destination (Join-Path $dependencyRoot 'MicrosoftEdgeWebView2Setup.exe') -Force
   Copy-ReleaseDirectory -Source $publicPresetRoot `
     -Destination (Join-Path $payloadRoot 'presets\preset-gothic-void-crusade')
   Copy-Item -LiteralPath $publicPresetImagePath `
@@ -433,6 +444,7 @@ try {
 
   $expectedPayloadFiles = @(
     'VERSION',
+    'dependencies\MicrosoftEdgeWebView2Setup.exe',
     'assets\dream-reference.jpg',
     'assets\dream-skin.css',
     'assets\renderer-inject.js',
@@ -471,7 +483,6 @@ try {
     'runtime\image-metadata.mjs',
     'runtime\safe-css-validator.mjs',
     'runtime\theme-package-validator.mjs',
-    'runtime\webview2\msedgewebview2.exe',
     'client\CodexDreamSkin.Client.exe',
     'runtime\node\node.exe',
     'runtime\node\LICENSE'

@@ -20,8 +20,9 @@ test("native client is an embedded WebView2 host with a single-instance boundary
   assert.match(project, /Microsoft\.Web\.WebView2/);
   assert.match(program, /Local\\\\CodexDreamSkin\.Client/);
   assert.match(windowHost, /CoreWebView2Environment\.CreateAsync/);
-  assert.match(windowHost, /fixedRuntime/);
-  assert.match(windowHost, /不会回退到系统浏览器/);
+  assert.match(windowHost, /Path\.Combine\(_options\.RuntimeRoot, "runtime", "webview2"\)/);
+  assert.match(windowHost, /browserExecutableFolder/);
+  assert.doesNotMatch(windowHost, /不会回退到系统浏览器/);
   assert.match(windowHost, /NavigationStarting/);
   assert.match(windowHost, /NewWindowRequested/);
   assert.match(windowHost, /DownloadStarting/);
@@ -44,12 +45,14 @@ test("installed entry points target the native client while browser control rema
     fs.readFile(path.join(projectRoot, "macos", "scripts", "start-dream-skin-macos.sh"), "utf8"),
   ]);
   assert.match(installer, /CodexDreamSkin\\engine\\client\\CodexDreamSkin\.Client\.exe/);
+  assert.match(installer, /\{userdesktop\}\\Codex Dream Skin/);
   assert.match(installScript, /\$clientPath|\$engine\.Client/);
   assert.match(installScript, /Install-DreamSkinBaseTheme/);
   assert.match(installScript, /Get-DreamSkinCodexProcesses/);
   assert.match(bootstrap, /CodexDreamSkin\.Client\.exe/);
   assert.match(bootstrap, /Install-DreamSkinRuntimeEngine -SkillRoot \$payloadRoot -StateRoot \$stateRoot/);
   assert.match(bootstrap, /Initialize-DreamSkinThemeStore -SkillRoot \$engine\.Root -StateRoot \$stateRoot/);
+  assert.match(bootstrap, /Ensure-DreamSkinWebView2Runtime/);
   assert.doesNotMatch(bootstrap, /Wait-DreamSkinCodexClosedForSetup/);
   assert.doesNotMatch(bootstrap, /Join-Path \$payloadScripts 'install-dream-skin\.ps1'/);
   assert.match(browserLauncher, /Start-Process -FilePath "\$\(\$state\.url\)"/);

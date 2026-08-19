@@ -27,7 +27,7 @@ access. An unsigned download may occasionally trigger SmartScreen; use
 and never disable Defender. Updates are new Setup.exe packages installed over
 the existing copy; themes and images are retained.
 
-Release Setup only deploys the native client, control center, and managed runtime. It does not modify Codex `config.toml`, so Codex may remain open during installation or update; only an older Dream Skin client/tray is stopped so managed files can be replaced. The client asks about restarting Codex later when the user chooses to apply the skin. Normal use does not require administrator access or ownership changes under WindowsApps.
+Release Setup deploys the native client, control center, and managed runtime, and carries only the small Microsoft WebView2 Evergreen Bootstrapper. If the system WebView2 Runtime is missing, Setup installs that dependency; it does not embed the full fixed-version browser runtime. It does not modify Codex `config.toml`, so Codex may remain open during installation or update; only an older Dream Skin client/tray is stopped so managed files can be replaced. The client asks about restarting Codex later when the user chooses to apply the skin. Normal use does not require administrator access or ownership changes under WindowsApps.
 
 ## Advanced: install from source
 

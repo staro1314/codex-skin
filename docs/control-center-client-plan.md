@@ -43,7 +43,7 @@ CodexDreamSkin.Client.exe
 - 退出时只关闭客户端服务和托盘，不改变当前 Codex 皮肤；“完全恢复 Codex”仍是独立的明确操作。
 - 使用单实例 Mutex，避免多个客户端和多个控制中心服务同时运行。
 
-当前机器没有发现可直接使用的 WebView2 Runtime，因此安装包将内置固定版本 WebView2 Runtime，避免依赖用户环境，也不回退到系统浏览器。
+客户端使用系统安装的 WebView2 Evergreen Runtime；Setup 只携带 Microsoft WebView2 Evergreen Bootstrapper，在运行时缺少依赖时按用户权限补装。这样不会把整套固定版浏览器运行时复制进 Dream Skin 安装包，也不会打开外部浏览器。
 
 ## 控制中心改造
 

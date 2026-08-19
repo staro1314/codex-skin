@@ -25,12 +25,11 @@ internal sealed class ClientWindow : Form
     public async Task InitializeAsync()
     {
         Directory.CreateDirectory(_options.WebViewUserData);
-        var fixedRuntime = Path.Combine(_options.RuntimeRoot, "webview2");
-        if (!Directory.Exists(fixedRuntime) && !_options.AllowEvergreenWebView2)
-            throw new InvalidOperationException("固定版 WebView2 Runtime 未随客户端安装，客户端不会回退到系统浏览器。请重新安装完整客户端包。");
+        var fixedRuntime = Path.Combine(_options.RuntimeRoot, "runtime", "webview2");
+        var browserExecutableFolder = Directory.Exists(fixedRuntime) ? fixedRuntime : null;
 
         var environment = await CoreWebView2Environment.CreateAsync(
-            browserExecutableFolder: Directory.Exists(fixedRuntime) ? fixedRuntime : null,
+            browserExecutableFolder: browserExecutableFolder,
             userDataFolder: _options.WebViewUserData);
         await _webView.EnsureCoreWebView2Async(environment);
         var core = _webView.CoreWebView2;

@@ -81,7 +81,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin
 
 普通用户无需打开 PowerShell，直接双击仓库根目录的 `start-codex-skin.cmd` 即可启动。启动成功后窗口自动关闭；失败时窗口会保留并暂停，方便查看错误。
 
-正式 Windows 用户使用安装后的 `CodexDreamSkin.Client.exe` 客户端：它在本地托盘中运行隐藏服务，并在内置 WebView2 窗口中承载控制中心。客户端开发调试可从 `windows/client` 运行；固定版 WebView2 未随开发目录提供时，只有显式传入 `--allow-evergreen-webview2` 才允许开发回退。
+正式 Windows 用户使用安装后的 `CodexDreamSkin.Client.exe` 客户端：它在本地托盘中运行隐藏服务，并在内置 WebView2 窗口中承载控制中心。Setup 只携带约 2 MB 的 Microsoft WebView2 Evergreen Bootstrapper，安装时若系统尚未有 WebView2 Runtime 才补装运行时；不会把整套固定版浏览器运行时塞进 Dream Skin 安装包。客户端开发调试可从 `windows/client` 运行。
 
 仓库根目录的 `control-codex-skin.cmd` 仅用于开发测试。它会在 `127.0.0.1` 的随机端口启动本地控制中心并自动打开浏览器，不是正式产品入口。控制中心支持：
 

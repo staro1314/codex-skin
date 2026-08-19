@@ -34,6 +34,35 @@ function Show-DreamSkinBootstrapMessage {
   )
 }
 
+function Test-DreamSkinWebView2RuntimeInstalled {
+  $clientId = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+  $registryPaths = @(
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\$clientId",
+    "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\$clientId",
+    "HKCU:\Software\Microsoft\EdgeUpdate\Clients\$clientId"
+  )
+  foreach ($registryPath in $registryPaths) {
+    try {
+      $version = (Get-ItemProperty -LiteralPath $registryPath -Name pv -ErrorAction Stop).pv
+      if ($version -and [version]$version -gt [version]'0.0.0.0') { return $true }
+    } catch { }
+  }
+  return $false
+}
+
+function Ensure-DreamSkinWebView2Runtime {
+  param([Parameter(Mandatory = $true)][string]$BootstrapperPath)
+  if (Test-DreamSkinWebView2RuntimeInstalled) { return }
+  if (-not (Test-Path -LiteralPath $BootstrapperPath -PathType Leaf)) {
+    throw 'The installer payload is missing the Microsoft WebView2 Evergreen Bootstrapper. Re-download Setup.exe.'
+  }
+  $process = Start-Process -FilePath $BootstrapperPath -ArgumentList @('/silent', '/install') `
+    -Wait -PassThru -WindowStyle Hidden
+  if ($process.ExitCode -notin @(0, 3010) -or -not (Test-DreamSkinWebView2RuntimeInstalled)) {
+    throw "Microsoft WebView2 Runtime installation failed (exit code $($process.ExitCode)). Connect to the internet and retry Setup.exe."
+  }
+}
+
 try {
   if ($Install -and ($LaunchTray -or $Uninstall)) {
     throw 'Choose exactly one installer bootstrap action.'
@@ -78,6 +107,9 @@ try {
     -not (Test-Path -LiteralPath $payloadNodeLicense -PathType Leaf)) {
     throw 'The installer payload is missing its bundled Node.js runtime. Re-download Setup.exe.'
   }
+  Ensure-DreamSkinWebView2Runtime -BootstrapperPath (
+    Join-Path $payloadRoot 'dependencies\MicrosoftEdgeWebView2Setup.exe'
+  )
   $payloadVersion = ([System.IO.File]::ReadAllText((Join-Path $payloadRoot 'VERSION'))).Trim()
   if ($payloadVersion -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
     throw "The installer payload version is invalid: $payloadVersion"
@@ -164,7 +196,11 @@ try {
 
   $clientPath = $engine.Client
   if ($LaunchTray -and (Test-Path -LiteralPath $clientPath -PathType Leaf)) {
-    Start-Process -FilePath $clientPath -ArgumentList '--background' -WindowStyle Hidden | Out-Null
+    Start-Process -FilePath $clientPath -ArgumentList @(
+      '--background',
+      '--server-root', $engine.Root,
+      '--runtime-root', $engine.Root
+    ) -WindowStyle Hidden | Out-Null
   } elseif ($LaunchTray -and -not (Test-DreamSkinTrayActive)) {
     $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
     $argumentLine = '-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ' +
