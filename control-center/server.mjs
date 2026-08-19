@@ -368,7 +368,11 @@ export async function createControlCenter(options = {}) {
           if (!selected) return json(res, 404, { error: "Saved theme not found" });
           themeId = selected.id;
         }
-        return json(res, 200, await actionRunner({ action: body.action, themeId, stateRoot }));
+        const result = await actionRunner({ action: body.action, themeId, stateRoot });
+        if (result?.ok === false) {
+          return json(res, 409, { error: result.message || "Windows theme action did not complete." });
+        }
+        return json(res, 200, result);
       }
       return json(res, 404, { error: "Not found" });
     } catch (error) {

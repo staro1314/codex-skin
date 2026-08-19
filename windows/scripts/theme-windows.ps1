@@ -2466,3 +2466,45 @@ function Invoke-DreamSkinLiveRemove {
     Message = '已记录暂停，但卸下当前皮肤失败；可重试暂停或完全恢复。'
   }
 }
+
+function Invoke-DreamSkinLiveApply {
+  param(
+    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'),
+    [int]$TimeoutMs = 15000
+  )
+  if ($TimeoutMs -lt 250 -or $TimeoutMs -gt 120000) {
+    throw "Invalid live-apply timeout: $TimeoutMs"
+  }
+  $session = Get-DreamSkinLiveSessionContext -StateRoot $StateRoot
+  if ($null -eq $session) {
+    return [pscustomobject]@{
+      Attempted = $false
+      Applied = $false
+      Message = '当前没有可连接的活动会话；请点击“启动 / 重新应用 Codex”。'
+    }
+  }
+
+  $token = New-DreamSkinOperationToken
+  $argumentList = @(
+    $session.Injector,
+    '--once',
+    '--port', "$($session.Port)",
+    '--browser-id', $session.BrowserId,
+    '--theme-dir', $session.Paths.Active,
+    '--timeout-ms', "$TimeoutMs",
+    '--operation-token', $token
+  )
+  $apply = Invoke-DreamSkinNative -FilePath $session.NodePath -ArgumentList $argumentList -DiscardStderr
+  if ($apply.ExitCode -eq 0) {
+    return [pscustomobject]@{
+      Attempted = $true
+      Applied = $true
+      Message = '皮肤已恢复显示'
+    }
+  }
+  return [pscustomobject]@{
+    Attempted = $true
+    Applied = $false
+    Message = '皮肤恢复失败，已保持暂停状态；请重试或点击“启动 / 重新应用 Codex”。'
+  }
+}

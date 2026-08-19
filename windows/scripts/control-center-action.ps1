@@ -83,17 +83,21 @@ try {
       }
     }
     'resume' {
-      $null = Set-DreamSkinPaused -Paused $false -StateRoot $StateRoot
-      $session = Get-DreamSkinLiveSessionContext -StateRoot $StateRoot
-      $message = if ($null -ne $session) {
-        '已取消暂停，活动皮肤正在恢复显示。'
+      # Do not report success merely because the marker was deleted. Reapply
+      # once against the verified live session first, then let the watcher
+      # resume maintaining that already-verified theme.
+      $resume = Invoke-DreamSkinLiveApply -StateRoot $StateRoot
+      if ($resume.Attempted -and -not $resume.Applied) {
+        $null = Set-DreamSkinPaused -Paused $true -StateRoot $StateRoot
       } else {
-        '已取消暂停，但当前没有活动皮肤会话；请点击“启动 / 重新应用 Codex”。'
+        $null = Set-DreamSkinPaused -Paused $false -StateRoot $StateRoot
       }
       $result = [pscustomobject]@{
-        ok = $true
+        ok = [bool](-not $resume.Attempted -or $resume.Applied)
         action = $Action
-        message = $message
+        attempted = [bool]$resume.Attempted
+        applied = [bool]$resume.Applied
+        message = "$($resume.Message)"
       }
     }
   }

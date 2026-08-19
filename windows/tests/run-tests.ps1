@@ -1253,8 +1253,10 @@ try {
   $themeWindowsSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\theme-windows.ps1')
   foreach ($requiredLiveRemoveToken in @(
     'function Invoke-DreamSkinLiveRemove',
+    'function Invoke-DreamSkinLiveApply',
     'function Show-DreamSkinOperationUi',
     "'--remove'",
+    "'--once'",
     "'--browser-id'",
     "'--begin-operation'",
     'Invoke-DreamSkinNative'

@@ -419,6 +419,37 @@ test("control center surfaces a recoverable Windows action failure", async () =>
   }
 });
 
+test("control center converts an explicit native action failure into a client error", async () => {
+  const center = await createControlCenter({
+    platform: "win32",
+    port: 0,
+    stateRoot: path.join(tempRoot, "action-result-error-state"),
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    actionRunner: async () => ({
+      ok: false,
+      action: "resume",
+      message: "皮肤恢复失败，已保持暂停状态；请重试。",
+    }),
+  });
+  try {
+    const response = await fetch(`${center.origin}/api/action`, {
+      method: "POST",
+      headers: {
+        "X-DreamSkin-Token": center.token,
+        Origin: center.origin,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "resume" }),
+    });
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), {
+      error: "皮肤恢复失败，已保持暂停状态；请重试。",
+    });
+  } finally {
+    await center.close();
+  }
+});
+
 test("embedded control center exposes the verified Codex start action", async () => {
   const calls = [];
   const center = await createControlCenter({
@@ -527,10 +558,11 @@ test("control center validates uploads before accepting them", async () => {
 });
 
 test("control center launchers keep the double-click and RemoteSigned contract", async () => {
-  const [cmd, ps, action] = await Promise.all([
+  const [cmd, ps, action, themeWindows] = await Promise.all([
     fs.readFile(path.join(projectRoot, "control-codex-skin.cmd"), "utf8"),
     fs.readFile(path.join(projectRoot, "control-codex-skin.ps1"), "utf8"),
     fs.readFile(path.join(projectRoot, "windows", "scripts", "control-center-action.ps1"), "utf8"),
+    fs.readFile(path.join(projectRoot, "windows", "scripts", "theme-windows.ps1"), "utf8"),
   ]);
   assert.match(cmd, /control-codex-skin\.ps1/i);
   assert.match(cmd, /ExecutionPolicy RemoteSigned/i);
@@ -548,9 +580,12 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.doesNotMatch(ps, /Start-Process -FilePath "\$\(\$existing\.url\)"/);
   assert.match(action, /Use-DreamSkinSavedTheme/);
   assert.match(action, /Invoke-DreamSkinLiveRemove/);
+  assert.match(action, /Invoke-DreamSkinLiveApply/);
+  assert.match(action, /applied = \[bool\]\$resume\.Applied/);
   assert.match(action, /Set-DreamSkinPaused/);
-  assert.match(action, /已取消暂停，活动皮肤正在恢复显示/);
-  assert.match(action, /请点击“启动 \/ 重新应用 Codex”/);
+  assert.match(themeWindows, /皮肤已恢复显示/);
+  assert.match(themeWindows, /皮肤恢复失败，已保持暂停状态/);
+  assert.match(themeWindows, /请点击“启动 \/ 重新应用 Codex”/);
   assert.match(action, /start-dream-skin\.ps1/);
   assert.match(action, /\$script -RestartExisting/);
   assert.match(action, /\$OutputEncoding = \$utf8/);

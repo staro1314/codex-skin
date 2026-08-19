@@ -75,6 +75,11 @@ foreach ($requiredDefinition in @(
   "ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');",
   "ExtractTemporaryFiles('{tmp}\payload\*');",
   "RunBootstrap(TemporaryBootstrap, '-Install', WizardSilent, ExitCode)",
+  'CreateOutputProgressPage',
+  'ProgressPage.SetProgress',
+  'ewNoWait',
+  'CompletionFile',
+  'procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);',
   "RaiseException('Codex Dream Skin initialization could not be started.');",
   'procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);',
   'if CurUninstallStep <> usUninstall then',
@@ -96,6 +101,17 @@ if ($definition.Contains('Root: HKLM') -or
   $definition.Contains('dreamskin://apply?url=') -or
   [regex]::Matches($definition, '(?m)^Root: HKCU; Subkey: "Software\\Classes\\dreamskin').Count -ne 4) {
   throw 'The dreamskin protocol must be a four-entry current-user registration with no arbitrary URL contract.'
+}
+if ($definition.Contains('PowerShellArguments(ScriptPath, ActionArguments, Silent)') -or
+  -not $definition.Contains("PowerShellArguments(ScriptPath, ActionArguments, CompletionFile, False)") -or
+  -not $definition.Contains('WizardForm.CancelButton.Enabled := False') -or
+  -not $definition.Contains('WizardForm.CancelButton.Enabled := True')) {
+  throw 'Installer bootstrap must remain pre-install while keeping the wizard responsive and cancel-safe.'
+}
+if (-not $bootstrap.Contains('[string]$CompletionFile') -or
+  -not $bootstrap.Contains('Write-DreamSkinBootstrapCompletion -ExitCode 0') -or
+  -not $bootstrap.Contains('Write-DreamSkinBootstrapCompletion -ExitCode 1')) {
+  throw 'Installer bootstrap must publish a completion marker for the responsive Setup wait.'
 }
 if (-not $definition.Contains('#define PersistentPowerShellPath "{win}\System32\WindowsPowerShell\v1.0\powershell.exe"')) {
   throw 'Persistent shortcuts and URL handlers must use a System32 PowerShell path that 64-bit launchers can access.'
@@ -229,7 +245,8 @@ foreach ($requiredRepairContract in @(
 foreach ($requiredClientActionContract in @(
   '_actionHttp = new() { Timeout = TimeSpan.FromSeconds(190) }',
   '_actionHttp.SendAsync',
-  'Get-DreamSkinLiveSessionContext -StateRoot $StateRoot'
+  'Invoke-DreamSkinLiveApply -StateRoot $StateRoot',
+  'Set-DreamSkinPaused -Paused $true -StateRoot $StateRoot'
 )) {
   if (-not ($client.Contains($requiredClientActionContract) -or $action.Contains($requiredClientActionContract))) {
     throw "Native client action timeout/localization contract is missing: $requiredClientActionContract"

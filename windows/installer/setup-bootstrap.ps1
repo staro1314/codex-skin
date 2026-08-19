@@ -3,7 +3,8 @@ param(
   [switch]$Install,
   [switch]$LaunchTray,
   [switch]$Uninstall,
-  [switch]$Silent
+  [switch]$Silent,
+  [string]$CompletionFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +32,17 @@ function Show-DreamSkinBootstrapMessage {
     'Codex Dream Skin',
     [System.Windows.Forms.MessageBoxButtons]::OK,
     $icon
+  )
+}
+
+function Write-DreamSkinBootstrapCompletion {
+  param([Parameter(Mandatory = $true)][int]$ExitCode)
+  if ([string]::IsNullOrWhiteSpace($CompletionFile)) { return }
+  $path = [System.IO.Path]::GetFullPath($CompletionFile)
+  [System.IO.File]::WriteAllText(
+    $path,
+    "$ExitCode`r`n",
+    [System.Text.UTF8Encoding]::new($false)
   )
 }
 
@@ -99,6 +111,7 @@ try {
       Remove-DreamSkinRuntimeTree -Path $engine.Root -StateRoot $stateRoot
     }
     Remove-Item -LiteralPath $startupShortcut -Force -ErrorAction SilentlyContinue
+    Write-DreamSkinBootstrapCompletion -ExitCode 0
     exit 0
   }
 
@@ -211,6 +224,8 @@ try {
   }
 } catch {
   Show-DreamSkinBootstrapMessage -Message $_.Exception.Message -Kind Error
-  Write-Error $_
+  Write-DreamSkinBootstrapCompletion -ExitCode 1
+  Write-Error $_ -ErrorAction Continue
   exit 1
 }
+Write-DreamSkinBootstrapCompletion -ExitCode 0

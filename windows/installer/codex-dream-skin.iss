@@ -63,8 +63,9 @@ Name: "startup"; Description: "Start Codex Dream Skin when I sign in"; GroupDesc
 
 [Files]
 ; Keep a second, temporary copy so initialization runs before Inno starts
-; copying/registering the installed application files. Exceptions from
-; CurStepChanged(ssInstall) are fatal and therefore stop Setup cleanly.
+; copying/registering the installed application files. The bootstrap is
+; launched with a completion marker so Setup can keep its window responsive
+; while still aborting before any installed application files are changed.
 Source: "{#StageRoot}\setup-bootstrap.ps1"; DestDir: "{tmp}"; Flags: dontcopy noencryption
 Source: "{#StageRoot}\payload\*"; DestDir: "{tmp}\payload"; Flags: dontcopy noencryption recursesubdirs createallsubdirs
 Source: "{#StageRoot}\setup-bootstrap.ps1"; DestDir: "{app}"; Flags: ignoreversion
@@ -87,14 +88,20 @@ Root: HKCU; Subkey: "Software\Classes\dreamskin\shell\open\command"; ValueType: 
 Filename: "{#PowerShellPath}"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{app}\setup-bootstrap.ps1"" -LaunchTray"; WorkingDir: "{app}"; Description: "Launch Codex Dream Skin"; Flags: nowait postinstall skipifsilent
 
 [Code]
+var
+  BootstrapInProgress: Boolean;
+
 function PowerShellArguments(
   const ScriptPath: String;
   const ActionArguments: String;
+  const CompletionFile: String;
   const Silent: Boolean
 ): String;
 begin
   Result := '-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ' +
     AddQuotes(ScriptPath) + ' ' + ActionArguments;
+  if CompletionFile <> '' then
+    Result := Result + ' -CompletionFile ' + AddQuotes(CompletionFile);
   if Silent then
     Result := Result + ' -Silent';
 end;
@@ -105,15 +112,82 @@ function RunBootstrap(
   const Silent: Boolean;
   var ExitCode: Integer
 ): Boolean;
+var
+  CompletionFile: String;
+  LaunchCode: Integer;
+  CompletionData: AnsiString;
+  ProgressPage: TOutputProgressWizardPage;
+  ProgressPosition: Integer;
 begin
-  Result := Exec(
+  if IsUninstaller or Silent then
+  begin
+    Result := Exec(
+      ExpandConstant('{#PowerShellPath}'),
+      PowerShellArguments(ScriptPath, ActionArguments, '', Silent),
+      ExtractFileDir(ScriptPath),
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      ExitCode
+    );
+    exit;
+  end;
+
+  CompletionFile := ExpandConstant('{tmp}\codex-dream-skin-bootstrap.complete');
+  DeleteFile(CompletionFile);
+  if not Exec(
     ExpandConstant('{#PowerShellPath}'),
-    PowerShellArguments(ScriptPath, ActionArguments, Silent),
+    PowerShellArguments(ScriptPath, ActionArguments, CompletionFile, False),
     ExtractFileDir(ScriptPath),
     SW_HIDE,
-    ewWaitUntilTerminated,
-    ExitCode
+    ewNoWait,
+    LaunchCode
+  ) then
+  begin
+    ExitCode := LaunchCode;
+    Result := False;
+    exit;
+  end;
+
+  BootstrapInProgress := True;
+  WizardForm.CancelButton.Enabled := False;
+  ProgressPage := CreateOutputProgressPage(
+    '正在准备安装',
+    '正在初始化 Codex Dream Skin，请稍候。'
   );
+  ProgressPage.Show;
+  try
+    ProgressPage.SetText('正在初始化 Codex Dream Skin', '正在准备运行时和客户端文件。');
+    ProgressPosition := 0;
+    while not FileExists(CompletionFile) do
+    begin
+      { SetProgress keeps the Inno wizard message loop active while PowerShell runs. }
+      ProgressPage.SetProgress(ProgressPosition, 100);
+      ProgressPosition := (ProgressPosition + 5) mod 100;
+      Sleep(50);
+    end;
+    if not LoadStringFromFile(CompletionFile, CompletionData) then
+    begin
+      ExitCode := 1;
+      Result := False;
+      exit;
+    end;
+    ExitCode := StrToIntDef(Trim(CompletionData), -1);
+    Result := (ExitCode >= 0);
+  finally
+    ProgressPage.Hide;
+    WizardForm.CancelButton.Enabled := True;
+    BootstrapInProgress := False;
+    DeleteFile(CompletionFile);
+  end;
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if BootstrapInProgress then
+  begin
+    Cancel := False;
+    Confirm := False;
+  end;
 end;
 
 function InstallInitializationFailureMessage(const ExitCode: Integer): String;
