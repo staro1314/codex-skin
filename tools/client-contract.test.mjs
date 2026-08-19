@@ -53,6 +53,7 @@ test("installed entry points target the native client while browser control rema
   assert.match(bootstrap, /Install-DreamSkinRuntimeEngine -SkillRoot \$payloadRoot -StateRoot \$stateRoot/);
   assert.match(bootstrap, /Initialize-DreamSkinThemeStore -SkillRoot \$engine\.Root -StateRoot \$stateRoot/);
   assert.match(bootstrap, /Ensure-DreamSkinWebView2Runtime/);
+  assert.match(bootstrap, /Stop-DreamSkinRuntimeNodeProcess -NodePath \$engine\.Node -RequireStopped/);
   assert.doesNotMatch(bootstrap, /Wait-DreamSkinCodexClosedForSetup/);
   assert.doesNotMatch(bootstrap, /Join-Path \$payloadScripts 'install-dream-skin\.ps1'/);
   assert.match(browserLauncher, /Start-Process -FilePath "\$\(\$state\.url\)"/);

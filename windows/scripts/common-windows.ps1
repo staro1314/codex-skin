@@ -63,6 +63,7 @@ function Get-DreamSkinRuntimeEnginePaths {
     Root = $root
     Scripts = $scripts
     Runtime = Join-Path $root 'runtime'
+    Node = Join-Path $root 'runtime\node\node.exe'
     ControlCenter = Join-Path $root 'control-center'
     ClientDirectory = Join-Path $root 'client'
     Client = Join-Path $root 'client\CodexDreamSkin.Client.exe'
@@ -135,6 +136,52 @@ function Stop-DreamSkinClientProcess {
   }
   if ($RequireStopped -and (Test-DreamSkinClientActive -ClientPath $normalized)) {
     throw 'The Codex Dream Skin client is still active. Exit it and retry the operation.'
+  }
+}
+
+function Get-DreamSkinRuntimeNodeProcesses {
+  param([string]$NodePath = (Get-DreamSkinRuntimeEnginePaths).Node)
+  if (-not $NodePath) { return @() }
+  try { $normalized = [System.IO.Path]::GetFullPath($NodePath) } catch { return @() }
+  try {
+    return @(
+      Get-Process -Name 'node' -ErrorAction Stop | Where-Object {
+        try {
+          $processPath = $_.Path
+          $processPath -and
+            [System.IO.Path]::GetFullPath($processPath).Equals(
+              $normalized, [System.StringComparison]::OrdinalIgnoreCase
+            )
+        } catch { $false }
+      }
+    )
+  } catch {
+    throw 'Could not inspect the bundled Dream Skin Node.js process: ' + $_.Exception.Message
+  }
+}
+
+function Stop-DreamSkinRuntimeNodeProcess {
+  param(
+    [string]$NodePath = (Get-DreamSkinRuntimeEnginePaths).Node,
+    [switch]$RequireStopped
+  )
+  $failures = @()
+  try {
+    $processes = @(Get-DreamSkinRuntimeNodeProcesses -NodePath $NodePath)
+    foreach ($process in $processes) {
+      try {
+        Stop-Process -Id $process.Id -Force -ErrorAction Stop
+        Wait-Process -Id $process.Id -Timeout 5 -ErrorAction SilentlyContinue
+      } catch {
+        $failures += "PID $($process.Id): $($_.Exception.Message)"
+      }
+    }
+  } catch { $failures += $_.Exception.Message }
+  if ($failures.Count -gt 0 -and $RequireStopped) {
+    throw 'Could not close the bundled Dream Skin Node.js service: ' + ($failures -join '; ')
+  }
+  if ($RequireStopped -and @(Get-DreamSkinRuntimeNodeProcesses -NodePath $NodePath).Count -gt 0) {
+    throw 'The bundled Dream Skin Node.js service is still active. Retry after the control center closes.'
   }
 }
 

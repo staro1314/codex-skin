@@ -78,6 +78,7 @@ try {
   if ($Uninstall) {
     Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
+    Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped
     $restoreRequired = (Test-Path -LiteralPath $engine.Root -PathType Container) -or
       (Test-Path -LiteralPath (Join-Path $stateRoot 'config.before-dream-skin.toml') -PathType Leaf)
     if ($restoreRequired -and -not (Test-Path -LiteralPath $engine.Restore -PathType Leaf)) {
@@ -180,6 +181,7 @@ try {
   if ($needsInstall) {
     Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
+    Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped
     $engine = Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot
     $null = Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $stateRoot
     $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $stateRoot

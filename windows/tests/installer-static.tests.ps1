@@ -212,6 +212,7 @@ foreach ($requiredRepairContract in @(
   'dependencies\MicrosoftEdgeWebView2Setup.exe',
   '$missingEngineFiles.Count -eq 0',
   'Ensure-DreamSkinWebView2Runtime',
+  'Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped',
   'A newer Codex Dream Skin',
   'The installer payload is missing its bundled Node.js runtime',
   'Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot',
