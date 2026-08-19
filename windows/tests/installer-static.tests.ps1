@@ -9,6 +9,8 @@ $builderPath = Join-Path $installerRoot 'build-release.ps1'
 $bootstrapPath = Join-Path $installerRoot 'setup-bootstrap.ps1'
 $communityApplyPath = Join-Path $windowsRoot 'scripts\apply-community-theme.ps1'
 $commonPath = Join-Path $windowsRoot 'scripts\common-windows.ps1'
+$clientPath = Join-Path $windowsRoot 'client\RuntimeSupervisor.cs'
+$actionPath = Join-Path $windowsRoot 'scripts\control-center-action.ps1'
 $manifestPath = Join-Path $installerRoot 'node-runtime.json'
 $builderAst = $null
 
@@ -44,6 +46,8 @@ $definition = [System.IO.File]::ReadAllText($definitionPath)
 $builder = [System.IO.File]::ReadAllText($builderPath)
 $bootstrap = [System.IO.File]::ReadAllText($bootstrapPath)
 $common = [System.IO.File]::ReadAllText($commonPath)
+$client = [System.IO.File]::ReadAllText($clientPath)
+$action = [System.IO.File]::ReadAllText($actionPath)
 if ($definition.Contains('-ExecutionPolicy Bypass') -or
   $builder.Contains('-ExecutionPolicy Bypass') -or
   $bootstrap.Contains('-ExecutionPolicy Bypass') -or
@@ -220,6 +224,15 @@ foreach ($requiredRepairContract in @(
 )) {
   if (-not $bootstrap.Contains($requiredRepairContract)) {
     throw "Installer same-version repair coverage is missing: $requiredRepairContract"
+  }
+}
+foreach ($requiredClientActionContract in @(
+  '_actionHttp = new() { Timeout = TimeSpan.FromSeconds(130) }',
+  '_actionHttp.SendAsync',
+  'Get-DreamSkinLiveSessionContext -StateRoot $StateRoot'
+)) {
+  if (-not ($client.Contains($requiredClientActionContract) -or $action.Contains($requiredClientActionContract))) {
+    throw "Native client action timeout/localization contract is missing: $requiredClientActionContract"
   }
 }
 if ($bootstrap.Contains('Wait-DreamSkinCodexClosedForSetup') -or

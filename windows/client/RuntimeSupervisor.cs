@@ -11,6 +11,7 @@ internal sealed class RuntimeSupervisor : IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly ClientOptions _options;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(2) };
+    private readonly HttpClient _actionHttp = new() { Timeout = TimeSpan.FromSeconds(130) };
     private Process? _ownedProcess;
     private bool _disposed;
 
@@ -88,7 +89,7 @@ internal sealed class RuntimeSupervisor : IDisposable
         request.Headers.Add("X-DreamSkin-Token", State.Token);
         request.Headers.TryAddWithoutValidation("Origin", Origin.ToString().TrimEnd('/'));
         request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-        using var response = await _http.SendAsync(request, cancellationToken);
+        using var response = await _actionHttp.SendAsync(request, cancellationToken);
         var text = await response.Content.ReadAsStringAsync(cancellationToken);
         using var document = JsonDocument.Parse(text);
         if (!response.IsSuccessStatusCode)
@@ -109,6 +110,7 @@ internal sealed class RuntimeSupervisor : IDisposable
         if (_disposed) return;
         _disposed = true;
         _http.Dispose();
+        _actionHttp.Dispose();
         if (_ownedProcess is { HasExited: false })
         {
             try

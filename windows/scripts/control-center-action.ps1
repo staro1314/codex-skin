@@ -76,10 +76,16 @@ try {
     }
     'resume' {
       $null = Set-DreamSkinPaused -Paused $false -StateRoot $StateRoot
+      $session = Get-DreamSkinLiveSessionContext -StateRoot $StateRoot
+      $message = if ($null -ne $session) {
+        '已取消暂停，活动皮肤正在恢复显示。'
+      } else {
+        '已取消暂停，但当前没有活动皮肤会话；请点击“启动 / 重新应用 Codex”。'
+      }
       $result = [pscustomobject]@{
         ok = $true
         action = $Action
-        message = 'Pause cleared. A running watcher will reapply the active theme.'
+        message = $message
       }
     }
   }
