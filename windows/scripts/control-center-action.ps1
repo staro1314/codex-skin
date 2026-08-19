@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
   [ValidateSet('apply', 'pause', 'resume', 'start', 'restore')]
@@ -25,7 +25,9 @@ if ($Action -in @('start', 'restore')) {
   }
   $scriptOutput = @()
   if ($Action -eq 'start') {
-    $scriptOutput = @(& $script -PromptRestart 2>&1)
+    # The native button is the explicit restart authorization. Do not wait on
+    # a hidden WScript confirmation dialog owned by the background service.
+    $scriptOutput = @(& $script -RestartExisting 2>&1)
   } else {
     $scriptOutput = @(& $script -RestoreBaseTheme -PromptRestart 2>&1)
   }

@@ -139,6 +139,14 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
         ? "需要 Node.js 22 或更高版本，请重新打开控制中心后重试。"
         : /access to the path|access is denied/i.test(raw)
           ? "无法写入活动主题文件，可能有其他主题操作正在占用；请稍后重试。"
+          : /Codex is open without a verified Dream Skin CDP endpoint/i.test(raw)
+            ? "Codex 正在运行但尚未开启皮肤调试通道，请重试启动。"
+            : /Codex did not expose a verified loopback CDP endpoint/i.test(raw)
+              ? "Codex 未能开启本地皮肤调试通道，请先关闭 Codex 后再重试。"
+              : /converted the CDP argument into a codex:\/\/ navigation path/i.test(raw)
+                ? "当前 Codex 未接受皮肤调试参数，无法启动皮肤。"
+                : /Codex did not close within 15 seconds|Codex could not be stopped safely/i.test(raw)
+                  ? "Codex 未能安全重启，请先手动关闭 Codex 后再重试。"
           : "Windows 主题操作失败，请稍后重试。";
     throw Object.assign(new Error(message), {
       status: timedOut ? 504 : 500,

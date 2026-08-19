@@ -512,6 +512,31 @@ function Get-DreamSkinProcessExecutablePath {
   }
 }
 
+function Test-DreamSkinCodexProcessPath {
+  param(
+    [AllowEmptyString()][string]$ProcessPath,
+    [Parameter(Mandatory = $true)][object]$Codex
+  )
+  if ([string]::IsNullOrWhiteSpace($ProcessPath)) { return $false }
+  try {
+    $fullProcessPath = [System.IO.Path]::GetFullPath($ProcessPath)
+    if ($Codex.Executable -and
+      (Test-DreamSkinPathEqual -Left $fullProcessPath -Right "$($Codex.Executable)")) {
+      return $true
+    }
+    if ([string]::IsNullOrWhiteSpace("$($Codex.PackageRoot)")) { return $false }
+    $packageRoot = ([System.IO.Path]::GetFullPath("$($Codex.PackageRoot)")).TrimEnd('\')
+    $packagePrefix = $packageRoot + '\'
+    if (-not $fullProcessPath.StartsWith($packagePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+      return $false
+    }
+    $relativePath = $fullProcessPath.Substring($packagePrefix.Length).Replace('/', '\')
+    return $relativePath -in @('app\resources\codex.exe', 'app\codex.exe')
+  } catch {
+    return $false
+  }
+}
+
 # Windows PowerShell 5.1 promotes redirected native-command stderr lines to
 # ErrorRecords; while $ErrorActionPreference is 'Stop' the first stderr line
 # becomes a terminating NativeCommandError before the exit code can be read.
@@ -1027,8 +1052,11 @@ function Test-DreamSkinCodexPortOwner {
   foreach ($listener in $listeners) {
     if ($listener.LocalAddress -notin @('127.0.0.1', '::1')) { return $false }
     $process = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$listener.OwningProcess)" -ErrorAction SilentlyContinue
+    if (-not $process) {
+      $process = Get-Process -Id ([int]$listener.OwningProcess) -ErrorAction SilentlyContinue
+    }
     $processPath = if ($process) { Get-DreamSkinProcessExecutablePath -ProcessInfo $process } else { $null }
-    if (-not $processPath -or -not (Test-DreamSkinPathEqual -Left $processPath -Right $Codex.Executable)) {
+    if (-not (Test-DreamSkinCodexProcessPath -ProcessPath $processPath -Codex $Codex)) {
       return $false
     }
   }
@@ -1230,11 +1258,31 @@ function Stop-DreamSkinRecordedInjector {
 
 function Get-DreamSkinCodexProcesses {
   param([Parameter(Mandatory = $true)][object]$Codex)
-  return @(Get-CimInstance Win32_Process -Filter "Name = 'ChatGPT.exe'" -ErrorAction SilentlyContinue |
-    Where-Object {
-      $processPath = Get-DreamSkinProcessExecutablePath -ProcessInfo $_
-      Test-DreamSkinPathEqual -Left $processPath -Right $Codex.Executable
-    })
+  $processes = @()
+  try {
+    $processes = @(Get-CimInstance Win32_Process `
+      -Filter "Name = 'ChatGPT.exe' OR Name = 'codex.exe'" -ErrorAction Stop)
+  } catch {
+    # A normal user may not inspect Win32_Process command lines or paths for
+    # every packaged process. Get-Process still exposes the executable path
+    # needed for the same-package identity check.
+  }
+  if ($processes.Count -eq 0) {
+    $processes = @(
+      Get-Process -Name @('ChatGPT', 'codex') -ErrorAction SilentlyContinue |
+        ForEach-Object {
+          [pscustomobject]@{
+            ProcessId = [int]$_.Id
+            ExecutablePath = $_.Path
+            CommandLine = $null
+          }
+        }
+    )
+  }
+  return @($processes | Where-Object {
+    $processPath = Get-DreamSkinProcessExecutablePath -ProcessInfo $_
+    Test-DreamSkinCodexProcessPath -ProcessPath $processPath -Codex $Codex
+  })
 }
 
 function Get-DreamSkinCodexProcessesExcept {
@@ -1277,8 +1325,11 @@ function Stop-DreamSkinCodex {
   }
   foreach ($item in $remaining) {
     $current = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$item.ProcessId)" -ErrorAction SilentlyContinue
+    if (-not $current) {
+      $current = Get-Process -Id ([int]$item.ProcessId) -ErrorAction SilentlyContinue
+    }
     $currentPath = if ($current) { Get-DreamSkinProcessExecutablePath -ProcessInfo $current } else { $null }
-    if ($currentPath -and (Test-DreamSkinPathEqual -Left $currentPath -Right $Codex.Executable)) {
+    if (Test-DreamSkinCodexProcessPath -ProcessPath $currentPath -Codex $Codex) {
       Stop-Process -Id $item.ProcessId -Force -ErrorAction SilentlyContinue
     }
   }

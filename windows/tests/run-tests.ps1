@@ -720,6 +720,35 @@ try {
     (Get-DreamSkinCodexDebugArgumentStatus -Processes @() -Port 9335) -cne 'uninspectable') {
     throw 'Debugging argument inspection confused an ordinary protocol launch or an empty process set.'
   }
+  $codexProcessFixture = [pscustomobject]@{
+    Executable = 'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe'
+    PackageRoot = 'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0'
+  }
+  foreach ($acceptedCodexPath in @(
+    'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe',
+    'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0\app\resources\codex.exe'
+  )) {
+    if (-not (Test-DreamSkinCodexProcessPath -ProcessPath $acceptedCodexPath -Codex $codexProcessFixture)) {
+      throw "A validated Codex process path was rejected: $acceptedCodexPath"
+    }
+  }
+  foreach ($rejectedCodexPath in @(
+    'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0\app\resources\helper.exe',
+    'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0-helper\app\resources\codex.exe',
+    'C:\Users\Public\codex.exe'
+  )) {
+    if (Test-DreamSkinCodexProcessPath -ProcessPath $rejectedCodexPath -Codex $codexProcessFixture) {
+      throw "An unrelated process path was accepted as Codex: $rejectedCodexPath"
+    }
+  }
+  $fallbackProcessFixture = [pscustomobject]@{
+    Id = 52036
+    Path = 'C:\Program Files\WindowsApps\OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0\app\resources\codex.exe'
+  }
+  if (-not (Test-DreamSkinCodexProcessPath `
+      -ProcessPath $fallbackProcessFixture.Path -Codex $codexProcessFixture)) {
+    throw 'The restricted-permission Get-Process fallback rejected the packaged Codex runtime.'
+  }
   if ((Get-DreamSkinDirectLaunchFailureKind -Exception ([System.UnauthorizedAccessException]::new('denied'))) -cne 'access-denied' -or
     (Get-DreamSkinDirectLaunchFailureKind -Exception ([System.InvalidOperationException]::new('failed'))) -cne 'start-failed') {
     throw 'Direct Store launch failures were not classified safely.'
