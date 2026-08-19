@@ -884,6 +884,10 @@ async function action(name, themeId = state.selectedId) {
     const result = await api("/api/action", { method: "POST", body: JSON.stringify({ action: name, themeId }) });
     toast(result.message || "操作已完成");
     const current = state.selectedId;
+    // The native action is the operation being tracked.  A bootstrap refresh
+    // is only a best-effort UI sync; it must not keep a completed start/apply
+    // button in the loading state when the status endpoint is slow.
+    setBusy(false);
     await refresh(current);
   } catch (error) {
     toast(error.message, true);

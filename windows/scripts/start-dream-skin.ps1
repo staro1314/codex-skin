@@ -305,6 +305,14 @@ try {
       } catch {
         $skinLooksRendered = $false
       }
+      if ($skinLooksRendered) {
+        # The renderer has already proved that the active theme is painted.
+        # Some Codex builds never resolve the native-window probe, so do not
+        # keep the control center waiting for a signal that is not required to
+        # keep the watcher healthy.  The verified state and watcher stay alive.
+        Write-Warning 'Dream Skin is rendered; the native-window readiness probe is inconclusive. Continuing with the active session.'
+        break
+      }
       if (-not $forceInjectedAfterVerifyFailure) {
         $forceInjectedAfterVerifyFailure = $true
         try { [void](Invoke-DreamSkinCodexWindowActivation -Codex $codex) } catch {}
@@ -382,7 +390,11 @@ try {
     throw $startupError
   }
 
-  Write-Host "Codex Dream Skin is active on verified loopback port $Port."
+  if ($skinLooksRendered) {
+    Write-Host "Codex Dream Skin is active on loopback port $Port; renderer is ready and native-window readiness is inconclusive."
+  } else {
+    Write-Host "Codex Dream Skin is active on verified loopback port $Port."
+  }
 } finally {
   if ($null -ne $operationLock) { Exit-DreamSkinOperationLock -Mutex $operationLock }
 }

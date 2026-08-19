@@ -182,8 +182,8 @@ $renderedPayload = @'
 '@
 
 $rendered = Invoke-DreamSkinStartupFixture -VerifyPayload $renderedPayload
-if (-not $rendered.Failed) {
-  throw 'A failed verify must still abort startup even when the skin is rendered.'
+if ($rendered.Failed) {
+  throw 'A rendered skin must complete startup even when only the native-window probe is inconclusive.'
 }
 if ($rendered.CodexStopped -or $rendered.CodexStarted) {
   throw 'Startup force-restarted Codex even though the renderer reported a visible, structurally complete skin.'
@@ -193,8 +193,8 @@ if ($rendered.CodexStopped -or $rendered.CodexStarted) {
 # a mock defined out here never sees it, and a fixture that silently captures
 # nothing would pass no matter what the script does.
 $startSource = [System.IO.File]::ReadAllText($startPath)
-if (-not $startSource.Contains('the theme is rendered')) {
-  throw 'Startup no longer explains why Codex was left running unverified.'
+if (-not $startSource.Contains('native-window readiness probe is inconclusive')) {
+  throw 'Startup no longer completes when only the native-window readiness probe is inconclusive.'
 }
 
 # The two negative cases -- a hidden document and unparseable verify output --

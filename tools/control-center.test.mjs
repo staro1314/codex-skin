@@ -485,6 +485,18 @@ test("embedded control center exposes the verified Codex start action", async ()
   }
 });
 
+test("control center ends action busy state before the post-action status refresh", async () => {
+  const appSource = await fs.readFile(path.join(projectRoot, "control-center", "public", "app.js"), "utf8");
+  const actionStart = appSource.indexOf("async function action(");
+  const actionEnd = appSource.indexOf("for (const section", actionStart);
+  assert.ok(actionStart >= 0 && actionEnd > actionStart, "action handler must remain discoverable");
+  const actionSource = appSource.slice(actionStart, actionEnd);
+  assert.ok(
+    actionSource.indexOf("setBusy(false);") < actionSource.indexOf("await refresh(current);"),
+    "a completed native action must not stay busy while bootstrap refresh is pending",
+  );
+});
+
 test("ZIP writer rejects tampering and unsafe entry names", () => {
   const archive = createZip([
     { name: "theme.json", bytes: Buffer.from('{"schemaVersion":1}\n') },

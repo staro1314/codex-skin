@@ -41,7 +41,7 @@ if ($Action -in @('start', 'restore')) {
   if ($cancelled) {
     $message = 'Operation cancelled; Codex was not changed.'
   } elseif ($Action -eq 'start') {
-    $message = 'Codex started and the active theme was verified.'
+    $message = 'Codex started and the active theme was rendered.'
   } else {
     $message = 'Codex was restored to its official appearance.'
   }
