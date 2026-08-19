@@ -605,3 +605,11 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.match(action, /restore-dream-skin\.ps1/);
   assert.match(action, /RestoreBaseTheme/);
 });
+
+test("Windows actions use child exit and file-backed output instead of inherited pipes", async () => {
+  const server = await fs.readFile(path.join(projectRoot, "control-center", "server.mjs"), "utf8");
+  assert.doesNotMatch(server, /execFileAsync/);
+  assert.match(server, /spawn\("powershell\.exe", args/);
+  assert.match(server, /stdio: \["ignore", stdoutHandle\.fd, stderrHandle\.fd\]/);
+  assert.match(server, /child\.once\("exit"/);
+});

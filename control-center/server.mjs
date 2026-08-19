@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ThemeExporter } from "./theme-exporter.mjs";
 import { ThemeStore, validateUploadedMedia } from "./theme-store.mjs";
 
-const execFileAsync = promisify(execFile);
 const moduleRoot = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(moduleRoot, "..");
 const publicRoot = path.join(moduleRoot, "public");
@@ -32,6 +30,7 @@ const SECURITY_HEADERS = Object.freeze({
   "Content-Security-Policy": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
 });
 const WINDOWS_ACTION_TIMEOUT_MS = 180_000;
+const WINDOWS_ACTION_OUTPUT_LIMIT_BYTES = 4 * 1024 * 1024;
 
 function defaultStateRoot(platform = process.platform) {
   if (platform === "win32") {
@@ -109,6 +108,43 @@ function publicTheme(entry, mediaIds) {
   };
 }
 
+async function readWindowsActionOutput(filePath) {
+  const handle = await fs.open(filePath, "r");
+  try {
+    const stat = await handle.stat();
+    if (stat.size > WINDOWS_ACTION_OUTPUT_LIMIT_BYTES) {
+      throw new Error("Windows theme action produced too much output.");
+    }
+    return await handle.readFile({ encoding: "utf8" });
+  } finally {
+    await handle.close();
+  }
+}
+
+function waitForWindowsAction(child, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill();
+      resolve({ code: null, signal: "SIGTERM", timedOut: true });
+    }, timeoutMs);
+    child.once("error", (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.once("exit", (code, signal) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ code, signal, timedOut: false });
+    });
+  });
+}
+
 async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, workingRoot }) {
   const script = path.join(runtimeRoot, "scripts", "control-center-action.ps1");
   const args = [
@@ -119,13 +155,51 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
     "-StateRoot", stateRoot,
   ];
   if (themeId) args.push("-ThemeId", themeId);
+  const actionId = `${process.pid}-${randomBytes(12).toString("hex")}`;
+  const stdoutPath = path.join(stateRoot, `.control-center-action-${actionId}.stdout`);
+  const stderrPath = path.join(stateRoot, `.control-center-action-${actionId}.stderr`);
+  let stdoutHandle;
+  let stderrHandle;
   try {
-    const { stdout } = await execFileAsync("powershell.exe", args, {
+    // Do not pipe PowerShell output through Node. The startup script creates a
+    // long-lived watcher and Windows can keep inherited stdout/stderr handles
+    // open in that child even after the PowerShell action itself has exited.
+    // The captured-pipe runner then waits forever for pipe EOF, leaving the client busy
+    // even though the skin is already active. File-backed stdio lets us use
+    // the child exit as the completion signal without changing the action
+    // script's JSON contract.
+    await fs.mkdir(stateRoot, { recursive: true });
+    stdoutHandle = await fs.open(stdoutPath, "w");
+    stderrHandle = await fs.open(stderrPath, "w");
+    const child = spawn("powershell.exe", args, {
       cwd: workingRoot,
-      encoding: "utf8",
-      timeout: WINDOWS_ACTION_TIMEOUT_MS,
       windowsHide: true,
+      stdio: ["ignore", stdoutHandle.fd, stderrHandle.fd],
     });
+    const outcome = await waitForWindowsAction(child, WINDOWS_ACTION_TIMEOUT_MS);
+    await stdoutHandle.close();
+    stdoutHandle = null;
+    await stderrHandle.close();
+    stderrHandle = null;
+    const stdout = await readWindowsActionOutput(stdoutPath);
+    const stderr = await readWindowsActionOutput(stderrPath);
+    if (outcome.timedOut) {
+      throw Object.assign(new Error("Windows theme action timed out."), {
+        code: "ETIMEDOUT",
+        killed: true,
+        stdout,
+        stderr,
+        signal: outcome.signal,
+      });
+    }
+    if (outcome.code !== 0) {
+      throw Object.assign(new Error(`PowerShell exited with code ${outcome.code ?? "unknown"}.`), {
+        code: outcome.code,
+        stdout,
+        stderr,
+        signal: outcome.signal,
+      });
+    }
     const line = stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
     return line ? JSON.parse(line) : { ok: true, action };
   } catch (error) {
@@ -153,6 +227,11 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
       publicMessage: message,
       cause: error,
     });
+  } finally {
+    if (stdoutHandle) await stdoutHandle.close().catch(() => {});
+    if (stderrHandle) await stderrHandle.close().catch(() => {});
+    await fs.rm(stdoutPath, { force: true }).catch(() => {});
+    await fs.rm(stderrPath, { force: true }).catch(() => {});
   }
 }
 
