@@ -54,6 +54,18 @@ if ($definition.Contains('-ExecutionPolicy Bypass') -or
   $common.Contains('-ExecutionPolicy Bypass')) {
   throw 'The installer layer must never bypass the PowerShell execution policy.'
 }
+if (-not $builder.Contains('--self-contained true') -or
+  $builder.Contains('--self-contained false') -or
+  -not $builder.Contains('did not produce the self-contained runtime file')) {
+  throw 'The Windows client must be published self-contained with an explicit runtime-output check.'
+}
+foreach ($runtimeFile in @('client\hostfxr.dll', 'client\hostpolicy.dll', 'client\coreclr.dll')) {
+  if (-not $builder.Contains("'$runtimeFile'") -or
+    -not $bootstrap.Contains("'$runtimeFile'") -or
+    -not $common.Contains("'$runtimeFile'")) {
+    throw "Self-contained .NET runtime coverage is missing from the installer contract: $runtimeFile"
+  }
+}
 if ($definition.Contains('ssPostInstall')) {
   throw 'Installer initialization must not rely on non-fatal ssPostInstall exceptions.'
 }
@@ -207,6 +219,10 @@ foreach ($requiredBuilderContract in @(
   "'LICENSE.txt'",
   "'NOTICE.md'",
   "Write-DreamSkinIcon -Path",
+  '--self-contained true',
+  'hostfxr.dll',
+  'hostpolicy.dll',
+  'coreclr.dll',
   '"CodexDreamSkin-Setup-v$version.exe"'
 )) {
   if (-not $builder.Contains($requiredBuilderContract)) {
@@ -229,6 +245,9 @@ foreach ($requiredRepairContract in @(
   'scripts\check-update.ps1',
   'runtime\node\node.exe',
   'runtime\node\LICENSE',
+  'client\hostfxr.dll',
+  'client\hostpolicy.dll',
+  'client\coreclr.dll',
   'dependencies\MicrosoftEdgeWebView2Setup.exe',
   '$missingEngineFiles.Count -eq 0',
   'Ensure-DreamSkinWebView2Runtime',

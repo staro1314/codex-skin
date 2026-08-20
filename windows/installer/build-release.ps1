@@ -438,8 +438,13 @@ try {
 
   $clientPublishRoot = Join-Path $WorkingDirectory 'client-publish'
   & $dotnet publish $clientProjectPath --configuration Release --runtime win-x64 `
-    --self-contained false --output $clientPublishRoot --nologo
+    --self-contained true --output $clientPublishRoot --nologo
   if ($LASTEXITCODE -ne 0) { throw ".NET client publish failed with exit code $LASTEXITCODE." }
+  foreach ($runtimeFile in @('hostfxr.dll', 'hostpolicy.dll', 'coreclr.dll')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $clientPublishRoot $runtimeFile) -PathType Leaf)) {
+      throw ".NET client publish did not produce the self-contained runtime file: $runtimeFile"
+    }
+  }
   Copy-ReleaseDirectory -Source $clientPublishRoot -Destination $clientRoot
 
   $expectedPayloadFiles = @(
@@ -484,6 +489,9 @@ try {
     'runtime\safe-css-validator.mjs',
     'runtime\theme-package-validator.mjs',
     'client\CodexDreamSkin.Client.exe',
+    'client\hostfxr.dll',
+    'client\hostpolicy.dll',
+    'client\coreclr.dll',
     'runtime\node\node.exe',
     'runtime\node\LICENSE'
   )

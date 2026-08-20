@@ -180,7 +180,12 @@ try {
     )
   }
   if (Test-Path -LiteralPath (Join-Path $payloadRoot 'client\CodexDreamSkin.Client.exe') -PathType Leaf) {
-    $requiredEngineFiles += 'client\CodexDreamSkin.Client.exe'
+    $requiredEngineFiles += @(
+      'client\CodexDreamSkin.Client.exe',
+      'client\hostfxr.dll',
+      'client\hostpolicy.dll',
+      'client\coreclr.dll'
+    )
   }
   $missingEngineFiles = @($requiredEngineFiles | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $engine.Root $_) -PathType Leaf)
