@@ -599,6 +599,12 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The validated main interaction surface must use a restrained transparent tint.");
   assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="settings-page"\][\s\S]{0,300}background:\s*transparent[\s\S]{0,180}background-image:\s*none[\s\S]{0,180}box-shadow:\s*none[\s\S]{0,180}backdrop-filter:\s*none/,
     "The native settings content frame must clear its opaque surface and elevation without changing inner settings cards.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-codex-approval-surface\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\) !important;[\s\S]{0,180}background-image:\s*none !important;[\s\S]{0,260}box-shadow:\s*\n?\s*inset 0 0 0 1px var\(--ds-immersive-line\),[\s\S]{0,160}backdrop-filter:\s*none !important;/,
+    "The native approval card must use a readable translucent surface without native elevation.");
+  assert.match(css, /html\[data-dream-skin="active"\][\s\S]{0,700}\.sticky:has\(\[data-codex-approval-surface\]\)\s*\{[\s\S]{0,240}background:\s*transparent !important;[\s\S]{0,180}box-shadow:\s*none !important;/,
+    "The approval replacement path must clear the sticky host without changing ordinary input composers.");
+  assert.match(css, /\.sticky:has\(\[data-codex-approval-surface\]\)[\s\S]{0,420}\[class~=\"bg-gradient-to-t\"\][\s\S]{0,220}display:\s*none !important;/,
+    "The approval replacement path must remove the confirmed sticky gradient child.");
   assert.doesNotMatch(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,700}text-shadow:/,
     "The main interaction surface must not add a glyph halo or scoped text shadow.");
   assert.match(css, /__DREAM_SELECTOR_SHELL_MAIN__:\s*not\([^)]*\)[\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,

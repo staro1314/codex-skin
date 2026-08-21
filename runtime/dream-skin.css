@@ -1721,6 +1721,98 @@ html[data-dream-skin="active"][data-dream-controls="custom"] [data-ds-part="dial
   border-radius: var(--ds-theme-surface-radius) !important;
 }
 
+/* Codex 26.810 renders approval requests as a native Card rather than a
+   role=dialog. Its exact native marker is stable, while the Card carries
+   bg-primary-soft and electron:elevation-prominent. Those native tokens
+   create the opaque card/elevation layer visible behind the approval chrome.
+   Keep this override marker-scoped so normal dialogs and the idle composer
+   retain their existing contracts. */
+html[data-dream-skin="active"] [data-codex-approval-surface] {
+  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background-image: none !important;
+  border: 1px solid var(--ds-immersive-line) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--ds-immersive-line),
+    inset 0 1px rgb(var(--ds-text-rgb) / .16) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"] [data-codex-approval-surface]::before,
+html[data-dream-skin="active"] [data-codex-approval-surface]::after {
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* The approval card replaces the textbox inside the composer. Therefore the
+   old :has(textbox) gate misses the sticky host and its pseudo-elements,
+   leaving a full-width black band around the card. The approval marker is a
+   precise replacement gate; it must not broaden to every sticky surface. */
+html[data-dream-skin="active"]
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface]),
+html[data-dream-skin="active"] .sticky:has([data-codex-approval-surface]) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"]
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface])::before,
+html[data-dream-skin="active"]
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface])::after,
+html[data-dream-skin="active"] .sticky:has([data-codex-approval-surface])::before,
+html[data-dream-skin="active"] .sticky:has([data-codex-approval-surface])::after {
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-dream-skin="active"] .sticky:has([data-codex-approval-surface])
+  [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"] {
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* The wide task composer has a more specific surface rule above. When the
+   textbox is replaced by an approval card, that older rule still wins over
+   the generic marker gate and paints the extra dark layer. Reuse the same
+   task/main boundary and add the approval marker to the target so this
+   exception outranks only the existing composer surface rule. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface]),
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has([data-codex-approval-surface]) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface])::before,
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]):has([data-codex-approval-surface])::after,
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has([data-codex-approval-surface])::before,
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SELECTOR_HOME_ROUTE_CSS__))
+  .sticky:has([data-codex-approval-surface])::after {
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 html[data-dream-skin="active"][data-dream-motion-level="reduced"] [data-dream-skin-video],
 html[data-dream-skin="active"][data-dream-motion-level="reduced"] body::after {
   animation: none !important;

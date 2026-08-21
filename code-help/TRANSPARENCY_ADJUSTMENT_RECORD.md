@@ -423,6 +423,57 @@ _ComposerLayoutRoot_
 
 当前约在 1212 行；输入框 task-mode 的透明层和 fade 清理规则在约 1535 行以后。这个区域与底部面板完全独立。
 
+### 2.9 请求批准弹窗及其后方黑色渐变层
+
+**触发入口**
+
+- Codex 在执行需要用户授权的命令时，底部输入区域替换为“请求批准”卡片。
+
+**现场和静态证据**
+
+- Codex 26.810 原生实现不是普通 `role="dialog"`；审批卡使用稳定标记：
+
+  ```css
+  [data-codex-approval-surface]
+  ```
+
+- 原生 Card 同时带有 `bg-primary-soft` 与 `electron:elevation-prominent`。前者绘制原生不透明 surface，后者绘制 elevation 阴影；这两层就是截图中审批卡及其后方黑色层的直接来源。
+- 原有底部清理规则只在 sticky 容器包含 `input`、`textarea`、`contenteditable` 或 `role="textbox"` 时生效。审批卡替换输入框后，该条件不成立，因此宽任务交互面板的 `.10` surface 规则继续保留，形成卡片后方的黑色渐变/暗层。
+
+**精确定位**
+
+- 卡片：`html[data-dream-skin="active"] [data-codex-approval-surface]`。
+- 审批态 composer：带 `[data-codex-approval-surface]` 后代的 composer 根；实际兼容选择器包括 `.composer-surface-chrome`、`[data-ds-part="composer"]` 和 `[class*="_ComposerLayoutRoot_"]`。
+- 审批态 sticky 宿主：`.sticky:has([data-codex-approval-surface])`。
+- sticky 内确认的渐变子节点：
+
+  ```css
+  [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"]
+  ```
+
+**当前样式目标**
+
+- 审批卡背景：`rgb(var(--ds-panel-rgb) / .56)`；这是与环境信息/右侧工具面板一致的可读玻璃层，不是完全透明。`background-image: none`。
+- 审批卡仅保留主题边界和两条 inset 微高光，不保留 `electron:elevation-prominent` 的大面积下投影；`backdrop-filter: none`。
+- 审批态 composer 与 sticky 宿主：`background: transparent`、无背景图、无 `box-shadow`、无 `backdrop-filter`。
+- sticky 渐变子节点：`display: none`，避免在审批卡后方再绘制一块全宽黑色渐变。
+
+**直接调整位置**
+
+在 `runtime/dream-skin.css` 搜索：
+
+```text
+[data-codex-approval-surface]
+```
+
+当前包含三部分：审批卡本身、通用审批态 composer/sticky 清理规则，以及紧随其后的“wide task composer”高特异性审批态例外。最后一部分不能删除：宽任务交互面板已有更高特异性的 `.10` surface 规则，审批卡出现时必须在同一任务/main 边界内用 `:has([data-codex-approval-surface])` 精确覆盖它。
+
+**回归边界**
+
+- 不修改普通输入框的透明规则；审批标记移除后，实时 CSS 合同必须恢复 composer 的原有 `.10` 微高光样式。
+- 不使用所有 `.sticky`、所有 `role="dialog"`、所有 `div` 或所有 elevation 类作为选择器，避免影响右侧面板、底部 PowerShell、设置页和普通对话框。
+- 目前的实时合同验证使用隐藏的审批标记 fixture 验证级联结果；如果页面当时没有真实审批卡，不能把 fixture 结果描述成真实审批卡截图验证。真实审批状态应保持打开后再读取 `getComputedStyle()`，不得先关闭浮窗截图。
+
 ## 3. 已明确没有覆盖的窗口或内容
 
 以下项目不能从本记录中的面板规则推导透明度：

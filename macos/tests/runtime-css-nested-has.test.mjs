@@ -111,6 +111,15 @@ for (const file of files) {
       /Codex 26\.810 renders the remaining black band[\s\S]*?\.sticky:has\(:is\(input\[type="text"\], textarea, \[contenteditable="true"\], \[role="textbox"\]\)\)\s+\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\]\[class~="from-surface"\]\s*\{[\s\S]*?display:\s*none !important;/,
       "The confirmed Codex 26.810 sticky-child gradient must be removed.");
     assert.match(css,
+      /data-codex-approval-surface[\s\S]*?\.sticky:has\(\[data-codex-approval-surface\]\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "Approval chrome must clear its replacement sticky host even when no textbox is mounted.");
+    assert.match(css,
+      /\.sticky:has\(\[data-codex-approval-surface\]\)[\s\S]*?\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\][\s\S]*?display:\s*none !important;/,
+      "Approval chrome must remove the replacement sticky gradient child.");
+    assert.match(css,
+      /The wide task composer has a more specific surface rule above[\s\S]*?\.sticky:has\(\[data-codex-approval-surface\]\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*none !important;/,
+      "Approval chrome must outrank the wide composer surface rule without broadening the ordinary composer override.");
+    assert.match(css,
       /Turn diff cards inherit dark native token surfaces[\s\S]*?\[class~="bg-surface-elevated-secondary\/50"\]:has\(> \[class~="group\/turn-diff-header"\]\)\s*\{[\s\S]*?background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.34\) !important;[\s\S]*?box-shadow:\s*0 0 0 \.5px rgb\(var\(--ds-muted-rgb\) \/ \.16\) !important;/,
       "Turn diff cards must use a lighter translucent surface and a restrained edge shadow.");
     assert.match(css,
