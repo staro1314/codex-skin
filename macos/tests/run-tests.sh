@@ -361,9 +361,12 @@ fi
   done
   seed_bundled_presets
   seed_bundled_presets
-  [ -f "$themes/preset-gothic-void-crusade/theme.json" ] || exit 1
-  [ -f "$themes/preset-gothic-void-crusade/background.jpg" ] || exit 1
-  [ -f "$themes/preset-arina-hashimoto/theme.json" ] || exit 1
+[ -f "$themes/preset-gothic-void-crusade/theme.json" ] || exit 1
+[ -f "$themes/preset-gothic-void-crusade/background.jpg" ] || exit 1
+[ -f "$themes/preset-video-fox-spirit/theme.json" ] || exit 1
+[ -f "$themes/preset-video-fox-spirit/background.png" ] || exit 1
+[ -f "$themes/preset-video-fox-spirit/background.mp4" ] || exit 1
+[ -f "$themes/preset-arina-hashimoto/theme.json" ] || exit 1
   [ -f "$themes/preset-arina-hashimoto/background.jpg" ] || exit 1
   [ -f "$themes/custom-keepme/theme.json" ] || exit 1
   for id in $retired; do [ ! -e "$themes/$id" ] || exit 1; done

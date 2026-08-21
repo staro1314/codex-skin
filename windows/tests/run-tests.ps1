@@ -1032,14 +1032,21 @@ try {
   }
   $preseededThemes = @(Get-DreamSkinSavedThemes -StateRoot $themeStateRoot)
   $preseededIds = @($preseededThemes | ForEach-Object { $_.Id })
-  if ($preseededThemes.Count -lt 2 -or
+  if ($preseededThemes.Count -lt 3 -or
     $preseededIds -notcontains 'preset-arina-hashimoto' -or
-    $preseededIds -notcontains 'preset-gothic-void-crusade') {
-    throw 'Windows did not preseed both Arina Hashimoto and Gothic Void Crusade.'
+    $preseededIds -notcontains 'preset-gothic-void-crusade' -or
+    $preseededIds -notcontains 'preset-video-fox-spirit') {
+    throw 'Windows did not preseed the Arina Hashimoto, Gothic Void Crusade, and Video Fox Spirit presets.'
   }
   $gothicSeed = $preseededThemes | Where-Object { $_.Id -ceq 'preset-gothic-void-crusade' } | Select-Object -First 1
   if ($null -eq $gothicSeed -or $gothicSeed.Name -cne 'Gothic Void Crusade') {
     throw 'Gothic Void Crusade was not preseeded with the expected display name.'
+  }
+  $videoFoxSeed = $preseededThemes | Where-Object { $_.Id -ceq 'preset-video-fox-spirit' } | Select-Object -First 1
+  if ($null -eq $videoFoxSeed -or $videoFoxSeed.Name -cne '视频狐妖' -or
+    -not (Test-Path -LiteralPath (Join-Path $videoFoxSeed.Path 'background.mp4') -PathType Leaf) -or
+    -not (Test-Path -LiteralPath (Join-Path $videoFoxSeed.Path 'background.png') -PathType Leaf)) {
+    throw '视频狐妖 was not preseeded with its poster and video assets.'
   }
   $updatedTheme = Set-DreamSkinActiveTheme -ImagePath (Join-Path $Root 'assets\dream-reference.jpg') `
     -Theme $null -Name '测试主题' -StateRoot $themeStateRoot
@@ -1054,7 +1061,7 @@ try {
   $null = Initialize-DreamSkinThemeStore -SkillRoot $Root -StateRoot $themeStateRoot
   $idempotentTheme = Read-DreamSkinTheme -ThemeDirectory $themePaths.Active
   $afterReinitCount = @(Get-DreamSkinSavedThemes -StateRoot $themeStateRoot).Count
-  if ($idempotentTheme.Theme.id -cne 'custom' -or $afterReinitCount -ne 2) {
+  if ($idempotentTheme.Theme.id -cne 'custom' -or $afterReinitCount -ne 3) {
     throw 'Theme-store initialization overwrote the active custom theme or duplicated its bundled presets.'
   }
 
@@ -1063,10 +1070,13 @@ try {
   $releaseFixtureScripts = Join-Path $releaseFixtureRoot 'scripts'
   $releaseFixturePresets = Join-Path $releaseFixtureRoot 'presets'
   $releaseFixturePresetDirectory = Join-Path $releaseFixturePresets 'preset-gothic-void-crusade'
+  $releaseFixtureVideoPresetDirectory = Join-Path $releaseFixturePresets 'preset-video-fox-spirit'
   $releaseFixtureState = Join-Path $temporaryRoot 'release-theme-state'
   $repositoryRoot = Split-Path -Parent $Root
   $publicPresetRoot = Join-Path $repositoryRoot 'macos\presets\preset-gothic-void-crusade'
-  New-Item -ItemType Directory -Path $releaseFixtureAssets, $releaseFixtureScripts, $releaseFixturePresetDirectory -Force | Out-Null
+  $videoFoxPresetRoot = Join-Path $repositoryRoot 'macos\presets\preset-video-fox-spirit'
+  New-Item -ItemType Directory -Path $releaseFixtureAssets, $releaseFixtureScripts,
+    $releaseFixturePresetDirectory, $releaseFixtureVideoPresetDirectory -Force | Out-Null
   Copy-Item -LiteralPath (Join-Path $Root 'VERSION') -Destination $releaseFixtureRoot -Force
   foreach ($releaseAsset in @(
     'compatibility.json', 'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json',
@@ -1077,6 +1087,7 @@ try {
       -Destination $releaseFixtureAssets -Force
   }
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\common-windows.ps1') -Destination $releaseFixtureScripts -Force
+  Copy-Item -LiteralPath (Join-Path $Root 'scripts\control-center-import.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\apply-community-theme.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\check-update.ps1') -Destination $releaseFixtureScripts -Force
   Copy-Item -LiteralPath (Join-Path $Root 'scripts\config-utf8.ps1') -Destination $releaseFixtureScripts -Force
@@ -1095,6 +1106,10 @@ try {
     -Destination $releaseFixturePresetDirectory -Force
   Copy-Item -LiteralPath (Join-Path $publicPresetRoot 'theme.json') `
     -Destination $releaseFixturePresetDirectory -Force
+  foreach ($videoFoxFile in @('background.png', 'background.mp4', 'theme.css', 'theme.json')) {
+    Copy-Item -LiteralPath (Join-Path $videoFoxPresetRoot $videoFoxFile) `
+      -Destination $releaseFixtureVideoPresetDirectory -Force
+  }
   Copy-Item -LiteralPath (Join-Path $publicPresetRoot 'background.jpg') `
     -Destination (Join-Path $releaseFixtureAssets 'dream-reference.jpg') -Force
   $releaseFixtureTheme = (Read-DreamSkinUtf8File -Path (Join-Path $publicPresetRoot 'theme.json')) |
@@ -1107,8 +1122,9 @@ try {
   $releaseActiveTheme = Read-DreamSkinTheme -ThemeDirectory $releaseThemePaths.Active
   $releaseSavedThemes = @(Get-DreamSkinSavedThemes -StateRoot $releaseFixtureState)
   if ($releaseActiveTheme.Theme.id -cne 'preset-gothic-void-crusade' -or
-    $releaseSavedThemes.Count -ne 1 -or
-    $releaseSavedThemes[0].Id -cne 'preset-gothic-void-crusade') {
+    $releaseSavedThemes.Count -ne 2 -or
+    @($releaseSavedThemes.Id) -notcontains 'preset-gothic-void-crusade' -or
+    @($releaseSavedThemes.Id) -notcontains 'preset-video-fox-spirit') {
     throw 'Release-safe bundled theme did not seed dynamically by its validated preset id.'
   }
   $releaseEngine = Install-DreamSkinRuntimeEngine -SkillRoot $releaseFixtureRoot `
@@ -1116,9 +1132,12 @@ try {
   if (-not (Test-Path -LiteralPath (Join-Path $releaseEngine.Root 'presets\preset-gothic-void-crusade\theme.json') -PathType Leaf)) {
     throw 'Release-shaped payload could not stage its public Gothic preset into the managed engine.'
   }
+  if (-not (Test-Path -LiteralPath (Join-Path $releaseEngine.Root 'presets\preset-video-fox-spirit\background.mp4') -PathType Leaf)) {
+    throw 'Release-shaped payload could not stage its bundled video fox preset into the managed engine.'
+  }
 
   $savedTheme = Save-DreamSkinCurrentTheme -Name '已保存主题' -StateRoot $themeStateRoot
-  if ($savedTheme.Theme.name -cne '已保存主题' -or @(Get-DreamSkinSavedThemes -StateRoot $themeStateRoot).Count -ne 3) {
+  if ($savedTheme.Theme.name -cne '已保存主题' -or @(Get-DreamSkinSavedThemes -StateRoot $themeStateRoot).Count -ne 4) {
     throw 'Saved theme creation or discovery failed.'
   }
   $null = Use-DreamSkinSavedTheme -ThemeDirectory $savedTheme.Directory -StateRoot $themeStateRoot

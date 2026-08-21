@@ -80,8 +80,8 @@ To build the “double-click install” folder layout for non-git users:
 ```
 
 That ZIP contains a visible installer plus a hidden `.codex-dream-skin-studio`
-engine and is staged as a rights-clean package with only the redistributable
-Gothic Void Crusade preset. It is retained for existing offline workflows;
+engine and is staged as a rights-clean package with the redistributable Gothic
+Void Crusade and 视频狐妖 presets. It is retained for existing offline workflows;
 prefer the DMG for ordinary users, and do not share a source checkout or an
 archive containing the excluded Arina reference files. Do not ship only
 CSS/images.
@@ -108,8 +108,9 @@ normally, to end the exposure window. See [`../SECURITY.md`](../SECURITY.md).
 
 ## Bundled presets
 
-The public DMG seeds **Gothic Void Crusade**, contributed through PR #134, as
-its redistributable default. A source checkout also contains the
+The public DMG seeds **Gothic Void Crusade** and **视频狐妖** as its
+redistributable built-in presets. Gothic Void Crusade was contributed through
+PR #134. A source checkout also contains the
 **桥本有菜 / Arina Hashimoto** reference material, but the public app bundle
 deliberately excludes it until independent likeness and redistribution rights
 are confirmed.

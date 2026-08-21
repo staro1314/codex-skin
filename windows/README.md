@@ -87,6 +87,8 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\doctor-d
 
 `-Json` 输出包含版本、共享契约、会话生命周期、稳定错误码和下一步动作。增加 `-RequireLive` 可要求当前存在已验证的活跃 Codex 会话；没有活跃会话时，静态环境检查仍可通过，但状态会标记为 `degraded`。
 
+安装器同时播种 Gothic Void Crusade 和“视频狐妖”两个公开内置预设到“已保存主题”。视频狐妖的 `background.mp4` 与 `background.png` poster 随安装包提供；首次安装仍使用图片主题作为默认活动主题，不会强制切换到视频背景。
+
 ## 更换和保存主题
 
 打开 `Codex Dream Skin` 客户端后可以（后台启动时也可从托盘双击打开）：

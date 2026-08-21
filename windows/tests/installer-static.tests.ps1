@@ -11,10 +11,11 @@ $communityApplyPath = Join-Path $windowsRoot 'scripts\apply-community-theme.ps1'
 $commonPath = Join-Path $windowsRoot 'scripts\common-windows.ps1'
 $clientPath = Join-Path $windowsRoot 'client\RuntimeSupervisor.cs'
 $actionPath = Join-Path $windowsRoot 'scripts\control-center-action.ps1'
+$importPath = Join-Path $windowsRoot 'scripts\control-center-import.ps1'
 $manifestPath = Join-Path $installerRoot 'node-runtime.json'
 $builderAst = $null
 
-foreach ($scriptPath in @($builderPath, $bootstrapPath, $communityApplyPath, $commonPath)) {
+foreach ($scriptPath in @($builderPath, $bootstrapPath, $communityApplyPath, $commonPath, $actionPath, $importPath)) {
   if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
     throw "Required installer PowerShell does not exist: $scriptPath"
   }
@@ -48,6 +49,25 @@ $bootstrap = [System.IO.File]::ReadAllText($bootstrapPath)
 $common = [System.IO.File]::ReadAllText($commonPath)
 $client = [System.IO.File]::ReadAllText($clientPath)
 $action = [System.IO.File]::ReadAllText($actionPath)
+$importAdapter = [System.IO.File]::ReadAllText($importPath)
+foreach ($requiredImportContract in @(
+  'Import-DreamSkinThemeZip',
+  '-ExpectedArchiveBytes $archive.Length',
+  '-ExpectedArchiveSha256 $digest',
+  'Theme ZIP must be non-empty and no larger than 32 MiB.',
+  'without applying it'
+)) {
+  if (-not $importAdapter.Contains($requiredImportContract)) {
+    throw "Client theme import adapter is missing its strict ZIP contract: $requiredImportContract"
+  }
+}
+foreach ($requiredPayload in @('scripts\control-center-import.ps1')) {
+  if (-not $builder.Contains("'$requiredPayload'") -or
+    -not $bootstrap.Contains("'$requiredPayload'") -or
+    -not $common.Contains("'$requiredPayload'")) {
+    throw "Client theme import adapter is missing from a runtime payload contract: $requiredPayload"
+  }
+}
 if ($definition.Contains('-ExecutionPolicy Bypass') -or
   $builder.Contains('-ExecutionPolicy Bypass') -or
   $bootstrap.Contains('-ExecutionPolicy Bypass') -or
@@ -208,6 +228,11 @@ foreach ($requiredBuilderContract in @(
   'Copy-Item -LiteralPath $innoChineseLanguagePath',
   "'preset-gothic-void-crusade'",
   "'presets\preset-gothic-void-crusade'",
+  "'preset-video-fox-spirit'",
+  "'presets\preset-video-fox-spirit'",
+  '$videoFoxPresetVideoSha256',
+  '$videoFoxPresetThemeSha256',
+  'background.mp4',
   "`$publicPresetTheme.image = 'dream-reference.jpg'",
   '$stagedPublicImageHash',
   'Staged installer payload did not retain the reviewed public release theme.',
@@ -241,6 +266,10 @@ foreach ($requiredRepairContract in @(
   'scripts\validate-safe-css-file.mjs',
   'scripts\apply-community-theme.ps1',
   'presets\preset-gothic-void-crusade\theme.json',
+  'presets\preset-video-fox-spirit\background.png',
+  'presets\preset-video-fox-spirit\background.mp4',
+  'presets\preset-video-fox-spirit\theme.css',
+  'presets\preset-video-fox-spirit\theme.json',
   'scripts\start-dream-skin.ps1',
   'scripts\check-update.ps1',
   'runtime\node\node.exe',

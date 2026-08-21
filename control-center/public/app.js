@@ -50,6 +50,7 @@ const state = {
   dirty: false,
   paused: false,
   actionsEnabled: false,
+  importEnabled: false,
   exports: {},
   themeFilter: "all",
   themeQuery: "",
@@ -65,7 +66,7 @@ const elements = Object.fromEntries([
   "theme-count", "theme-list", "theme-search", "library-match", "library-empty", "preview-name",
   "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "preview-image",
   "preview-video", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
-  "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
+  "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "import-theme-button", "import-theme-file", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
   "effect-overlay", "effect-overlay-output", "effect-media", "effect-media-output", "effect-brightness",
   "effect-brightness-output", "effect-saturation", "effect-saturation-output", "effect-hue", "effect-hue-output",
   "export-version", "publisher-name", "publisher-id", "export-license", "export-summary", "export-ai",
@@ -181,7 +182,7 @@ function systemDefaultTheme() {
 }
 
 function kindLabel(kind) {
-  return kind === "saved" ? "已保存" : "内置";
+  return kind === "active" ? "当前" : kind === "saved" ? "已保存" : "内置";
 }
 
 function updateSelectionSummary() {
@@ -741,14 +742,18 @@ async function refresh(selectId = null) {
   state.themes = payload.themes;
   state.paused = payload.paused;
   state.actionsEnabled = payload.app.actionsEnabled;
+  state.importEnabled = payload.app.importEnabled === true;
+  elements.importThemeButton.hidden = !state.importEnabled;
   state.exports = payload.exports ?? {};
   state.connected = true;
   elements.connectionDot.classList.add("online");
   elements.systemStatus.textContent = payload.paused ? "皮肤已暂停 / 服务在线" : "本地主题引擎在线";
   elements.connectionBanner.hidden = true;
+  const active = state.themes.find((theme) => theme.kind === "active");
+  const activeSaved = active && state.themes.find((theme) => theme.kind === "saved" && theme.id === active.theme?.id);
   const preferred = selectId && state.themes.some((theme) => theme.id === selectId) ? selectId
     : state.selectedId && state.themes.some((theme) => theme.id === state.selectedId) ? state.selectedId
-      : state.themes[0]?.id;
+      : activeSaved?.id ?? state.themes[0]?.id;
   renderThemeList();
   if (preferred) selectTheme(preferred);
   else {
@@ -760,6 +765,27 @@ async function refresh(selectId = null) {
   }
   updateActionAvailability();
   if (payload.warnings.length) toast(`已忽略 ${payload.warnings.length} 个无效主题`, true);
+}
+
+async function importTheme(file) {
+  if (!state.importEnabled) return;
+  if (!file || !file.name.toLowerCase().endsWith(".zip")) return toast("请选择普通 .zip 主题包", true);
+  if (file.size <= 0 || file.size > 32 * 1024 * 1024) return toast("主题 ZIP 必须非空且不超过 32 MiB", true);
+  setBusy(true, "正在导入并严格验证主题", elements.importThemeButton);
+  try {
+    const result = await api("/api/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/zip" },
+      body: file,
+    });
+    await refresh(result.themeId);
+    toast(result.status === "Duplicate" ? "该主题已存在，已定位到已保存主题" : "主题已导入到已保存主题库，尚未自动应用");
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    elements.importThemeFile.value = "";
+    setBusy(false);
+  }
 }
 
 function nextPatchVersion(version) {
@@ -1007,6 +1033,11 @@ elements.startCodexButton.addEventListener("click", () => action("start", null))
 elements.restoreButton.addEventListener("click", () => action("restore", null));
 elements.resetButton.addEventListener("click", resetDraft);
 elements.newThemeButton.addEventListener("click", openNewThemeDialog);
+elements.importThemeButton.addEventListener("click", () => elements.importThemeFile.click());
+elements.importThemeFile.addEventListener("change", () => {
+  const file = elements.importThemeFile.files[0];
+  if (file) importTheme(file);
+});
 elements.newThemeTypeImage.addEventListener("change", syncNewThemeFilePicker);
 elements.newThemeTypeVideo.addEventListener("change", syncNewThemeFilePicker);
 elements.newThemeCancel.addEventListener("click", closeNewThemeDialog);

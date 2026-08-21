@@ -69,7 +69,15 @@ try {
       }
       $null = Use-DreamSkinSavedTheme -ThemeDirectory $themeDirectory -StateRoot $StateRoot
       $null = Set-DreamSkinPaused -Paused $false -StateRoot $StateRoot
-      $result = [pscustomobject]@{ ok = $true; action = $Action; themeId = $ThemeId; message = 'Theme activated.' }
+      $apply = Invoke-DreamSkinLiveApply -StateRoot $StateRoot
+      $result = [pscustomobject]@{
+        ok = [bool]$apply.Applied
+        action = $Action
+        themeId = $ThemeId
+        attempted = [bool]$apply.Attempted
+        applied = [bool]$apply.Applied
+        message = "$($apply.Message)"
+      }
     }
     'pause' {
       $null = Set-DreamSkinPaused -Paused $true -StateRoot $StateRoot

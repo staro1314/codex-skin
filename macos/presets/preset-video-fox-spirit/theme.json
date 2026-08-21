@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "preset-video-fox-spirit",
+  "name": "视频狐妖",
+  "brandSubtitle": "CODEX DREAM SKIN",
+  "tagline": "狐火流光，陪伴每一次创作。",
+  "image": "background.png",
+  "appearance": "auto",
+  "art": {
+    "focusX": 0.72,
+    "focusY": 0.45,
+    "safeArea": "left",
+    "taskMode": "ambient"
+  },
+  "stateEffects": {
+    "idle": {
+      "color": "#58c9d4",
+      "overlayOpacity": 0.08,
+      "mediaOpacity": 1,
+      "brightness": 1,
+      "saturation": 1,
+      "contrast": 1,
+      "hueRotate": 0,
+      "motion": "none"
+    },
+    "thinking": {
+      "color": "#58c9d4",
+      "overlayOpacity": 0.16,
+      "mediaOpacity": 0.96,
+      "brightness": 1.05,
+      "saturation": 1.12,
+      "contrast": 1,
+      "hueRotate": 0,
+      "motion": "pulse"
+    },
+    "executing": {
+      "color": "#8dffb6",
+      "overlayOpacity": 0.18,
+      "mediaOpacity": 1,
+      "brightness": 1.08,
+      "saturation": 1.2,
+      "contrast": 1.04,
+      "hueRotate": 0,
+      "motion": "pulse"
+    },
+    "approval": {
+      "color": "#ffb164",
+      "overlayOpacity": 0.2,
+      "mediaOpacity": 0.93,
+      "brightness": 1.02,
+      "saturation": 1.1,
+      "contrast": 1.05,
+      "hueRotate": 0,
+      "motion": "alert"
+    },
+    "success": {
+      "color": "#8dffb6",
+      "overlayOpacity": 0.16,
+      "mediaOpacity": 1,
+      "brightness": 1.08,
+      "saturation": 1.16,
+      "contrast": 1,
+      "hueRotate": 0,
+      "motion": "flash"
+    },
+    "error": {
+      "color": "#ff756e",
+      "overlayOpacity": 0.24,
+      "mediaOpacity": 0.88,
+      "brightness": 0.94,
+      "saturation": 1.35,
+      "contrast": 1.08,
+      "hueRotate": 0,
+      "motion": "alert"
+    },
+    "settings": {
+      "color": "#58c9d4",
+      "overlayOpacity": 0.05,
+      "mediaOpacity": 0.82,
+      "brightness": 0.92,
+      "saturation": 0.78,
+      "contrast": 1,
+      "hueRotate": 0,
+      "motion": "none"
+    },
+    "overlay": {
+      "color": "#d9eee9",
+      "overlayOpacity": 0.08,
+      "mediaOpacity": 0.72,
+      "brightness": 0.86,
+      "saturation": 0.7,
+      "contrast": 1.06,
+      "hueRotate": 0,
+      "motion": "none"
+    }
+  },
+  "video": {
+    "src": "background.mp4",
+    "performance": "balanced"
+  }
+}

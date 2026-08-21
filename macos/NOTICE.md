@@ -26,6 +26,14 @@ this MIT-licensed project. It is the redistributable default artwork included in
 the public macOS and Windows installers. Its name and artwork do not imply
 OpenAI/Codex affiliation or endorsement.
 
+## 视频狐妖
+
+`presets/preset-video-fox-spirit/` is a maintainer-provided video theme,
+included at the maintainer's direction as a built-in preset. Its poster,
+video, and theme metadata are not covered by the MIT software license; any
+redistribution outside this repository requires a separate rights review.
+The theme name does not imply OpenAI/Codex affiliation or endorsement.
+
 ## Arina Hashimoto reference material
 
 The following user/maintainer-supplied files are excluded from the MIT software license:

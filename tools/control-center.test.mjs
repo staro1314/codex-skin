@@ -45,6 +45,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /data-editor-tab="surface"/);
     assert.match(shellHtml, /id="reset-button"/);
     assert.match(shellHtml, /id="new-theme-button"/);
+    assert.match(shellHtml, /id="import-theme-button"[^>]+hidden/);
+    assert.match(shellHtml, /id="import-theme-file"[^>]+accept="\.zip,application\/zip"/);
     assert.match(shellHtml, /id="delete-theme-button"/);
     assert.match(shellHtml, /id="media-mode-image"/);
     assert.match(shellHtml, /id="media-mode-video"/);
@@ -68,6 +70,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(clientResponse.status, 200);
     const clientJs = await clientResponse.text();
     assert.match(clientJs, /\/api\/export/);
+    assert.match(clientJs, /\/api\/import/);
+    assert.match(clientJs, /kind === "active" \? "当前"/);
+    assert.match(clientJs, /activeSaved\?\.id \?\? state\.themes\[0\]\?\.id/,
+      "The active user theme must select its saved library entry so saved-theme actions remain available.");
     assert.doesNotMatch(clientJs, /captureVideoPoster/,
       "Video theme creation must not derive a cover from each video's aspect ratio.");
     assert.match(clientJs, /VIDEO_THEME_COVER_URL/,
@@ -112,6 +118,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const bootstrap = await bootstrapResponse.json();
     assert.equal(bootstrap.app.actionsEnabled, false);
     assert.equal(bootstrap.app.embedded, false);
+    assert.equal(bootstrap.app.importEnabled, false);
     assert.equal(bootstrap.themes.length, 1);
     assert.equal(bootstrap.themes[0].kind, "bundled");
     assert.equal(Object.hasOwn(bootstrap.themes[0], "_directory"), false);
@@ -419,6 +426,69 @@ test("control center surfaces a recoverable Windows action failure", async () =>
   }
 });
 
+test("Windows client import stages one ZIP inside state root and removes it after the strict adapter returns", async () => {
+  const stateRoot = path.join(tempRoot, "embedded-import-state");
+  let stagedPath = null;
+  const center = await createControlCenter({
+    platform: "win32",
+    embedded: true,
+    port: 0,
+    stateRoot,
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    importRunner: async ({ archivePath, stateRoot: receivedRoot }) => {
+      stagedPath = archivePath;
+      assert.equal(receivedRoot, stateRoot);
+      assert.equal(path.dirname(archivePath), stateRoot);
+      assert.deepEqual(await fs.readFile(archivePath), Buffer.from("PK\u0003\u0004test"));
+      return { ok: true, status: "Imported", themeId: "imported-theme", message: "imported" };
+    },
+  });
+  try {
+    const bootstrap = await fetch(`${center.origin}/api/bootstrap`, {
+      headers: { "X-DreamSkin-Token": center.token },
+    }).then((response) => response.json());
+    assert.equal(bootstrap.app.importEnabled, true);
+    const response = await fetch(`${center.origin}/api/import`, {
+      method: "POST",
+      headers: {
+        "X-DreamSkin-Token": center.token,
+        Origin: center.origin,
+        "Content-Type": "application/zip",
+      },
+      body: Buffer.from("PK\u0003\u0004test"),
+    });
+    assert.equal(response.status, 201, await response.clone().text());
+    assert.equal((await response.json()).themeId, "imported-theme");
+    assert.ok(stagedPath);
+    await assert.rejects(fs.access(stagedPath), { code: "ENOENT" });
+  } finally {
+    await center.close();
+  }
+});
+
+test("browser test entry cannot invoke the client-only import adapter", async () => {
+  let called = false;
+  const center = await createControlCenter({
+    platform: "win32",
+    embedded: false,
+    port: 0,
+    stateRoot: path.join(tempRoot, "browser-import-state"),
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    importRunner: async () => { called = true; },
+  });
+  try {
+    const response = await fetch(`${center.origin}/api/import`, {
+      method: "POST",
+      headers: { "X-DreamSkin-Token": center.token, Origin: center.origin },
+      body: Buffer.from("PK\u0003\u0004test"),
+    });
+    assert.equal(response.status, 404);
+    assert.equal(called, false);
+  } finally {
+    await center.close();
+  }
+});
+
 test("control center converts an explicit native action failure into a client error", async () => {
   const center = await createControlCenter({
     platform: "win32",
@@ -594,6 +664,8 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.match(action, /Invoke-DreamSkinLiveRemove/);
   assert.match(action, /Invoke-DreamSkinLiveApply/);
   assert.match(action, /applied = \[bool\]\$resume\.Applied/);
+  assert.match(action, /ok = \[bool\]\$apply\.Applied/,
+    "Applying a saved theme must report success only after live renderer verification.");
   assert.match(action, /Set-DreamSkinPaused/);
   assert.match(themeWindows, /皮肤已恢复显示/);
   assert.match(themeWindows, /皮肤恢复失败，已保持暂停状态/);

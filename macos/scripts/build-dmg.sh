@@ -75,6 +75,10 @@ MOUNTED_ICON="$MOUNTED_APP/Contents/Resources/${MOUNTED_ICON_NAME%.icns}.icns"
   || { printf 'Mounted app icon is missing or empty: %s\n' "$MOUNTED_ICON" >&2; exit 1; }
 [ -f "$MOUNTED_APP/Contents/Resources/engine/presets/preset-gothic-void-crusade/theme.json" ] \
   || { printf 'Mounted app is missing the public release preset.\n' >&2; exit 1; }
+[ -f "$MOUNTED_APP/Contents/Resources/engine/presets/preset-video-fox-spirit/theme.json" ] \
+  && [ -f "$MOUNTED_APP/Contents/Resources/engine/presets/preset-video-fox-spirit/background.mp4" ] \
+  && [ -f "$MOUNTED_APP/Contents/Resources/engine/presets/preset-video-fox-spirit/background.png" ] \
+  || { printf 'Mounted app is missing the bundled video fox preset.\n' >&2; exit 1; }
 [ ! -e "$MOUNTED_APP/Contents/Resources/engine/presets/preset-arina-hashimoto" ] \
   || { printf 'Mounted app contains a rights-restricted preset.\n' >&2; exit 1; }
 MOUNTED_ENGINE="$MOUNTED_APP/Contents/Resources/engine"

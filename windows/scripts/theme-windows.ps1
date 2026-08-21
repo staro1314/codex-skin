@@ -584,25 +584,31 @@ function Initialize-DreamSkinThemeStore {
   Assert-DreamSkinImageFile -Path $presetImage
   Assert-DreamSkinNoReparseComponents -Path $presetTheme
   Copy-Item -LiteralPath (Join-Path $assetRoot 'theme.json') -Destination $presetTheme -Force
-  # Bundled Gothic Void Crusade (same pack as macOS presets/).
-  $gothicSource = Join-Path $SkillRoot 'presets\preset-gothic-void-crusade'
-  $gothicDirectory = Join-Path $paths.Saved 'preset-gothic-void-crusade'
-  $gothicTheme = Join-Path $gothicDirectory 'theme.json'
-  $gothicSourceTheme = Join-Path $gothicSource 'theme.json'
-  $gothicSourceImage = Join-Path $gothicSource 'background.jpg'
-  Assert-DreamSkinNoReparseComponents -Path $gothicDirectory
-  Assert-DreamSkinNoReparseComponents -Path $gothicTheme
-  if ((Test-Path -LiteralPath $gothicSourceTheme -PathType Leaf) -and
-    (Test-Path -LiteralPath $gothicSourceImage -PathType Leaf)) {
-    Ensure-DreamSkinManagedDirectory -Path $gothicDirectory -Root $paths.Root
-    $gothicImage = Join-Path $gothicDirectory 'background.jpg'
-    Assert-DreamSkinNoReparseComponents -Path $gothicImage
-    Assert-DreamSkinImageFile -Path $gothicSourceImage
-    Copy-Item -LiteralPath $gothicSourceImage -Destination $gothicImage -Force
-    Assert-DreamSkinNoReparseComponents -Path $gothicImage
-    Assert-DreamSkinImageFile -Path $gothicImage
-    Assert-DreamSkinNoReparseComponents -Path $gothicTheme
-    Copy-Item -LiteralPath $gothicSourceTheme -Destination $gothicTheme -Force
+  # Seed every reviewed preset pack shipped by the runtime. This keeps the
+  # Windows library aligned with macOS, including presets that carry a local
+  # video beside their poster image.
+  $presetRoot = Join-Path $SkillRoot 'presets'
+  $presetSources = if (Test-Path -LiteralPath $presetRoot -PathType Container) {
+    @(Get-ChildItem -LiteralPath $presetRoot -Directory -Filter 'preset-*' | Sort-Object Name)
+  } else { @() }
+  foreach ($sourceDirectory in $presetSources) {
+    $sourceThemePath = Join-Path $sourceDirectory.FullName 'theme.json'
+    if (-not (Test-Path -LiteralPath $sourceThemePath -PathType Leaf)) { continue }
+    $sourcePack = Read-DreamSkinTheme -ThemeDirectory $sourceDirectory.FullName
+    $sourceId = "$($sourcePack.Theme.id)"
+    if ($sourceId -cne $sourceDirectory.Name -or $sourceId -notmatch '^preset-[A-Za-z0-9_-]{1,72}$') {
+      throw "Bundled preset directory and theme id do not match: $($sourceDirectory.Name)"
+    }
+    $destinationDirectory = Join-Path $paths.Saved $sourceId
+    Assert-DreamSkinNoReparseComponents -Path $destinationDirectory
+    Ensure-DreamSkinManagedDirectory -Path $destinationDirectory -Root $paths.Root
+    foreach ($sourceFile in @(Get-ChildItem -LiteralPath $sourceDirectory.FullName -File)) {
+      $destinationFile = Join-Path $destinationDirectory $sourceFile.Name
+      Assert-DreamSkinNoReparseComponents -Path $destinationFile
+      Copy-Item -LiteralPath $sourceFile.FullName -Destination $destinationFile -Force
+      Assert-DreamSkinNoReparseComponents -Path $destinationFile
+    }
+    $null = Read-DreamSkinTheme -ThemeDirectory $destinationDirectory
   }
   # Refresh the staged active copy of official presets too; otherwise metadata
   # staged by an older engine (e.g. pre-#183 appearance "auto") keeps steering
@@ -614,8 +620,12 @@ function Initialize-DreamSkinThemeStore {
     } catch {}
     $refreshSource = $null
     if ($activeId -ceq $bundledPresetId) { $refreshSource = $assetRoot }
-    elseif ($activeId -ceq 'preset-gothic-void-crusade' -and
-      (Test-Path -LiteralPath $gothicSourceTheme -PathType Leaf)) { $refreshSource = $gothicSource }
+    elseif ($activeId -match '^preset-[A-Za-z0-9_-]{1,72}$') {
+      $candidateSource = Join-Path $presetRoot $activeId
+      if (Test-Path -LiteralPath (Join-Path $candidateSource 'theme.json') -PathType Leaf) {
+        $refreshSource = $candidateSource
+      }
+    }
     if ($null -ne $refreshSource) {
       $sourcePack = Read-DreamSkinTheme -ThemeDirectory $refreshSource
       $sourceJson = Read-DreamSkinUtf8File -Path $sourcePack.ThemePath

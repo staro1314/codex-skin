@@ -138,6 +138,27 @@ actual_public_preset_theme_sha256="$(LC_ALL=C /usr/bin/shasum -a 256 \
   || { printf 'Reviewed public preset metadata hash changed: %s\n' "$actual_public_preset_theme_sha256" >&2; exit 1; }
 /bin/mkdir -p "$ENGINE/presets/$PUBLIC_PRESET"
 /usr/bin/rsync -a "$ROOT/presets/$PUBLIC_PRESET/" "$ENGINE/presets/$PUBLIC_PRESET/"
+VIDEO_FOX_PRESET="preset-video-fox-spirit"
+VIDEO_FOX_PRESET_IMAGE_SHA256="fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa"
+VIDEO_FOX_PRESET_VIDEO_SHA256="339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb"
+VIDEO_FOX_PRESET_THEME_SHA256="6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411"
+VIDEO_FOX_PRESET_CSS_SHA256="46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9"
+[ -d "$ROOT/presets/$VIDEO_FOX_PRESET" ] \
+  || { printf 'Bundled video fox preset missing: %s\n' "$VIDEO_FOX_PRESET" >&2; exit 1; }
+for video_file in background.png background.mp4 theme.css theme.json; do
+  [ -f "$ROOT/presets/$VIDEO_FOX_PRESET/$video_file" ] \
+    || { printf 'Bundled video fox preset file missing: %s\n' "$video_file" >&2; exit 1; }
+done
+[ "$(LC_ALL=C /usr/bin/shasum -a 256 "$ROOT/presets/$VIDEO_FOX_PRESET/background.png" | /usr/bin/awk '{print $1}')" = "$VIDEO_FOX_PRESET_IMAGE_SHA256" ] \
+  || { printf 'Bundled video fox poster hash changed.\n' >&2; exit 1; }
+[ "$(LC_ALL=C /usr/bin/shasum -a 256 "$ROOT/presets/$VIDEO_FOX_PRESET/background.mp4" | /usr/bin/awk '{print $1}')" = "$VIDEO_FOX_PRESET_VIDEO_SHA256" ] \
+  || { printf 'Bundled video fox video hash changed.\n' >&2; exit 1; }
+[ "$(LC_ALL=C /usr/bin/shasum -a 256 "$ROOT/presets/$VIDEO_FOX_PRESET/theme.css" | /usr/bin/awk '{print $1}')" = "$VIDEO_FOX_PRESET_CSS_SHA256" ] \
+  || { printf 'Bundled video fox CSS hash changed.\n' >&2; exit 1; }
+[ "$(LC_ALL=C /usr/bin/shasum -a 256 "$ROOT/presets/$VIDEO_FOX_PRESET/theme.json" | /usr/bin/awk '{print $1}')" = "$VIDEO_FOX_PRESET_THEME_SHA256" ] \
+  || { printf 'Bundled video fox metadata hash changed.\n' >&2; exit 1; }
+/bin/mkdir -p "$ENGINE/presets/$VIDEO_FOX_PRESET"
+/usr/bin/rsync -a "$ROOT/presets/$VIDEO_FOX_PRESET/" "$ENGINE/presets/$VIDEO_FOX_PRESET/"
 /bin/cp "$ROOT/VERSION" "$ENGINE/VERSION"
 /bin/cp "$ROOT/LICENSE" "$RESOURCES/LICENSE.txt"
 /bin/cp "$ROOT/NOTICE.md" "$RESOURCES/NOTICE.md"

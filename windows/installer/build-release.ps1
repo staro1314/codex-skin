@@ -34,6 +34,16 @@ $publicPresetImagePath = Join-Path $publicPresetRoot 'background.jpg'
 $publicPresetThemePath = Join-Path $publicPresetRoot 'theme.json'
 $publicPresetImageSha256 = 'b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42'
 $publicPresetThemeSha256 = '8316c6ad29e3b84806358ab4a730c7e063b261e379179b9608cf751c282d66a7'
+$videoFoxPresetRoot = Join-Path (Join-Path (Join-Path $repositoryRoot 'macos') 'presets') `
+  'preset-video-fox-spirit'
+$videoFoxPresetThemePath = Join-Path $videoFoxPresetRoot 'theme.json'
+$videoFoxPresetImagePath = Join-Path $videoFoxPresetRoot 'background.png'
+$videoFoxPresetVideoPath = Join-Path $videoFoxPresetRoot 'background.mp4'
+$videoFoxPresetCssPath = Join-Path $videoFoxPresetRoot 'theme.css'
+$videoFoxPresetThemeSha256 = '6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411'
+$videoFoxPresetImageSha256 = 'fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa'
+$videoFoxPresetVideoSha256 = '339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb'
+$videoFoxPresetCssSha256 = '46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9'
 $webView2BootstrapperUrl = 'https://go.microsoft.com/fwlink/?linkid=2124703'
 
 function Read-ReleaseTextFile {
@@ -324,6 +334,27 @@ $publicPresetThemeHash = (Get-FileHash -LiteralPath $publicPresetThemePath -Algo
 if ($publicPresetThemeHash -cne $publicPresetThemeSha256) {
   throw "The reviewed public preset metadata changed. Expected $publicPresetThemeSha256, found $publicPresetThemeHash."
 }
+$videoFoxPresetTheme = (Read-ReleaseTextFile -Path $videoFoxPresetThemePath) | ConvertFrom-Json
+if ("$($videoFoxPresetTheme.id)" -cne 'preset-video-fox-spirit' -or
+  "$($videoFoxPresetTheme.name)" -cne '视频狐妖' -or
+  "$($videoFoxPresetTheme.image)" -cne 'background.png' -or
+  "$($videoFoxPresetTheme.video.src)" -cne 'background.mp4') {
+  throw 'The bundled video fox preset metadata is unexpected.'
+}
+foreach ($videoFoxFile in @(
+  @{ Path = $videoFoxPresetImagePath; Hash = $videoFoxPresetImageSha256 },
+  @{ Path = $videoFoxPresetVideoPath; Hash = $videoFoxPresetVideoSha256 },
+  @{ Path = $videoFoxPresetCssPath; Hash = $videoFoxPresetCssSha256 },
+  @{ Path = $videoFoxPresetThemePath; Hash = $videoFoxPresetThemeSha256 }
+)) {
+  if (-not (Test-Path -LiteralPath $videoFoxFile.Path -PathType Leaf)) {
+    throw "The bundled video fox preset file is missing: $($videoFoxFile.Path)"
+  }
+  $actualHash = (Get-FileHash -LiteralPath $videoFoxFile.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($actualHash -cne $videoFoxFile.Hash) {
+    throw "The bundled video fox preset file changed: $($videoFoxFile.Path)"
+  }
+}
 $compiler = Resolve-IsccExecutable -RequestedPath $IsccPath
 $dotnet = Resolve-DotnetExecutable -RequestedPath $DotnetPath
 $clientProjectPath = Join-Path (Join-Path $windowsRoot 'client') 'CodexDreamSkin.Client.csproj'
@@ -404,6 +435,8 @@ try {
   Copy-Item -LiteralPath $webView2Bootstrapper -Destination (Join-Path $dependencyRoot 'MicrosoftEdgeWebView2Setup.exe') -Force
   Copy-ReleaseDirectory -Source $publicPresetRoot `
     -Destination (Join-Path $payloadRoot 'presets\preset-gothic-void-crusade')
+  Copy-ReleaseDirectory -Source $videoFoxPresetRoot `
+    -Destination (Join-Path $payloadRoot 'presets\preset-video-fox-spirit')
   Copy-Item -LiteralPath $publicPresetImagePath `
     -Destination (Join-Path (Join-Path $payloadRoot 'assets') 'dream-reference.jpg') -Force
   $publicPresetTheme.image = 'dream-reference.jpg'
@@ -462,9 +495,14 @@ try {
     'assets\codex-dream-skin.ico',
     'presets\preset-gothic-void-crusade\background.jpg',
     'presets\preset-gothic-void-crusade\theme.json',
+    'presets\preset-video-fox-spirit\background.png',
+    'presets\preset-video-fox-spirit\background.mp4',
+    'presets\preset-video-fox-spirit\theme.css',
+    'presets\preset-video-fox-spirit\theme.json',
     'scripts\apply-community-theme.ps1',
     'scripts\check-update.ps1',
     'scripts\common-windows.ps1',
+    'scripts\control-center-import.ps1',
     'scripts\config-utf8.ps1',
     'scripts\doctor-dream-skin.ps1',
     'scripts\image-metadata.mjs',
@@ -512,6 +550,24 @@ try {
     "$($stagedPublicTheme.id)" -cne 'preset-gothic-void-crusade' -or
     "$($stagedPublicTheme.image)" -cne 'dream-reference.jpg') {
     throw 'Staged installer payload did not retain the reviewed public release theme.'
+  }
+  $stagedVideoFoxRoot = Join-Path (Join-Path $payloadRoot 'presets') 'preset-video-fox-spirit'
+  foreach ($videoFoxFile in @(
+    @{ Name = 'background.png'; Hash = $videoFoxPresetImageSha256 },
+    @{ Name = 'background.mp4'; Hash = $videoFoxPresetVideoSha256 },
+    @{ Name = 'theme.css'; Hash = $videoFoxPresetCssSha256 },
+    @{ Name = 'theme.json'; Hash = $videoFoxPresetThemeSha256 }
+  )) {
+    $stagedPath = Join-Path $stagedVideoFoxRoot $videoFoxFile.Name
+    $stagedHash = (Get-FileHash -LiteralPath $stagedPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($stagedHash -cne $videoFoxFile.Hash) {
+      throw "Staged installer payload changed the bundled video fox preset: $($videoFoxFile.Name)"
+    }
+  }
+  $stagedVideoFoxTheme = (Read-ReleaseTextFile -Path (Join-Path $stagedVideoFoxRoot 'theme.json')) | ConvertFrom-Json
+  if ("$($stagedVideoFoxTheme.id)" -cne 'preset-video-fox-spirit' -or
+    "$($stagedVideoFoxTheme.video.src)" -cne 'background.mp4') {
+    throw 'Staged installer payload did not retain the bundled video fox theme contract.'
   }
 
   $arguments = @(

@@ -7,7 +7,8 @@
 ## 内置实测预设
 
 当前内置 `preset-gothic-void-crusade/`（Gothic Void Crusade）与
-`preset-arina-hashimoto/`（桥本有菜 / Arina Hashimoto）两套实机验证主题。
+`preset-arina-hashimoto/`（桥本有菜 / Arina Hashimoto）以及
+`preset-video-fox-spirit/`（视频狐妖）三套预设。
 前者是社区作者提供的原创哥特科幻背景；后者使用一张
 `2560 × 1440`（16:9）纯背景：左侧低信息留白承载 Codex 原生标题，人物和花卉主视觉集中在右侧。浅色与暗色截图均来自真实 Codex 注入，不是 AI 绘制的整窗 UI。
 
@@ -31,7 +32,10 @@
 ```
 preset-<slug>/
 ├── theme.json        # schemaVersion 1，与 assets/theme.json 同一格式
-└── background.jpg    # 背景图（横向，JPEG）
+├── background.jpg    # 背景图（横向，JPEG）
+├── background.mp4    # 可选视频背景；必须与封面一起提供
+├── background.png    # 视频主题的静态封面
+└── theme.css         # 可选、受 Safe CSS 校验的主题补充样式
 ```
 
 - 目录名与 `theme.json` 的 `id` **必须**都是 `preset-<slug>` 形式（`slug` 用小写英文 + 连字符）。播种只管理 `preset-*`，绝不会碰用户自己「换一张图」保存的 `custom-*` 主题。

@@ -31,6 +31,7 @@ const SECURITY_HEADERS = Object.freeze({
 });
 const WINDOWS_ACTION_TIMEOUT_MS = 180_000;
 const WINDOWS_ACTION_OUTPUT_LIMIT_BYTES = 4 * 1024 * 1024;
+const THEME_ZIP_LIMIT_BYTES = 32 * 1024 * 1024;
 
 function defaultStateRoot(platform = process.platform) {
   if (platform === "win32") {
@@ -235,6 +236,47 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
   }
 }
 
+async function runWindowsImport({ archivePath, stateRoot, runtimeRoot, workingRoot }) {
+  const script = path.join(runtimeRoot, "scripts", "control-center-import.ps1");
+  const importId = `${process.pid}-${randomBytes(12).toString("hex")}`;
+  const stdoutPath = path.join(stateRoot, `.control-center-import-${importId}.stdout`);
+  const stderrPath = path.join(stateRoot, `.control-center-import-${importId}.stderr`);
+  let stdoutHandle;
+  let stderrHandle;
+  try {
+    stdoutHandle = await fs.open(stdoutPath, "w");
+    stderrHandle = await fs.open(stderrPath, "w");
+    const child = spawn("powershell.exe", [
+      "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", script,
+      "-ArchivePath", archivePath, "-StateRoot", stateRoot,
+    ], {
+      cwd: workingRoot,
+      windowsHide: true,
+      stdio: ["ignore", stdoutHandle.fd, stderrHandle.fd],
+    });
+    const outcome = await waitForWindowsAction(child, WINDOWS_ACTION_TIMEOUT_MS);
+    await stdoutHandle.close(); stdoutHandle = null;
+    await stderrHandle.close(); stderrHandle = null;
+    const stdout = await readWindowsActionOutput(stdoutPath);
+    const stderr = await readWindowsActionOutput(stderrPath);
+    if (outcome.timedOut) throw Object.assign(new Error("Windows theme import timed out."), { code: "ETIMEDOUT", stderr, stdout });
+    if (outcome.code !== 0) throw Object.assign(new Error(`PowerShell exited with code ${outcome.code ?? "unknown"}.`), { stderr, stdout });
+    const line = stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
+    if (!line) throw new Error("Windows theme import returned no result.");
+    return JSON.parse(line);
+  } catch (error) {
+    const timedOut = error?.code === "ETIMEDOUT";
+    const message = timedOut ? "主题导入超过 180 秒未完成，请重试。"
+      : "主题 ZIP 验证或导入失败，请确认包结构、媒体、清单和 Safe CSS 均有效。";
+    throw Object.assign(new Error(message), { status: timedOut ? 504 : 400 });
+  } finally {
+    if (stdoutHandle) await stdoutHandle.close().catch(() => {});
+    if (stderrHandle) await stderrHandle.close().catch(() => {});
+    await fs.rm(stdoutPath, { force: true }).catch(() => {});
+    await fs.rm(stderrPath, { force: true }).catch(() => {});
+  }
+}
+
 async function writeStateFile(stateFile, state) {
   if (!stateFile) return;
   const resolved = path.resolve(stateFile);
@@ -267,8 +309,14 @@ export async function createControlCenter(options = {}) {
   const mediaIds = new Map();
   const allowActions = options.allowActions ?? true;
   const embedded = options.embedded === true;
+  const importEnabled = embedded && platform === "win32";
   const actionRunner = options.actionRunner ?? ((action) => runWindowsAction({
     ...action,
+    runtimeRoot,
+    workingRoot: runtimeRoot,
+  }));
+  const importRunner = options.importRunner ?? ((request) => runWindowsImport({
+    ...request,
     runtimeRoot,
     workingRoot: runtimeRoot,
   }));
@@ -306,6 +354,7 @@ export async function createControlCenter(options = {}) {
         clientVersion,
         embedded,
         actionsEnabled: allowActions && platform === "win32",
+        importEnabled,
       },
       paused: snapshot.paused,
       warnings: snapshot.warnings,
@@ -432,6 +481,23 @@ export async function createControlCenter(options = {}) {
           "X-DreamSkin-Package-Version": exported.record.version,
           "X-DreamSkin-Validated-Platforms": "windows,macos",
         });
+      }
+      if (req.method === "POST" && url.pathname === "/api/import") {
+        if (!importEnabled) return json(res, 404, { error: "Theme import is available only in the Windows client" });
+        const archive = await readBody(req, THEME_ZIP_LIMIT_BYTES);
+        if (archive.length < 4 || archive[0] !== 0x50 || archive[1] !== 0x4b) {
+          return json(res, 400, { error: "Theme import requires a non-empty ZIP file" });
+        }
+        await fs.mkdir(stateRoot, { recursive: true });
+        const archivePath = path.join(stateRoot, `.control-center-import-${process.pid}-${randomBytes(12).toString("hex")}.zip`);
+        let result;
+        try {
+          await fs.writeFile(archivePath, archive, { flag: "wx", mode: 0o600 });
+          result = await importRunner({ archivePath, stateRoot });
+        } finally {
+          await fs.rm(archivePath, { force: true }).catch(() => {});
+        }
+        return json(res, 201, result);
       }
       if (req.method === "POST" && url.pathname === "/api/action") {
         if (!allowActions) return json(res, 409, { error: "Platform actions are disabled" });
