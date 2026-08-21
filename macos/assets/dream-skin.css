@@ -128,6 +128,67 @@ html[data-dream-skin="active"] [class~="bg-token-dropdown-background"] {
   --color-token-border-default: var(--ds-line);
 }
 
+/* The thread summary error surface is a native floating panel, not a token
+   dropdown. Keep its established readable glass alpha without changing the
+   bottom panel, browser sidebar, menus, or dialogs. */
+html[data-dream-skin="active"] [data-pip-home-surface="thread-summary-panel"] {
+  color: var(--ds-text) !important;
+  background: rgb(var(--ds-panel-rgb) / .72) !important;
+  background-image: none !important;
+  border-color: var(--ds-line) !important;
+  box-shadow:
+    0 0 0 .5px var(--ds-line),
+    0 12px 30px rgb(var(--ds-bg-rgb) / .22) !important;
+  backdrop-filter: blur(14px) saturate(108%) !important;
+}
+
+/* The environment-information surface is a separate inline panel.  Its live
+   root uses Codex's surface token but resolves to an opaque rgb(38,38,38), so
+   the dropdown token rule above cannot reach it.  The injector marks only the
+   structurally verified root; its sticky section headers are included because
+   they carry the same native opaque surface token. Keep the alpha aligned
+   with the existing translucent dropdown contract rather than the native
+   dark surface. */
+html[data-dream-skin="active"] [data-ds-part="environment-info-popover"],
+html[data-dream-skin="active"] [data-ds-part="environment-info-popover"] [class~="bg-surface-elevated-secondary"] {
+  color: var(--ds-text) !important;
+  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background-image: none !important;
+  box-shadow:
+    0 0 0 .5px var(--ds-line),
+    0 12px 30px rgb(var(--ds-bg-rgb) / .22) !important;
+  backdrop-filter: blur(14px) saturate(108%) !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
+  header[class~="bg-surface-elevated-secondary"]::before {
+  background: rgb(var(--ds-panel-rgb) / .56) !important;
+}
+
+/* The environment surface is wrapped by a same-sized native PIP backdrop.
+   That backdrop is useful for the standalone summary surface, but beside the
+   validated environment popover it becomes a second dark layer. The runtime
+   marks only that relationship, so standalone summaries keep their glass. */
+html[data-dream-skin="active"] [data-ds-part="environment-info-backdrop"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The profile menu is a portal-mounted role=menu.  The runtime marks only
+   the menu linked to the profile trigger, so project/chat menus keep their
+   native interaction surface. */
+html[data-dream-skin="active"] [data-ds-part="profile-menu"] {
+  color: var(--ds-text) !important;
+  background: rgb(var(--ds-panel-rgb) / .62) !important;
+  background-image: none !important;
+  box-shadow:
+    0 0 0 .5px var(--ds-line),
+    0 12px 30px rgb(var(--ds-bg-rgb) / .22) !important;
+  backdrop-filter: blur(14px) saturate(108%) !important;
+}
+
 html[data-dream-skin="active"]:is([data-dream-art-safe="left"], [data-dream-art-safe-area="left"]) {
   --ds-safe-side: left;
   --ds-art-position: 100% var(--ds-focus-y);
@@ -547,10 +608,8 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="full"], [data-dream-art
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="full"], [data-dream-art-task-mode="full"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
   main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) {
-  background: linear-gradient(90deg,
-    var(--ds-immersive-edge),
-    var(--ds-immersive-mid) 64%,
-    var(--ds-immersive-far)) !important;
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -581,11 +640,10 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
   main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) {
-  /* Keep the workspace on the same glass opacity as the sidebar. The
-     task-specific veil made the main pane read as a second opaque surface. */
-  background: linear-gradient(90deg,
-    rgb(var(--ds-panel-rgb) / .46),
-    rgb(var(--ds-bg-rgb) / .58) 100%) !important;
+  /* Keep a restrained glass tint so the artwork remains visible without
+     making the native conversation typography compete with bright pixels. */
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -701,6 +759,129 @@ html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surfa
   background: rgb(var(--ds-panel-rgb) / .52) !important;
   color: var(--ds-text) !important;
   backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+/* The right utility sidebar is a separate surface tree.  Live Codex builds
+   currently paint its outer wrapper, tabs root, and scroll body with the same
+   opaque bg-surface token.  The runtime marks only the wrapper associated
+   with the open sidebar trigger; clear the nested token layers so the glass is
+   painted once, while keeping the 46px tab toolbar readable. */
+html[data-dream-skin="active"] [data-ds-part="utility-side-panel"] {
+  color: var(--ds-text) !important;
+  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background-image: none !important;
+  border-left-color: var(--ds-line) !important;
+  box-shadow: 0 0 0 .5px var(--ds-line), -12px 0 30px rgb(var(--ds-bg-rgb) / .16) !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
+  [data-app-shell-tabs="true"],
+html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
+  [data-app-shell-tabs="true"] [class~="bg-surface"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
+  [data-app-shell-tabs="true"] [class~="h-toolbar"] {
+  background: rgb(var(--ds-panel-rgb) / .62) !important;
+  border-bottom: 1px solid var(--ds-line) !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+/* The bottom panel has the same tabs root but is anchored by inset-x/top and
+   the bottom tabpanel controller. Keep every panel background clear so the
+   terminal sits directly on the theme artwork without a second dark layer. */
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"] {
+  color: var(--ds-text) !important;
+  background: transparent !important;
+  background-image: none !important;
+  border-top-color: var(--ds-line) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [class~="app-theme"][class~="electron-dark"][class] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tabs="true"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [class~="h-toolbar-pane"][class] {
+  background: transparent !important;
+  background-image: none !important;
+  border-bottom: 1px solid var(--ds-line) !important;
+  backdrop-filter: none !important;
+}
+
+/* The terminal panel's active tab is a separate native surface inside the
+   toolbar.  Keep the tab readable, but do not let its bg-surface token form a
+   second opaque black rectangle over the glass panel. */
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tabs="true"] [class~="group/tab"][class~="bg-surface"] {
+  background: transparent !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tabs="true"] [class*="app-shell-tab-background"] {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tabs="true"] [class~="group/tab"] [class~="bg-surface"] {
+  background: transparent !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tabs="true"] [class~="w-max"][class~="bg-surface"] {
+  background: transparent !important;
+}
+
+/* The validated main interaction surface keeps a restrained 10% tint so the
+   artwork remains visible without making the native conversation typography
+   compete with bright pixels. Keep this scoped to the runtime marker;
+   composer, messages, controls, and other surfaces retain their own rules. */
+html[data-dream-skin="active"] [data-ds-part="main"] {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* The settings route keeps a native Electron content frame inside the main
+   surface. Live Windows DOM shows that frame as rgb(17,17,17) with an
+   elevation shadow, which covers the already-translucent main surface. The
+   runtime marks only this structurally verified frame. Make the frame itself
+   clear so the parent main tint is painted once; settings cards and controls
+   inside it retain their native surfaces and readability. */
+html[data-dream-skin="active"] [data-ds-part="settings-page"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Typography stays native here. A previous scoped text-shadow experiment
+   created a halo around glyphs; contrast is now controlled by the surface
+   tint above, without changing font color or adding a text effect. */
+
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [data-app-shell-tab-panel-controller="bottom"] {
+  background: transparent !important;
 }
 
 html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) article {
@@ -1157,10 +1338,8 @@ html[data-dream-skin="active"][data-dream-art-wide="true"]:not(:has(main:is(.mai
   [data-ds-part="main"],
 html[data-dream-skin="active"][data-dream-art-wide="true"]:not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])))
   :not(:has([data-ds-part="main"])) > [data-ds-part="home"] {
-  background: linear-gradient(90deg,
-    var(--ds-immersive-edge),
-    var(--ds-immersive-mid) 64%,
-    var(--ds-immersive-far)) !important;
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
   border: 0 !important;
   box-shadow: none !important;
 }
@@ -1199,10 +1378,8 @@ html[data-dream-skin="active"][data-dream-art-wide="true"]:has(main:is(.main-sur
 }
 
 html[data-dream-skin="active"][data-dream-art-wide="true"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):has([role="main"]) {
-  background: linear-gradient(90deg,
-    var(--ds-immersive-edge),
-    var(--ds-immersive-mid) 64%,
-    var(--ds-immersive-far)) !important;
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1584,6 +1761,34 @@ html[data-dream-skin="active"] [data-ds-part="message"] { border-radius: 16px; }
   html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]) [data-feature="game-source"]::before { margin-bottom: 7px; font-size: 10px; }
   html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]) [data-feature="game-source"]::after { margin-top: 9px; font-size: 11px; }
   html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]) .group\/home-suggestions button { min-height: 112px !important; font-size: 12px !important; }
+}
+
+/* The validated sidebar is also used as a floating surface when the shell
+   reopens it from the title-bar toggle. Match the main surface's restrained
+   tint; the navigation must not add a second background blur over the artwork. */
+html[data-dream-skin="active"] [data-ds-part="sidebar"] {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The immersive shell's legacy aside rule is intentionally more specific
+   than the public part marker above. Mirror that observed shell state and
+   append the marker so only the validated sidebar receives the glass alpha. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
+  aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])[data-ds-part="sidebar"] {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Home uses a separate immersive selector with the same specificity issue.
+   Keep the override limited to the validated sidebar marker there too. */
+html[data-dream-skin="active"][data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"])
+  aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])[data-ds-part="sidebar"] {
+  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
 }
 
 @layer dreamskin-accessibility {

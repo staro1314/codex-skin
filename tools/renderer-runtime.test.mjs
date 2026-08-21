@@ -28,10 +28,18 @@ function classList(initial) {
 }
 
 function makeFixture({
-  nativeAppearance = "dark", settings = false, settingsPanel = false, adopted = true,
+  nativeAppearance = "dark", settings = false, settingsPanel = false, settingsPage = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
+  lateComposer = false,
   modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
   locationHref = "app://-/index.html", visibilityState = "visible", overlay = false,
+  profileMenu = false,
+  floatingLeftPanel = false,
+  utilitySidePanel = false,
+  bottomPanel = false,
+  environmentInfoPopover = false,
+  environmentInfoBackdrop = false,
+  environmentInfoText = "环境信息变更本地来源查看全部",
   legacyVideoPortalSheet = false,
 } = {}) {
   const attrs = new Map();
@@ -60,6 +68,7 @@ function makeFixture({
       removeAttribute(attribute) { values.delete(attribute); },
       appendChild(child) { child.parentElement = node; return child; },
       matches(selector) { return selectorMatches.has(selector); },
+      addMatch(selector) { selectorMatches.add(selector); },
       closest(selector) {
         let current = node;
         while (current) {
@@ -100,6 +109,7 @@ function makeFixture({
     selectorNodes.set(selector, current);
   };
   const partFixtures = {};
+  let activateLateComposer = () => {};
   if (!settings && !settingsPanel && generic) {
     const mainSelector = 'main, [role="main"]';
     const inputSelector = 'textarea, [contenteditable="true"], [role="textbox"]';
@@ -112,9 +122,15 @@ function makeFixture({
     partFixtures.main = makeDomNode("generic-main", partFixtures.shell, new Map(), [mainSelector]);
     if (genericComposer) {
       partFixtures.composer = makeDomNode(
-        "generic-composer", partFixtures.main, new Map(), [composerSelector],
+        "generic-composer", partFixtures.main, new Map(), lateComposer ? [] : [composerSelector],
       );
       partFixtures.input = makeDomNode("generic-input", partFixtures.composer, new Map(), [inputSelector]);
+      if (lateComposer) {
+        activateLateComposer = () => {
+          partFixtures.composer.addMatch(composerSelector);
+          partFixtures.composer.setAttribute("class", "_ComposerLayoutRoot_fixture");
+        };
+      }
     }
     partFixtures.unrelatedAside = makeDomNode(
       "generic-content-aside", partFixtures.main, new Map(), [sidebarSelector],
@@ -164,6 +180,16 @@ function makeFixture({
       register("[data-codex-state]", signalNode);
     }
     register('aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])', partFixtures.sidebar);
+    if (floatingLeftPanel) {
+      const floatingLeftPanelSelector = 'aside[data-testid="app-shell-floating-left-panel"]';
+      partFixtures.floatingLeftPanel = makeDomNode(
+        "floating-left-panel",
+        body,
+        new Map([["data-testid", "app-shell-floating-left-panel"]]),
+        [floatingLeftPanelSelector],
+      );
+      register(floatingLeftPanelSelector, partFixtures.floatingLeftPanel);
+    }
     register("main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", partFixtures.main);
     register("header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", partFixtures.header);
     if (!threadRoute) {
@@ -183,6 +209,120 @@ function makeFixture({
     }
     register(".composer-surface-chrome", partFixtures.composer);
     register('.composer-surface-chrome [class*="_footer_"]', partFixtures.composerToolbar);
+    if (profileMenu) {
+      const triggerSelector = "button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']";
+      const triggerId = "profile-menu-trigger";
+      const menuId = "profile-menu-content";
+      partFixtures.profileTrigger = makeDomNode(
+        "profile-menu-trigger",
+        partFixtures.sidebar,
+        new Map([
+          ["id", triggerId], ["aria-expanded", "true"],
+          ["aria-controls", menuId], ["aria-haspopup", "menu"],
+        ]),
+        [triggerSelector],
+      );
+      partFixtures.profileMenu = makeDomNode(
+        "profile-menu",
+        body,
+        new Map([
+          ["id", menuId], ["role", "menu"], ["aria-labelledby", triggerId],
+          ["data-state", "open"],
+        ]),
+        ['[role="menu"]'],
+      );
+      nodes.set(menuId, partFixtures.profileMenu);
+      register(triggerSelector, partFixtures.profileTrigger);
+      register('[role="menu"]', partFixtures.profileMenu);
+    }
+    if (environmentInfoPopover) {
+      const environmentSelector = 'div[class~="bg-surface-elevated-secondary"][class~="rounded-3xl"]:has(> [class~="overflow-y-auto"])';
+      partFixtures.environmentInfoPopover = makeDomNode(
+        "environment-info-popover",
+        body,
+        new Map([[
+          "class",
+          "relative flex max-h-full min-h-0 flex-col overflow-hidden rounded-3xl " +
+            "bg-surface-elevated-secondary electron:elevation-prominent",
+        ]]),
+        [environmentSelector],
+      );
+      partFixtures.environmentInfoPopover.textContent = environmentInfoText;
+      register(environmentSelector, partFixtures.environmentInfoPopover);
+    if (environmentInfoBackdrop) {
+        const backdropSelector = '[data-pip-home-surface="thread-summary-panel"]';
+        partFixtures.environmentInfoBackdrop = makeDomNode(
+          "environment-info-backdrop",
+          body,
+          new Map([["data-pip-home-surface", "thread-summary-panel"]]),
+          [backdropSelector],
+        );
+        register(backdropSelector, partFixtures.environmentInfoBackdrop);
+      }
+    }
+    if (utilitySidePanel) {
+      const trigger = makeDomNode(
+        "utility-side-panel-trigger",
+        body,
+        new Map([[
+          "aria-label", "显示/隐藏侧边栏",
+        ], ["aria-pressed", "true"]]),
+      );
+      const triggerSelector = 'button[aria-label="显示/隐藏侧边栏"]';
+      register("button", trigger);
+      register(triggerSelector, trigger);
+      const utilitySelector =
+        'div[class~="absolute"][class~="top-0"][class~="bottom-0"][class~="left-0"]' +
+        '[class~="min-w-0"][class~="bg-surface"][class~="border-l"][class~="border-default"]' +
+        ':has([data-app-shell-tabs="true"]):not(:has([data-app-shell-tab-panel-controller="bottom"]))';
+      partFixtures.utilitySidePanel = makeDomNode(
+        "utility-side-panel",
+        body,
+        new Map(),
+        [utilitySelector],
+      );
+      register(utilitySelector, partFixtures.utilitySidePanel);
+    }
+    if (bottomPanel) {
+      const trigger = makeDomNode(
+        "bottom-panel-trigger",
+        body,
+        new Map([[
+          "aria-label", "切换底部面板显示",
+        ], ["aria-pressed", "true"]]),
+      );
+      const triggerSelector = 'button[aria-label="切换底部面板显示"]';
+      register("button", trigger);
+      register(triggerSelector, trigger);
+      const bottomSelector =
+        'div[class~="absolute"][class~="inset-x-0"][class~="top-0"][class~="min-h-0"]' +
+        '[class~="border-t"][class~="border-default"][class~="bg-surface"]' +
+        ':has([data-app-shell-tabs="true"]):has([data-app-shell-tab-panel-controller="bottom"])';
+      partFixtures.bottomPanel = makeDomNode(
+        "bottom-panel",
+        body,
+        new Map(),
+        [bottomSelector],
+      );
+      register(bottomSelector, partFixtures.bottomPanel);
+    }
+  }
+  if (settingsPage) {
+    const settingsPageSelector =
+      'div[class~="electron:bg-surface"][class~="electron:elevation-prominent"]' +
+      '[class~="windows:rounded-tl-lg"]:has(> [class~="draggable"][class~="electron:h-toolbar"])' +
+      ':has(> [class~="overflow-y-auto"])';
+    partFixtures.settingsPage = makeDomNode(
+      "settings-page",
+      body,
+      new Map([[
+        "class",
+        "flex h-full min-h-0 flex-col electron:overflow-hidden electron:bg-surface " +
+          "electron:elevation-prominent windows:rounded-tl-lg",
+      ]]),
+      [settingsPageSelector],
+    );
+    register(settingsPageSelector, partFixtures.settingsPage);
   }
   if (overlay) {
     partFixtures.overlay = makeDomNode("overlay-menu", body);
@@ -319,7 +459,7 @@ function makeFixture({
     return node;
   };
   return {
-    addDynamicMessage, attrs, context, document, domNodes, flushTimers, intervals, listeners,
+    activateLateComposer, addDynamicMessage, attrs, context, document, domNodes, flushTimers, intervals, listeners,
     nodes, observers, partFixtures, payloadFor, revoked, root, rootClasses, rootStyle, timers, videoNodes, window,
   };
 }
@@ -435,10 +575,56 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Rebuilt hover sidebars must use the skin glass surface.");
   assert.match(css, /\[class~="bg-token-dropdown-background"\][\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
     "Floating dropdown surfaces must remain translucent under the skin.");
+  assert.match(css, /\[data-pip-home-surface="thread-summary-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.72\)/,
+    "The native thread summary panel must use the scoped readable glass surface.");
+  assert.match(css, /\[data-pip-home-surface="thread-summary-panel"\][\s\S]{0,520}backdrop-filter:\s*blur\(14px\) saturate\(108%\)/,
+    "The native thread summary panel must retain the scoped glass blur.");
+  assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
+    "The live environment-information popover must use a scoped translucent glass surface.");
+  assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,700}header\[class~="bg-surface-elevated-secondary"\]::before[\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
+    "The environment-information section header veil must match the translucent popover surface.");
+  assert.match(css, /\[data-ds-part="environment-info-backdrop"\][\s\S]{0,300}background:\s*transparent[\s\S]{0,220}backdrop-filter:\s*none/,
+    "The environment popover's same-sized native backdrop must not add a second dark layer.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="profile-menu"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.62\)/,
+    "Only the runtime-marked profile menu must use the readable glass surface.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="sidebar"\]\s*\{[\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)/,
+    "The validated sidebar and its floating variant must match the main surface tint.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="sidebar"\]\s*\{[\s\S]{0,320}backdrop-filter:\s*none/,
+    "The validated sidebar and its floating variant must not add a second background blur.");
+  assert.match(css, /:is\(\[data-dream-task-mode="ambient"\][\s\S]{0,520}\[data-ds-part="sidebar"\]\s*\{[\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)/,
+    "The unified sidebar tint must outrank the immersive shell's legacy aside rule.");
+  assert.match(css, /:is\(\[data-dream-task-mode="ambient"\][\s\S]{0,520}\[data-ds-part="sidebar"\]\s*\{[\s\S]{0,320}backdrop-filter:\s*none/,
+    "The immersive sidebar override must also remove the extra background blur.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
+    "The validated main interaction surface must use a restrained transparent tint.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="settings-page"\][\s\S]{0,300}background:\s*transparent[\s\S]{0,180}background-image:\s*none[\s\S]{0,180}box-shadow:\s*none[\s\S]{0,180}backdrop-filter:\s*none/,
+    "The native settings content frame must clear its opaque surface and elevation without changing inner settings cards.");
+  assert.doesNotMatch(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,700}text-shadow:/,
+    "The main interaction surface must not add a glyph halo or scoped text shadow.");
+  assert.match(css, /__DREAM_SELECTOR_SHELL_MAIN__:\s*not\([^)]*\)[\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
+    "The state-specific main interaction surface override must keep the restrained tint.");
   assert.match(css, /\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.52\)/,
     "Dynamic terminal panes must use the skin glass surface.");
+  assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
+    "The verified right utility sidebar wrapper must use a translucent glass surface.");
+  assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,900}\[data-app-shell-tabs="true"\][\s\S]{0,300}\[class~="h-toolbar"\][\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.62\)/,
+    "The right utility sidebar tab toolbar must remain translucent and readable.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,420}background:\s*transparent[\s\S]{0,220}box-shadow:\s*none[\s\S]{0,120}backdrop-filter:\s*none/,
+    "The verified bottom panel wrapper must not add a dark fill, shadow, or blur.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,520}\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,220}background:\s*transparent/,
+    "Only the bottom panel terminal content must use a transparent surface.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,900}\[class~="h-toolbar-pane"\][\s\S]{0,220}background:\s*transparent[\s\S]{0,180}backdrop-filter:\s*none/,
+    "The bottom panel toolbar must not restore an opaque or blurred native surface.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="group\/tab"\][\s\S]{0,260}background:\s*transparent/,
+    "The bottom panel active tab must not restore an opaque native surface.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1800}\[class~="w-max"\]\[class~="bg-surface"\][\s\S]{0,180}background:\s*transparent/,
+    "The bottom panel tab controls must remain transparent.");
   assert.match(css, /\[class\*="_ComposerLayoutRoot_"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
     "Current Codex composer roots must use the skin glass surface.");
+  assert.match(css, /:has\(main:is\([^)]*\) \[role="main"\]\)\s+aside:is\([^)]*\)\[data-ds-part="sidebar"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)/,
+    "The home immersive sidebar override must retain the unified tint.");
+  assert.match(css, /:has\(main:is\([^)]*\) \[role="main"\]\)\s+aside:is\([^)]*\)\[data-ds-part="sidebar"\][\s\S]{0,320}backdrop-filter:\s*none/,
+    "The home immersive sidebar override must also remove the extra background blur.");
 
   const home = makeFixture({ nativeAppearance: "dark" });
   vm.runInNewContext(home.payloadFor({ art: { safeArea: "left", taskMode: "banner" } }), home.context);
@@ -679,6 +865,20 @@ export async function runRendererRuntimeTest(assetRoot) {
   const partObserver = home.observers.find((observer) => observer.options?.childList);
   const rootObserver = home.observers.find((observer) => observer.options?.attributes);
   assert.ok(partObserver?.options?.subtree, "Dynamic parts require one subtree child-list observer");
+  assert.equal(partObserver?.options?.attributes, true,
+    "Dynamic parts must also react when a reused composer changes its class or role.");
+  assert.ok(partObserver?.options?.attributeFilter?.includes("class"),
+    "Composer class changes must trigger the first-paint part refresh.");
+  assert.ok(partObserver?.options?.attributeFilter?.includes("aria-expanded"),
+    "Profile menu trigger state changes must refresh the scoped menu marker.");
+  assert.ok(partObserver?.options?.attributeFilter?.includes("aria-pressed"),
+    "Panel trigger state changes must refresh the scoped utility/bottom panel markers.");
+  assert.ok(partObserver?.options?.attributeFilter?.includes("aria-labelledby"),
+    "Portal menu ownership changes must refresh the scoped menu marker.");
+  assert.ok(partObserver?.options?.attributeFilter?.includes("data-testid"),
+    "Semantic test-id changes must trigger the first-paint part refresh.");
+  assert.equal(partObserver?.options?.attributeFilter?.includes("data-ds-part"), false,
+    "The public part marker must not make its own observer loop.");
   assert.ok(rootObserver && !rootObserver.options?.childList && !rootObserver.options?.subtree);
   const expectedParts = {
     sidebar: "sidebar",
@@ -712,6 +912,60 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(modernMessages.partFixtures.assistantMessage.getAttribute("data-ds-part"), "message",
     "Codex 26.727 assistant message containers must expose the public message part.");
 
+  const profile = makeFixture({ nativeAppearance: "dark", profileMenu: true });
+  vm.runInNewContext(profile.payloadFor(), profile.context);
+  assert.equal(profile.partFixtures.profileMenu.getAttribute("data-ds-part"), "profile-menu",
+    "The profile trigger's portal menu must receive a dedicated visual part.");
+  assert.equal(profile.partFixtures.profileTrigger.getAttribute("data-ds-part"), null,
+    "The profile trigger itself must not receive the menu surface marker.");
+
+  const floatingLeftPanel = makeFixture({ nativeAppearance: "dark", floatingLeftPanel: true });
+  vm.runInNewContext(floatingLeftPanel.payloadFor(), floatingLeftPanel.context);
+  assert.equal(floatingLeftPanel.partFixtures.floatingLeftPanel.getAttribute("data-ds-part"), "sidebar",
+    "The exact app-shell floating left panel must reuse the validated sidebar glass surface.");
+
+  const utilitySidePanel = makeFixture({ nativeAppearance: "dark", utilitySidePanel: true });
+  vm.runInNewContext(utilitySidePanel.payloadFor(), utilitySidePanel.context);
+  assert.equal(utilitySidePanel.partFixtures.utilitySidePanel.getAttribute("data-ds-part"),
+    "utility-side-panel",
+    "The exact open right utility sidebar must receive its dedicated visual part.");
+
+  const bottomPanel = makeFixture({ nativeAppearance: "dark", bottomPanel: true });
+  vm.runInNewContext(bottomPanel.payloadFor(), bottomPanel.context);
+  assert.equal(bottomPanel.partFixtures.bottomPanel.getAttribute("data-ds-part"),
+    "bottom-panel",
+    "The exact open bottom panel must receive its dedicated visual part.");
+
+  const environment = makeFixture({ nativeAppearance: "dark", threadRoute: true, environmentInfoPopover: true });
+  vm.runInNewContext(environment.payloadFor(), environment.context);
+  assert.equal(environment.partFixtures.environmentInfoPopover.getAttribute("data-ds-part"),
+    "environment-info-popover",
+    "The structurally verified environment-information surface must receive its dedicated marker.");
+
+  const environmentWithBackdrop = makeFixture({
+    nativeAppearance: "dark", threadRoute: true, environmentInfoPopover: true,
+    environmentInfoBackdrop: true,
+  });
+  vm.runInNewContext(environmentWithBackdrop.payloadFor(), environmentWithBackdrop.context);
+  assert.equal(environmentWithBackdrop.partFixtures.environmentInfoBackdrop.getAttribute("data-ds-part"),
+    "environment-info-backdrop",
+    "Only the same-container summary backdrop beside the environment surface receives the clear-layer marker.");
+
+  const unrelatedSurface = makeFixture({
+    nativeAppearance: "dark",
+    threadRoute: true,
+    environmentInfoPopover: true,
+    environmentInfoText: "产出创建来源查看全部",
+  });
+  vm.runInNewContext(unrelatedSurface.payloadFor(), unrelatedSurface.context);
+  assert.equal(unrelatedSurface.partFixtures.environmentInfoPopover.getAttribute("data-ds-part"), null,
+    "A same-shaped output/source surface must not receive the environment-information marker.");
+
+  const unrelatedMenu = makeFixture({ nativeAppearance: "dark", overlay: true });
+  vm.runInNewContext(unrelatedMenu.payloadFor(), unrelatedMenu.context);
+  assert.equal(unrelatedMenu.partFixtures.overlay.getAttribute("data-ds-part"), null,
+    "Other role=menu overlays must remain outside the profile-menu surface rule.");
+
   const generic = makeFixture({ nativeAppearance: "dark", generic: true });
   vm.runInNewContext(generic.payloadFor(), generic.context);
   assert.equal(generic.partFixtures.sidebar.getAttribute("data-ds-part"), "sidebar");
@@ -723,6 +977,17 @@ export async function runRendererRuntimeTest(assetRoot) {
     "An aside inside the main content must not be exposed as the app sidebar.");
   assert.equal(generic.partFixtures.dialogInput.getAttribute("data-ds-part"), null,
     "Dialog inputs must not be mistaken for the app composer.");
+
+  const lateGeneric = makeFixture({ nativeAppearance: "dark", generic: true, lateComposer: true });
+  vm.runInNewContext(lateGeneric.payloadFor(), lateGeneric.context);
+  assert.equal(lateGeneric.partFixtures.composer.getAttribute("data-ds-part"), null,
+    "A reused composer must remain unmarked before its semantic class is mounted.");
+  const latePartObserver = lateGeneric.observers.find((observer) => observer.options?.childList);
+  lateGeneric.activateLateComposer();
+  latePartObserver.callback([{ type: "attributes", attributeName: "class" }]);
+  lateGeneric.flushTimers(80);
+  assert.equal(lateGeneric.partFixtures.composer.getAttribute("data-ds-part"), "composer",
+    "A class-only composer mount must receive its public part before the next interaction.");
 
   const genericSearch = makeFixture({
     nativeAppearance: "dark", generic: true, genericComposer: false, genericSearch: true,
@@ -853,6 +1118,13 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(currentSettingsScope.missingL1.length, 0);
   assert.equal(currentSettings.attrs.get("data-dream-skin"), "active");
   assert.equal(currentSettings.document.adoptedStyleSheets.length, 1);
+
+  const settingsPage = makeFixture({ nativeAppearance: "light", settings: true, settingsPage: true });
+  vm.runInNewContext(settingsPage.payloadFor(), settingsPage.context);
+  assert.equal(settingsPage.window.__CODEX_DREAM_SKIN_STATE__.scope.baseState, "settings",
+    "The structurally verified settings content frame must classify every settings menu as Settings.");
+  assert.equal(settingsPage.partFixtures.settingsPage.getAttribute("data-ds-part"), "settings-page",
+    "The settings content frame must receive its dedicated transparency marker.");
 
   const explicit = makeFixture({ nativeAppearance: "light" });
   const result = vm.runInNewContext(explicit.payloadFor({ appearance: "dark", quote: "TEST QUOTE" }), explicit.context);

@@ -1,6 +1,6 @@
 // Canonical cross-platform renderer. Run tools/sync-runtime-assets.mjs after editing.
 ((cssText, artDataUrl, themeConfig) => {
-  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
+  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"profile-menu-trigger","selector":"button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']","tier":"L2","scope":"all","required":false},{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"floating-left-panel","selector":"aside[data-testid=\"app-shell-floating-left-panel\"]","tier":"L2","scope":"overlay","required":false},{"key":"utility-side-panel","selector":"div[class~=\"absolute\"][class~=\"top-0\"][class~=\"bottom-0\"][class~=\"left-0\"][class~=\"min-w-0\"][class~=\"bg-surface\"][class~=\"border-l\"][class~=\"border-default\"]:has([data-app-shell-tabs=\"true\"]):not(:has([data-app-shell-tab-panel-controller=\"bottom\"]))","tier":"L2","scope":"overlay","required":false},{"key":"bottom-panel","selector":"div[class~=\"absolute\"][class~=\"inset-x-0\"][class~=\"top-0\"][class~=\"min-h-0\"][class~=\"border-t\"][class~=\"border-default\"][class~=\"bg-surface\"]:has([data-app-shell-tabs=\"true\"]):has([data-app-shell-tab-panel-controller=\"bottom\"])","tier":"L2","scope":"overlay","required":false},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"settings-page","selector":"div[class~=\"electron:bg-surface\"][class~=\"electron:elevation-prominent\"][class~=\"windows:rounded-tl-lg\"]:has(> [class~=\"draggable\"][class~=\"electron:h-toolbar\"]):has(> [class~=\"overflow-y-auto\"])","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false},{"key":"environment-info-popover","selector":"div[class~=\"bg-surface-elevated-secondary\"][class~=\"rounded-3xl\"]:has(> [class~=\"overflow-y-auto\"])","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const VIDEO_SOURCE_KEY = "__CODEX_DREAM_SKIN_VIDEO_SOURCE__";
   const VIDEO_TRANSFER_KEY = "__CODEX_DREAM_SKIN_VIDEO_TRANSFER__";
@@ -899,6 +899,45 @@
       }
       return [];
     })();
+  const profileMenuNodes = () => {
+    const trigger = selectorNodes("profile-menu-trigger")
+      .find((node) => node.getAttribute?.("aria-expanded") === "true");
+    const triggerId = trigger?.getAttribute?.("id");
+    const menuId = trigger?.getAttribute?.("aria-controls");
+    if (!triggerId || !menuId) return [];
+    const menu = document.getElementById?.(menuId);
+    if (!menu || menu.getAttribute?.("role") !== "menu" ||
+      menu.getAttribute?.("aria-labelledby") !== triggerId) return [];
+    return [menu];
+  };
+  const pressedPanelTrigger = (ariaLabel) => genericNodes(
+    `button[aria-label="${ariaLabel}"]`,
+  ).find((node) => node.getAttribute?.("aria-pressed") === "true");
+  const utilitySidePanelNodes = () => pressedPanelTrigger("显示/隐藏侧边栏")
+    ? selectorNodes("utility-side-panel") : [];
+  const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
+    ? selectorNodes("bottom-panel") : [];
+  const environmentInfoPopoverNodes = () => selectorNodes("environment-info-popover")
+    .filter((node) => String(node.textContent || "").includes("环境信息"));
+  const environmentInfoBackdropNodes = () => {
+    const popovers = environmentInfoPopoverNodes();
+    const backdrops = [...(document.querySelectorAll?.(
+      '[data-pip-home-surface="thread-summary-panel"]',
+    ) || [])];
+    const result = [];
+    for (const popover of popovers) {
+      let current = popover.parentElement;
+      for (let depth = 0; current && depth < 6; depth += 1, current = current.parentElement) {
+        const backdrop = backdrops.find((node) => node.parentElement === current);
+        if (backdrop) {
+          result.push(backdrop);
+          break;
+        }
+      }
+    }
+    return result;
+  };
+  const settingsPageNodes = () => selectorNodes("settings-page");
   const addPart = (desired, part, nodes) => {
     for (const node of nodes) {
       if (node && typeof node.setAttribute === "function" && !desired.has(node)) {
@@ -910,7 +949,11 @@
     metrics.partPasses += 1;
     const desired = new Map();
     addPart(desired, "root", [document.documentElement]);
-    addPart(desired, "sidebar", [...selectorNodes("left-panel"), ...fallbackSidebarNodes()]);
+    addPart(desired, "sidebar", [
+      ...selectorNodes("left-panel"),
+      ...selectorNodes("floating-left-panel"),
+      ...fallbackSidebarNodes(),
+    ]);
     addPart(desired, "header", selectorNodes("header-tint"));
     // Route-specific parts win when a generic shell collapses home and main
     // onto the same element.
@@ -922,6 +965,12 @@
     addPart(desired, "composer", [...selectorNodes("composer-chrome"), ...fallbackComposerNodes()]);
     addPart(desired, "composer-toolbar", selectorNodes("composer-toolbar"));
     addPart(desired, "dialog", selectorNodes("overlay-dialog"));
+    addPart(desired, "profile-menu", profileMenuNodes());
+    addPart(desired, "utility-side-panel", utilitySidePanelNodes());
+    addPart(desired, "bottom-panel", bottomPanelNodes());
+    addPart(desired, "environment-info-popover", environmentInfoPopoverNodes());
+    addPart(desired, "environment-info-backdrop", environmentInfoBackdropNodes());
+    addPart(desired, "settings-page", settingsPageNodes());
     const homeHero = selectorNodes("game-source")[0] ??
       selectorNodes("home-icon")[0]?.parentElement;
     addPart(desired, "home-hero", homeHero ? [homeHero] : []);
@@ -960,7 +1009,7 @@
     const overlay = selectorHit("overlay-menu") || selectorHit("overlay-dialog") ||
       selectorHit("overlay-popper");
     let baseState = "thread";
-    if (selectorHit("settings-panel") || selectorHit("appearance-radio") ||
+    if (selectorHit("settings-page") || selectorHit("settings-panel") || selectorHit("appearance-radio") ||
       stableTestidHit("theme-preview")) baseState = "settings";
     else if (selectorHit("home-icon") || selectorHit("home-route")) baseState = "home";
     else if (!selectorHit("shell-main") && !document.querySelector('main, [role="main"]')) baseState = "settings";
@@ -1248,7 +1297,10 @@
     rootObserver = new MutationObserver(() => scheduleEnsure({ root: true }));
     // SPA route changes are observable as DOM mutations even when Chromium's
     // Navigation API emits no event. Keep verification scope and public parts
-    // derived from the same post-mutation tree.
+    // derived from the same post-mutation tree. Some routes, including a new
+    // conversation, reuse the composer node and only switch its class or
+    // semantic attributes after insertion; without attribute observation the
+    // first paint keeps native opaque styling until the next interaction.
     partObserver = new MutationObserver(() => scheduleEnsure({ scope: true, parts: true }, 80));
   }
 
@@ -1334,7 +1386,16 @@
   };
   const observePartTree = (node) => {
     if (!partObserver || !node) return;
-    partObserver.observe(node, { childList: true, subtree: true });
+    partObserver.observe(node, {
+      attributes: true,
+      attributeFilter: [
+        "aria-controls", "aria-expanded", "aria-hidden", "aria-labelledby", "aria-pressed",
+        "aria-modal", "class", "data-app-shell-main-surface", "data-settings-panel-slug",
+        "data-state", "data-testid", "role",
+      ],
+      childList: true,
+      subtree: true,
+    });
   };
   observeAttributes(document.documentElement);
   const observeBody = () => {

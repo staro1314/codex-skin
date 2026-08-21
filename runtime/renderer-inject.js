@@ -899,6 +899,45 @@
       }
       return [];
     })();
+  const profileMenuNodes = () => {
+    const trigger = selectorNodes("profile-menu-trigger")
+      .find((node) => node.getAttribute?.("aria-expanded") === "true");
+    const triggerId = trigger?.getAttribute?.("id");
+    const menuId = trigger?.getAttribute?.("aria-controls");
+    if (!triggerId || !menuId) return [];
+    const menu = document.getElementById?.(menuId);
+    if (!menu || menu.getAttribute?.("role") !== "menu" ||
+      menu.getAttribute?.("aria-labelledby") !== triggerId) return [];
+    return [menu];
+  };
+  const pressedPanelTrigger = (ariaLabel) => genericNodes(
+    `button[aria-label="${ariaLabel}"]`,
+  ).find((node) => node.getAttribute?.("aria-pressed") === "true");
+  const utilitySidePanelNodes = () => pressedPanelTrigger("显示/隐藏侧边栏")
+    ? selectorNodes("utility-side-panel") : [];
+  const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
+    ? selectorNodes("bottom-panel") : [];
+  const environmentInfoPopoverNodes = () => selectorNodes("environment-info-popover")
+    .filter((node) => String(node.textContent || "").includes("环境信息"));
+  const environmentInfoBackdropNodes = () => {
+    const popovers = environmentInfoPopoverNodes();
+    const backdrops = [...(document.querySelectorAll?.(
+      '[data-pip-home-surface="thread-summary-panel"]',
+    ) || [])];
+    const result = [];
+    for (const popover of popovers) {
+      let current = popover.parentElement;
+      for (let depth = 0; current && depth < 6; depth += 1, current = current.parentElement) {
+        const backdrop = backdrops.find((node) => node.parentElement === current);
+        if (backdrop) {
+          result.push(backdrop);
+          break;
+        }
+      }
+    }
+    return result;
+  };
+  const settingsPageNodes = () => selectorNodes("settings-page");
   const addPart = (desired, part, nodes) => {
     for (const node of nodes) {
       if (node && typeof node.setAttribute === "function" && !desired.has(node)) {
@@ -910,7 +949,11 @@
     metrics.partPasses += 1;
     const desired = new Map();
     addPart(desired, "root", [document.documentElement]);
-    addPart(desired, "sidebar", [...selectorNodes("left-panel"), ...fallbackSidebarNodes()]);
+    addPart(desired, "sidebar", [
+      ...selectorNodes("left-panel"),
+      ...selectorNodes("floating-left-panel"),
+      ...fallbackSidebarNodes(),
+    ]);
     addPart(desired, "header", selectorNodes("header-tint"));
     // Route-specific parts win when a generic shell collapses home and main
     // onto the same element.
@@ -922,6 +965,12 @@
     addPart(desired, "composer", [...selectorNodes("composer-chrome"), ...fallbackComposerNodes()]);
     addPart(desired, "composer-toolbar", selectorNodes("composer-toolbar"));
     addPart(desired, "dialog", selectorNodes("overlay-dialog"));
+    addPart(desired, "profile-menu", profileMenuNodes());
+    addPart(desired, "utility-side-panel", utilitySidePanelNodes());
+    addPart(desired, "bottom-panel", bottomPanelNodes());
+    addPart(desired, "environment-info-popover", environmentInfoPopoverNodes());
+    addPart(desired, "environment-info-backdrop", environmentInfoBackdropNodes());
+    addPart(desired, "settings-page", settingsPageNodes());
     const homeHero = selectorNodes("game-source")[0] ??
       selectorNodes("home-icon")[0]?.parentElement;
     addPart(desired, "home-hero", homeHero ? [homeHero] : []);
@@ -960,7 +1009,7 @@
     const overlay = selectorHit("overlay-menu") || selectorHit("overlay-dialog") ||
       selectorHit("overlay-popper");
     let baseState = "thread";
-    if (selectorHit("settings-panel") || selectorHit("appearance-radio") ||
+    if (selectorHit("settings-page") || selectorHit("settings-panel") || selectorHit("appearance-radio") ||
       stableTestidHit("theme-preview")) baseState = "settings";
     else if (selectorHit("home-icon") || selectorHit("home-route")) baseState = "home";
     else if (!selectorHit("shell-main") && !document.querySelector('main, [role="main"]')) baseState = "settings";
@@ -1248,7 +1297,10 @@
     rootObserver = new MutationObserver(() => scheduleEnsure({ root: true }));
     // SPA route changes are observable as DOM mutations even when Chromium's
     // Navigation API emits no event. Keep verification scope and public parts
-    // derived from the same post-mutation tree.
+    // derived from the same post-mutation tree. Some routes, including a new
+    // conversation, reuse the composer node and only switch its class or
+    // semantic attributes after insertion; without attribute observation the
+    // first paint keeps native opaque styling until the next interaction.
     partObserver = new MutationObserver(() => scheduleEnsure({ scope: true, parts: true }, 80));
   }
 
@@ -1334,7 +1386,16 @@
   };
   const observePartTree = (node) => {
     if (!partObserver || !node) return;
-    partObserver.observe(node, { childList: true, subtree: true });
+    partObserver.observe(node, {
+      attributes: true,
+      attributeFilter: [
+        "aria-controls", "aria-expanded", "aria-hidden", "aria-labelledby", "aria-pressed",
+        "aria-modal", "class", "data-app-shell-main-surface", "data-settings-panel-slug",
+        "data-state", "data-testid", "role",
+      ],
+      childList: true,
+      subtree: true,
+    });
   };
   observeAttributes(document.documentElement);
   const observeBody = () => {

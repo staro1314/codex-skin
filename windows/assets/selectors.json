@@ -49,8 +49,12 @@
     "config": "依赖用户配置才出现（如未配置项目则无项目选择器）"
   },
   "selectors": [
+    { "key": "profile-menu-trigger", "selector": "button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']", "tier": "L2", "scope": "all", "required": false, "notes": "左下角用户菜单触发器；使用 aria-controls/aria-labelledby 关系标记对应菜单，避免把其他 role=menu 一并改样式" },
     { "key": "shell-main", "selector": "main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "全局主表面。26.727.40816 提供 data-app-shell-main-surface，并使用 _MainContentSurface_ CSS Module；保留旧类兼容历史版本，前缀只限定在 main 元素。mac 设置页缺失（win 存在），缺失时整页仅 L0" },
     { "key": "left-panel", "selector": "aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])", "tier": "L1", "scope": "all", "required": true, "notes": "左侧栏；兼容旧版 app-shell-left-panel 与新版 token surface 侧栏，收起/重建时会移除节点，勿在其消失时清皮" },
+    { "key": "floating-left-panel", "selector": "aside[data-testid=\"app-shell-floating-left-panel\"]", "tier": "L2", "scope": "overlay", "required": false, "notes": "Windows 26.803 实测由标题栏按钮展开的左侧浮动栏；使用专用稳定 testid 精确识别，不扩大到其他 aside 或工具面板" },
+    { "key": "utility-side-panel", "selector": "div[class~=\"absolute\"][class~=\"top-0\"][class~=\"bottom-0\"][class~=\"left-0\"][class~=\"min-w-0\"][class~=\"bg-surface\"][class~=\"border-l\"][class~=\"border-default\"]:has([data-app-shell-tabs=\"true\"]):not(:has([data-app-shell-tab-panel-controller=\"bottom\"]))", "tier": "L2", "scope": "overlay", "required": false, "notes": "Windows live DOM 2026-08-20：右侧显示/隐藏侧边栏的外层根；由 top/bottom/left 定位、border-l、bg-surface 与 tabs 标记限定，并排除底部 tabpanel，避免扩大到其他面板" },
+    { "key": "bottom-panel", "selector": "div[class~=\"absolute\"][class~=\"inset-x-0\"][class~=\"top-0\"][class~=\"min-h-0\"][class~=\"border-t\"][class~=\"border-default\"][class~=\"bg-surface\"]:has([data-app-shell-tabs=\"true\"]):has([data-app-shell-tab-panel-controller=\"bottom\"])", "tier": "L2", "scope": "overlay", "required": false, "notes": "Windows live DOM 2026-08-20：底部面板外层根；由 inset-x/top、border-t、bg-surface 与 data-app-shell-tab-panel-controller=bottom 的结构关系限定" },
     { "key": "header-tint", "selector": "header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "顶栏。26.727.40816 输出 data-app-shell-header-edge-scroll 并使用 _Header_ CSS Module；保留旧类兼容历史版本，前缀只限定在 header 元素。皮肤不得覆盖其 position/z-index（既有回归约束）" },
     { "key": "main-content-top-fade", "selector": ":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])", "tier": "L2", "scope": "all", "required": false, "notes": "主区顶部渐变遮罩。26.727.40816 提供 data-app-shell-main-content-top-fade 并使用 _MainContentTopFade_ CSS Module；用于在主题背景下移除原生白色 fade" },
     { "key": "home-icon", "selector": "[data-testid=\"home-icon\"]", "tier": "L1", "scope": "home", "required": true, "notes": "首页判定信号，双端一致" },
@@ -67,10 +71,12 @@
     { "key": "thread-surface", "selector": ".thread-scroll-container", "tier": "L2", "scope": "thread", "required": false, "notes": "会话滚动表面；双端活动会话快照均存在" },
     { "key": "message", "selector": ":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])", "tier": "L2", "scope": "thread", "required": false, "notes": "用户与助手消息的稳定语义边界；兼容旧版 role 属性和 Codex 26.727.4816 的用户/助手语义属性，运行时对子节点变更做合并刷新" },
     { "key": "settings-panel", "selector": "[data-settings-panel-slug=\"general-settings\"]", "tier": "L2", "scope": "settings", "required": false, "notes": "Codex 26.727 设置页稳定导航锚点；设置页可先落在 General，不再保证 appearance-theme 或 theme-preview 存在" },
+    { "key": "settings-page", "selector": "div[class~=\"electron:bg-surface\"][class~=\"electron:elevation-prominent\"][class~=\"windows:rounded-tl-lg\"]:has(> [class~=\"draggable\"][class~=\"electron:h-toolbar\"]):has(> [class~=\"overflow-y-auto\"])", "tier": "L2", "scope": "settings", "required": false, "notes": "Windows 26.803 live DOM 2026-08-21：设置各菜单共用的右侧内容框；由 Electron surface/elevation、Windows 圆角、直接 toolbar 子节点和直接滚动内容子节点限定，避免命中聊天、普通菜单或设置卡片" },
     { "key": "appearance-radio", "selector": "input[name=\"appearance-theme\"]", "tier": "L2", "scope": "settings", "required": false, "notes": "旧版外观三选一；新设置页可能仅有 settings-panel" },
     { "key": "overlay-menu", "selector": "[role=\"menu\"]", "tier": "L2", "scope": "overlay", "required": false },
     { "key": "overlay-dialog", "selector": "[role=\"dialog\"]", "tier": "L2", "scope": "overlay", "required": false },
-    { "key": "overlay-popper", "selector": "[data-radix-popper-content-wrapper]", "tier": "L2", "scope": "overlay", "required": false }
+    { "key": "overlay-popper", "selector": "[data-radix-popper-content-wrapper]", "tier": "L2", "scope": "overlay", "required": false },
+    { "key": "environment-info-popover", "selector": "div[class~=\"bg-surface-elevated-secondary\"][class~=\"rounded-3xl\"]:has(> [class~=\"overflow-y-auto\"])", "tier": "L2", "scope": "overlay", "required": false, "notes": "Windows live DOM 2026-08-20：右侧环境信息浮窗根节点；以真实 surface token、圆角和直接滚动内容子节点限定，避免把所有菜单或对话框一并改色" }
   ],
   "removed": [
     { "key": "suggestion-item", "selector": ".group\\/home-suggestion-list-item", "reason": "双端全部 22 个实测状态命中 0 次——当前 Codex 版本已无此类；CSS 中引用它的规则为化石，待清理" }
