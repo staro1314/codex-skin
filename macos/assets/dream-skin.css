@@ -1606,6 +1606,43 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
   box-shadow: none !important;
 }
 
+/* Codex 26.818 keeps the bottom sticky gradient and the CSS-module composer
+   as siblings instead of nesting the input inside the sticky host. The old
+   textbox gate therefore cannot match this current DOM. Scope the cleanup to
+   a task thread that actually owns the composer, and clear only the two
+   confirmed from-surface gradients. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))
+  .thread-scroll-container:has([data-ds-part="composer"], [class*="_ComposerLayoutRoot_"])
+  .sticky [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"][class~="from-surface"],
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))
+  .thread-scroll-container:has([data-ds-part="composer"], [class*="_ComposerLayoutRoot_"])
+  .min-w-0:has([class*="_ComposerLayoutRoot_"]) [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"][class~="from-surface"] {
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Approval replaces the textbox, so its card can remain a sibling of the
+   sticky host rather than a descendant of it. Keep the ordinary composer
+   gate above unchanged and remove the same two confirmed gradients only
+   when the approval marker is present in this thread container. */
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))
+  .thread-scroll-container:has([data-codex-approval-surface])
+  .sticky [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"][class~="from-surface"],
+html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))
+  .thread-scroll-container:has([data-codex-approval-surface])
+  .min-w-0:has([class*="_ComposerLayoutRoot_"]) [class~="pointer-events-none"][class~="absolute"][class~="bg-gradient-to-t"][class~="from-surface"] {
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 /* Pull Requests and similar utility routes wrap their content in a native
    full-size opaque surface. Only clear full-window wrappers, not cards. */
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"])[data-dream-art-wide="true"]

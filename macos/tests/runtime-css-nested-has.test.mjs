@@ -111,6 +111,18 @@ for (const file of files) {
       /Codex 26\.810 renders the remaining black band[\s\S]*?\.sticky:has\(:is\(input\[type="text"\], textarea, \[contenteditable="true"\], \[role="textbox"\]\)\)\s+\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\]\[class~="from-surface"\]\s*\{[\s\S]*?display:\s*none !important;/,
       "The confirmed Codex 26.810 sticky-child gradient must be removed.");
     assert.match(css,
+      /Codex 26\.818 keeps the bottom sticky gradient[\s\S]*?\.thread-scroll-container:has\(\[data-ds-part="composer"\], \[class\*="_ComposerLayoutRoot_"\]\)[\s\S]*?\.sticky\s+\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\]\[class~="from-surface"\][\s\S]*?display:\s*none !important;/,
+      "The current sibling-layout sticky gradient must be removed only when a task thread owns the composer.");
+    assert.match(css,
+      /Codex 26\.818 keeps the bottom sticky gradient[\s\S]*?\.thread-scroll-container:has\(\[data-ds-part="composer"\], \[class\*="_ComposerLayoutRoot_"\]\)[\s\S]*?\.min-w-0:has\(\[class\*="_ComposerLayoutRoot_"\]\)\s+\[class~="pointer-events-none"\]\[class~="absolute"\]\[class~="bg-gradient-to-t"\]\[class~="from-surface"\][\s\S]*?display:\s*none !important;/,
+      "The current composer-root gradient must be removed without changing the composer surface itself.");
+    assert.match(css,
+      /Approval replaces the textbox[\s\S]*?\.thread-scroll-container:has\(\[data-codex-approval-surface\]\)[\s\S]*?\.sticky\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+      "Approval state must remove the sibling-layout sticky gradient without changing ordinary input composers.");
+    assert.match(css,
+      /Approval replaces the textbox[\s\S]*?\.thread-scroll-container:has\(\[data-codex-approval-surface\]\)[\s\S]*?\.min-w-0:has\(\[class\*="_ComposerLayoutRoot_"\]\)\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+      "Approval state must remove the sibling composer-root gradient without changing the composer surface itself.");
+    assert.match(css,
       /data-codex-approval-surface[\s\S]*?\.sticky:has\(\[data-codex-approval-surface\]\)\s*\{[\s\S]*?background:\s*transparent !important;[\s\S]*?box-shadow:\s*none !important;/,
       "Approval chrome must clear its replacement sticky host even when no textbox is mounted.");
     assert.match(css,

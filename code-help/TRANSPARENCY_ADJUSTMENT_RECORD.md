@@ -440,6 +440,14 @@ _ComposerLayoutRoot_
 - 原生 Card 同时带有 `bg-primary-soft` 与 `electron:elevation-prominent`。前者绘制原生不透明 surface，后者绘制 elevation 阴影；这两层就是截图中审批卡及其后方黑色层的直接来源。
 - 原有底部清理规则只在 sticky 容器包含 `input`、`textarea`、`contenteditable` 或 `role="textbox"` 时生效。审批卡替换输入框后，该条件不成立，因此宽任务交互面板的 `.10` surface 规则继续保留，形成卡片后方的黑色渐变/暗层。
 
+**Codex 26.818 当前 DOM 复核（Windows，2026-08-21）**
+
+- 当前任务页中，第一条真实黑色渐变节点为 `pointer-events-none absolute inset-x-0 bottom-0 z-0 h-full bg-gradient-to-t from-surface via-surface`，计算样式为 `linear-gradient(... rgb(17,17,17) ... transparent)`；它位于 `.thread-scroll-container` 内的 `.sticky` 中。
+- 同一页面的 `_ComposerLayoutRoot_` 位于底部容器的兄弟结构中，不是该 `.sticky` 的后代；因此 `.sticky:has(input/textarea/[role="textbox"])` 的旧门控实际 `match=false`，旧规则不会清除当前渐变。
+- 第二条真实渐变为与 `_ComposerLayoutRoot_` 同属 `.min-w-0` 共同容器的 `pointer-events-none absolute inset-x-0 -bottom-1 h-7 bg-gradient-to-t from-surface to-transparent`，同样不是旧 sticky 输入框门控可达的节点。
+- 当前页面实时 `getComputedStyle()` 同时确认：渐变背景为 `rgb(17,17,17)`，输入框根 `_ComposerLayoutRoot_` 自身仍是 `rgba(21,22,23,.10)`，输入框 footer marker `data-ds-part="composer"` 仍为透明；所以本次修复目标是两条渐变节点，不是调整输入框透明度。
+- 修复后通过同一实时 CDP 页面复核：两条目标渐变均为 `display:none`、`background-image:none`、`box-shadow:none`；`_ComposerLayoutRoot_` 仍为 `rgba(21,22,23,.10)`，footer marker 仍为透明，未关闭目标页面或用关闭状态截图替代验证。
+
 **精确定位**
 
 - 卡片：`html[data-dream-skin="active"] [data-codex-approval-surface]`。
@@ -457,6 +465,8 @@ _ComposerLayoutRoot_
 - 审批卡仅保留主题边界和两条 inset 微高光，不保留 `electron:elevation-prominent` 的大面积下投影；`backdrop-filter: none`。
 - 审批态 composer 与 sticky 宿主：`background: transparent`、无背景图、无 `box-shadow`、无 `backdrop-filter`。
 - sticky 渐变子节点：`display: none`，避免在审批卡后方再绘制一块全宽黑色渐变。
+- Codex 26.818 的普通任务页兼容规则：以同一 `.thread-scroll-container:has([data-ds-part="composer"], [class*="_ComposerLayoutRoot_"])` 为范围，清理 sticky 下的全宽渐变，以及带 `_ComposerLayoutRoot_` 的 `.min-w-0` 共同容器下的 28px 渐变；不改 composer 根本身。
+- 审批态另有一条同层级兼容规则：以 `.thread-scroll-container:has([data-codex-approval-surface])` 为唯一附加条件，清理同样两条渐变。它不改变普通输入框规则；审批 marker 消失后该规则不匹配，输入框仍按原 `.10` 透明层合同工作。
 
 **直接调整位置**
 
@@ -466,7 +476,7 @@ _ComposerLayoutRoot_
 [data-codex-approval-surface]
 ```
 
-当前包含三部分：审批卡本身、通用审批态 composer/sticky 清理规则，以及紧随其后的“wide task composer”高特异性审批态例外。最后一部分不能删除：宽任务交互面板已有更高特异性的 `.10` surface 规则，审批卡出现时必须在同一任务/main 边界内用 `:has([data-codex-approval-surface])` 精确覆盖它。
+当前包含三部分：审批卡本身、通用审批态 composer/sticky 清理规则，以及紧随其后的“wide task composer”高特异性审批态例外。普通任务页的 Codex 26.818 sibling-layout 渐变清理紧随旧 sticky-child 规则之后；其后还有审批 marker 的 sibling-layout 清理，覆盖审批卡与 sticky 渐变为兄弟节点的实际结构。最后两部分不能删除：宽任务交互面板已有更高特异性的 `.10` surface 规则，审批卡出现时必须在同一任务/main 边界内用 `:has([data-codex-approval-surface])` 精确覆盖它，同时不能扩大到普通输入框。
 
 **回归边界**
 

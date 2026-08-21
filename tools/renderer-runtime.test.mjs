@@ -605,6 +605,14 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The approval replacement path must clear the sticky host without changing ordinary input composers.");
   assert.match(css, /\.sticky:has\(\[data-codex-approval-surface\]\)[\s\S]{0,420}\[class~=\"bg-gradient-to-t\"\][\s\S]{0,220}display:\s*none !important;/,
     "The approval replacement path must remove the confirmed sticky gradient child.");
+  assert.match(css, /Codex 26\.818 keeps the bottom sticky gradient[\s\S]*?\.thread-scroll-container:has\(\[data-ds-part=\"composer\"\], \[class\*=\"_ComposerLayoutRoot_\"\]\)[\s\S]*?\.sticky\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+    "The current sibling-layout sticky gradient must be removed only when a task thread owns the composer.");
+  assert.match(css, /Codex 26\.818 keeps the bottom sticky gradient[\s\S]*?\.thread-scroll-container:has\(\[data-ds-part=\"composer\"\], \[class\*=\"_ComposerLayoutRoot_\"\]\)[\s\S]*?\.min-w-0:has\(\[class\*=\"_ComposerLayoutRoot_\"\]\)\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+    "The current composer-root gradient must be removed without changing the composer surface itself.");
+  assert.match(css, /Approval replaces the textbox[\s\S]*?\.thread-scroll-container:has\(\[data-codex-approval-surface\]\)[\s\S]*?\.sticky\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+    "Approval state must remove the sibling-layout sticky gradient without changing ordinary input composers.");
+  assert.match(css, /Approval replaces the textbox[\s\S]*?\.thread-scroll-container:has\(\[data-codex-approval-surface\]\)[\s\S]*?\.min-w-0:has\(\[class\*="_ComposerLayoutRoot_"\]\)\s+\[class~=\"pointer-events-none\"\]\[class~=\"absolute\"\]\[class~=\"bg-gradient-to-t\"\]\[class~=\"from-surface\"\][\s\S]*?display:\s*none !important;/,
+    "Approval state must remove the sibling composer-root gradient without changing the composer surface itself.");
   assert.doesNotMatch(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,700}text-shadow:/,
     "The main interaction surface must not add a glyph halo or scoped text shadow.");
   assert.match(css, /__DREAM_SELECTOR_SHELL_MAIN__:\s*not\([^)]*\)[\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
