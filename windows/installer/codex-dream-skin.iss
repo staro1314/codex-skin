@@ -26,6 +26,8 @@ AppUpdatesURL=https://github.com/Fei-Away/Codex-Dream-Skin/releases
 DefaultDirName={localappdata}\Programs\CodexDreamSkin
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
+UsePreviousAppDir=yes
+Uninstallable=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 WizardStyle=modern
@@ -73,6 +75,11 @@ Source: "{#StageRoot}\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StageRoot}\NOTICE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StageRoot}\payload\*"; DestDir: "{app}\payload"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; A same-directory reinstall first removes the old managed payload. The
+; user-owned theme library is outside {app} and is intentionally preserved.
+Type: filesandordirs; Name: "{app}\payload"
+
 [Icons]
 Name: "{group}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
 Name: "{userdesktop}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
@@ -90,6 +97,78 @@ Filename: "{#PowerShellPath}"; Parameters: "-NoProfile -STA -WindowStyle Hidden 
 [Code]
 var
   BootstrapInProgress: Boolean;
+  PreviousInstallHandled: Boolean;
+
+const
+  DreamSkinUninstallKey =
+    'Software\Microsoft\Windows\CurrentVersion\Uninstall\{DCCDAF1A-9ACD-4AAB-B55B-DF17EB2CDA2E}_is1';
+
+function ExtractExecutablePath(const CommandLine: String): String;
+var
+  QuotePosition: Integer;
+  SpacePosition: Integer;
+begin
+  Result := Trim(CommandLine);
+  if Result = '' then
+    exit;
+
+  if Result[1] = '"' then
+  begin
+    Delete(Result, 1, 1);
+    QuotePosition := Pos('"', Result);
+    if QuotePosition <= 0 then
+      Result := ''
+    else
+      SetLength(Result, QuotePosition - 1);
+  end
+  else
+  begin
+    SpacePosition := Pos(' ', Result);
+    if SpacePosition > 0 then
+      SetLength(Result, SpacePosition - 1);
+  end;
+end;
+
+function GetPreviousUninstaller(
+  var UninstallerPath: String;
+  var PreviousInstallDir: String
+): Boolean;
+var
+  CommandLine: String;
+  Candidate: String;
+begin
+  Result := False;
+  UninstallerPath := '';
+  PreviousInstallDir := '';
+  CommandLine := '';
+
+  if not RegQueryStringValue(
+    HKEY_CURRENT_USER,
+    DreamSkinUninstallKey,
+    'UninstallString',
+    CommandLine
+  ) then
+    RegQueryStringValue(
+      HKEY_LOCAL_MACHINE,
+      DreamSkinUninstallKey,
+      'UninstallString',
+      CommandLine
+    );
+
+  Candidate := ExtractExecutablePath(CommandLine);
+  if Candidate = '' then
+    exit;
+  if CompareText(ExtractFileExt(Candidate), '.exe') <> 0 then
+    exit;
+  if CompareText(Copy(ExtractFileName(Candidate), 1, 4), 'unin') <> 0 then
+    exit;
+  if not FileExists(Candidate) then
+    exit;
+
+  UninstallerPath := Candidate;
+  PreviousInstallDir := ExtractFileDir(Candidate);
+  Result := PreviousInstallDir <> '';
+end;
 
 function PowerShellArguments(
   const ScriptPath: String;
@@ -194,6 +273,58 @@ function InstallInitializationFailureMessage(const ExitCode: Integer): String;
 begin
   Result := 'Codex Dream Skin could not be initialized (exit code ' +
     IntToStr(ExitCode) + '). No installed application files were changed.';
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  PreviousUninstaller: String;
+  PreviousInstallDir: String;
+  TemporaryBootstrap: String;
+  ExitCode: Integer;
+begin
+  Result := '';
+  if PreviousInstallHandled then
+    exit;
+  PreviousInstallHandled := True;
+
+  if not GetPreviousUninstaller(PreviousUninstaller, PreviousInstallDir) then
+    exit;
+
+  { When the selected directory is the registered old directory, use the
+    current package's bootstrap. This repairs an old/broken bootstrap before
+    Inno replaces its payload. A different selected directory must use the
+    registered uninstaller so the old directory is not orphaned. }
+  if CompareText(PreviousInstallDir, ExpandConstant('{app}')) = 0 then
+  begin
+    ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');
+    ExtractTemporaryFiles('{tmp}\payload\*');
+    TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
+    if not RunBootstrap(TemporaryBootstrap, '-Uninstall', WizardSilent, ExitCode) then
+    begin
+      Result := '无法卸载当前 Codex Dream Skin 安装，安装过程未修改文件。请关闭 Dream Skin 后重试。';
+      exit;
+    end;
+    if ExitCode <> 0 then
+      Result := '无法卸载当前 Codex Dream Skin 安装（退出码 ' +
+        IntToStr(ExitCode) + '），安装过程未修改文件。';
+    exit;
+  end;
+
+  if not Exec(
+    PreviousUninstaller,
+    '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART',
+    PreviousInstallDir,
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ExitCode
+  ) then
+  begin
+    Result := '无法启动旧版 Codex Dream Skin 卸载程序，安装过程未修改文件。';
+    exit;
+  end;
+  if ExitCode <> 0 then
+    Result := '旧版 Codex Dream Skin 卸载失败（退出码 ' +
+      IntToStr(ExitCode) + '），安装过程未修改文件。';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

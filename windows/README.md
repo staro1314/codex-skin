@@ -22,7 +22,11 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 不应要求管理员权限。未签名的新下载偶尔会触发 SmartScreen，按“更多信息 → 仍要运行”即可，
 不要关闭 Defender。后续更新运行新的 Setup.exe 覆盖安装，主题和图片会保留。
 
-正式 Release Setup 只部署客户端、控制中心和受管运行时，不修改 Codex 的 `config.toml`，Codex 正在运行时也可以安装或更新；安装阶段只会停止旧版 Dream Skin 客户端/托盘以替换受管文件。用户打开客户端并点击“启动 / 重新应用 Codex”后，客户端才会按需询问并重启 Codex。
+正式 Release Setup 只部署客户端、控制中心和受管运行时，不调用浏览器测试安装流程。首次安装不会
+因为部署本身要求退出 Codex；更新或重新安装时，安装器会识别同一 `AppId`，先卸载旧运行时，再写入
+新版本。若旧版安装目录相同，会使用新包自带的卸载引导修复旧版本；若选择了不同目录，则调用旧目录
+的卸载程序，避免遗留两份安装。卸载恢复需要时会关闭 Codex，失败会在复制新文件前中止。主题和图片仍
+保存在 `%LOCALAPPDATA%\CodexDreamSkin`，不会因更新或卸载安装程序而删除。
 
 普通使用不需要管理员权限，也不需要接管 WindowsApps 目录。
 
@@ -50,7 +54,8 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 
 ## 更新
 
-源码安装流程更新前先退出 Dream Skin 托盘并关闭 Codex。正式 Setup 更新只需要退出 Dream Skin 客户端/托盘；它会原子替换受管运行时并重建快捷方式，当前主题、已保存主题和导入图片不会被删除。
+源码安装流程更新前先退出 Dream Skin 托盘并关闭 Codex。正式 Setup 会先处理已登记的旧安装，再原子
+替换受管运行时并重建快捷方式；当前主题、已保存主题和导入图片不会被删除。
 
 ## 启动与验证
 

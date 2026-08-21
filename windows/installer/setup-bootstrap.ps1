@@ -79,8 +79,18 @@ try {
   if ($Install -and ($LaunchTray -or $Uninstall)) {
     throw 'Choose exactly one installer bootstrap action.'
   }
+  if ($Uninstall -and
+    (-not (Test-Path -LiteralPath $commonPath -PathType Leaf) -or
+      -not (Test-Path -LiteralPath $themePath -PathType Leaf))) {
+    $installedScripts = Join-Path $stateRoot 'engine\scripts'
+    $commonPath = Join-Path $installedScripts 'common-windows.ps1'
+    $themePath = Join-Path $installedScripts 'theme-windows.ps1'
+  }
   if (-not (Test-Path -LiteralPath $commonPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $themePath -PathType Leaf)) {
+    if ($Uninstall) {
+      throw 'The installed Dream Skin runtime is incomplete; reinstall the same or newer Setup.exe, then uninstall again.'
+    }
     throw 'The installer payload is incomplete.'
   }
   . $commonPath

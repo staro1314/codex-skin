@@ -9,8 +9,8 @@ Node.js 或执行 PowerShell 脚本。
 
 1. 在 GitHub 的 [Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) 下载最新的
    `CodexDreamSkin-Setup-vX.Y.Z.exe`。`SHA256SUMS.txt` 是可选的完整性校验文件。
-2. 双击安装器，按向导完成安装。默认安装到当前用户的 LocalAppData，不需要管理员权限；安装前
-   请先退出 Codex。
+2. 双击安装器，按向导完成安装。默认安装到当前用户的 LocalAppData，不需要管理员权限；正式 Setup
+   不调用浏览器测试安装流程，也不会因为安装本身要求退出 Codex。
 3. 安装完成后，从开始菜单启动 Codex Dream Skin，系统托盘会显示主题图标。
 
 ### 为什么有时会看到“Windows 已保护你的电脑”
@@ -55,11 +55,14 @@ Node.js 或执行 PowerShell 脚本。
 
 ## 手动更新
 
-更新是覆盖安装，不是重新配置：
+更新和重新安装会先处理旧安装，再写入新版本：
 
 1. 从 Releases 下载新的 `CodexDreamSkin-Setup-vX.Y.Z.exe`。
-2. 退出 Dream Skin 托盘，并关闭 Codex。
-3. 运行新的安装器，按向导覆盖现有安装。
+2. 运行新的安装器。安装器通过固定 `AppId` 找到旧版本；同一安装目录会使用新包自带的
+   bootstrap 先卸载旧运行时，再安装新版本；如果你选择了不同目录，则调用旧目录的卸载程序，避免
+   留下旧安装。
+3. 若旧版本正在运行，安装器会先关闭 Dream Skin 客户端/托盘；卸载恢复需要时也会关闭 Codex，
+   失败则在复制新文件前中止，不会留下半更新状态。
 4. 重新启动快捷方式；活动主题、已保存主题、图片和配置备份会保留。
 
 SmartScreen 的决定针对下载到本机的具体文件。你对某个安装器点击“仍要运行”后，通常不会在每次
@@ -74,6 +77,10 @@ SmartScreen 的决定针对下载到本机的具体文件。你对某个安装�
 在“设置 → 应用 → 已安装的应用”中卸载 Codex Dream Skin。卸载器会先恢复 Codex 官方外观并关闭
 CDP；恢复失败时会停止卸载，不会直接删除运行文件。默认保留 `%LOCALAPPDATA%\CodexDreamSkin` 中的
 主题和图片，方便重新安装；确认不再需要时再手动删除该数据目录。
+
+如果安装目录是自定义路径（例如 `D:\Program Files\CodexDreamSkin`），仍应从系统卸载入口或该目录
+中的 `unins000.exe` 卸载。若旧版卸载器损坏，直接运行同一或更新版本的 Setup.exe，安装器会在覆盖前
+使用新包的卸载引导修复旧运行时，然后再安装；不会要求手动删除安装目录。
 
 ## 常见问题
 

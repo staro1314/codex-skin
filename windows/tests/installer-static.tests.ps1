@@ -93,6 +93,8 @@ foreach ($requiredDefinition in @(
   'PrivilegesRequired=lowest',
   'ArchitecturesAllowed=x64compatible',
   'ChangesAssociations=yes',
+  'UsePreviousAppDir=yes',
+  'Uninstallable=yes',
   'OutputBaseFilename=CodexDreamSkin-Setup-v{#AppVersion}',
   'Source: "{#StageRoot}\payload\*"',
   'DestDir: "{app}\payload"',
@@ -118,6 +120,13 @@ foreach ($requiredDefinition in @(
   "RunBootstrap(ExpandConstant('{app}\setup-bootstrap.ps1'), '-Uninstall', True, ExitCode)",
   "'Codex Dream Skin could not restore Codex (exit code ' +",
   "IntToStr(ExitCode) + '). No installed files were removed.'",
+  'function PrepareToInstall(var NeedsRestart: Boolean): String;',
+  'GetPreviousUninstaller',
+  "'UninstallString'",
+  "RunBootstrap(TemporaryBootstrap, '-Uninstall', WizardSilent, ExitCode)",
+  "'/VERYSILENT /SUPPRESSMSGBOXES /NORESTART'",
+  '[InstallDelete]',
+  'Type: filesandordirs; Name: "{app}\payload"',
   '[Registry]',
   'Root: HKCU; Subkey: "Software\Classes\dreamskin"',
   'ValueName: "URL Protocol"; ValueData: ""',
@@ -320,6 +329,15 @@ foreach ($requiredUninstallBinding in @(
 )) {
   if (-not $bootstrap.Contains($requiredUninstallBinding)) {
     throw "Installer restore parameter binding is missing: $requiredUninstallBinding"
+  }
+}
+foreach ($requiredUninstallFallback in @(
+  'if ($Uninstall -and',
+  'installedScripts = Join-Path $stateRoot',
+  'The installed Dream Skin runtime is incomplete; reinstall the same or newer Setup.exe, then uninstall again.'
+)) {
+  if (-not $bootstrap.Contains($requiredUninstallFallback)) {
+    throw "Installer uninstall fallback is missing: $requiredUninstallFallback"
   }
 }
 if ($bootstrap.Contains('@restoreArguments')) {
