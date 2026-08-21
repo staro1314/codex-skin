@@ -6,6 +6,14 @@ Codex Dream Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工
 
 当前代码版本：`1.5.12`。项目同时包含 Windows 和 macOS 实现，并将共享渲染逻辑、主题校验和媒体元数据处理收敛在 `runtime/`。
 
+## 效果展示
+
+当前内置主题 **Gothic Void Crusade** 将背景、玻璃表面、内容可读性和状态装饰融入 Codex 原生界面，同时保留侧栏、项目、任务卡和输入区域的正常交互：
+
+![Gothic Void Crusade 内置主题效果](./docs/images/presets/gothic-void-crusade-preview.jpg)
+
+主题不是整窗截图覆盖，而是在官方 Codex 界面上叠加受控的背景与视觉层；你可以继续使用原生控件，也可以在控制中心中实时调整并保存自己的主题。
+
 ## 能力概览
 
 - 本机 CDP 注入：启动并验证官方 Codex 渲染页，再注入主题运行时。
