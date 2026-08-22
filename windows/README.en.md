@@ -18,7 +18,7 @@ Codex Dream Skin loads an external theme into the official Codex Windows desktop
 ## Release install (recommended for users)
 
 Download `CodexDreamSkin-Setup-vX.Y.Z.exe` from
-[GitHub Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) and
+[GitHub Releases](https://github.com/staro1314/codex-skin/releases) and
 follow [`docs/install-windows.md`](../docs/install-windows.md). The installer
 contains the pinned Node runtime, so users do not need a source checkout or to
 run a `.ps1` file. It installs per-user and should not request administrator
@@ -209,7 +209,7 @@ Field results in issue #235 now confirm two independent failures: WindowsApps re
 
 Run the installer and launch shortcut again. The scripts rediscover the currently registered Store package instead of trusting an executable path from an older app version.
 
-Open the repository's [new issue page](https://github.com/Fei-Away/Codex-Dream-Skin/issues/new/choose) and choose the bug form when reporting a problem. Include the Windows version, Codex source, reproduction steps, and relevant log lines. Remove secrets, `auth.json`, relay tokens, and private conversation content.
+Open the repository's [new issue page](https://github.com/staro1314/codex-skin/issues/new/choose) and choose the bug form when reporting a problem. Include the Windows version, Codex source, reproduction steps, and relevant log lines. Remove secrets, `auth.json`, relay tokens, and private conversation content.
 
 ## Security boundaries
 

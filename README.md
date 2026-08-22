@@ -51,7 +51,7 @@ Dream Skin 启动器 / 托盘 / 菜单栏
 | macOS | [`macos/README.md`](./macos/README.md) | 原生菜单栏应用、签名运行时校验、DMG、主题编辑和恢复 |
 | Shared | [`runtime/`](./runtime/) | 渲染注入、Safe CSS、主题包、图片元数据和跨平台同步源 |
 
-普通用户应优先使用 [GitHub Releases](https://github.com/Fei-Away/Codex-Dream-Skin/releases) 中对应平台的安装包。源码安装和诊断流程请分别阅读平台 README。
+普通用户应优先使用 [GitHub Releases](https://github.com/staro1314/codex-skin/releases) 中对应平台的安装包。源码安装和诊断流程请分别阅读平台 README。
 
 ## 三类启动入口
 
