@@ -1,4 +1,4 @@
-# Codex Dream Skin Studio
+# Codex-Skin
 
 Unofficial macOS theme studio for the **official Codex Desktop** app.
 
@@ -17,7 +17,7 @@ This project injects through **local loopback CDP**. It does **not** modify the 
 ## Release install (recommended)
 
 普通用户请从 [GitHub Releases](https://github.com/staro1314/codex-skin/releases) 下载
-`CodexDreamSkin-vX.Y.Z.dmg`，按 [`docs/install-macos.md`](../docs/install-macos.md) 的图形界面步骤
+`Codex-Skin-vX.Y.Z.dmg`，按 [`docs/install-macos.md`](../docs/install-macos.md) 的图形界面步骤
 拖入 Applications。首次运行可能需要在“系统设置 → 隐私与安全性 → 仍要打开”确认一次；不需要
 运行 `xattr` 或安装源码。后续更新下载新的 DMG 覆盖安装即可，用户主题和图片会保留。
 
@@ -38,10 +38,10 @@ contributors, diagnostics, and legacy deployments.
 # ~/.codex/codex-dream-skin-studio/scripts/customize-theme-macos.sh
 
 # 4) Start/re-apply, verify, or restore via Desktop:
-#    Codex Dream Skin.command
-#    Codex Dream Skin - Customize.command
-#    Codex Dream Skin - Verify.command
-#    Codex Dream Skin - Restore.command
+#    Codex-Skin.command
+#    Codex-Skin - Customize.command
+#    Codex-Skin - Verify.command
+#    Codex-Skin - Restore.command
 
 # 5) Legacy only: install the old SwiftBar menu (do not enable it beside the native app)
 ./Install\ Menu\ Bar.command

@@ -7,7 +7,7 @@ export LC_CTYPE=C
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 VERSION="$(/usr/bin/tr -d '[:space:]' < "$ROOT/VERSION")"
 RELEASE_DIR="$ROOT/release"
-DMG="$RELEASE_DIR/CodexDreamSkin-v$VERSION.dmg"
+DMG="$RELEASE_DIR/Codex-Skin-v$VERSION.dmg"
 SKIP_TESTS="false"
 
 while [ "$#" -gt 0 ]; do
@@ -32,22 +32,22 @@ cleanup() {
   /bin/rm -rf "$TMP"
 }
 trap cleanup EXIT
-APP="$TMP/Codex Dream Skin.app"
+APP="$TMP/Codex-Skin.app"
 STAGE="$TMP/stage"
 /bin/mkdir -p "$STAGE" "$RELEASE_DIR"
 "$ROOT/scripts/build-menubar-app.sh" --skip-tests --output "$APP"
-/usr/bin/ditto "$APP" "$STAGE/Codex Dream Skin.app"
+/usr/bin/ditto "$APP" "$STAGE/Codex-Skin.app"
 /bin/ln -s /Applications "$STAGE/Applications"
 
 /bin/rm -f "$DMG" "$DMG.sha256"
 LC_ALL=C LANG=C /usr/bin/hdiutil create -quiet -ov -format UDZO \
-  -volname "Codex Dream Skin" -srcfolder "$STAGE" "$DMG"
+  -volname "Codex-Skin" -srcfolder "$STAGE" "$DMG"
 [ -s "$DMG" ] || { printf 'DMG was not created: %s\n' "$DMG" >&2; exit 1; }
 
 MOUNT="$TMP/mount"
 /bin/mkdir -p "$MOUNT"
 /usr/bin/hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG" >/dev/null
-MOUNTED_APP="$MOUNT/Codex Dream Skin.app"
+MOUNTED_APP="$MOUNT/Codex-Skin.app"
 [ -d "$MOUNTED_APP" ] || { printf 'DMG does not contain the app bundle.\n' >&2; exit 1; }
 [ -L "$MOUNT/Applications" ] \
   && [ "$(/usr/bin/readlink "$MOUNT/Applications")" = "/Applications" ] \

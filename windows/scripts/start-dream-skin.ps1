@@ -391,9 +391,9 @@ try {
   }
 
   if ($skinLooksRendered) {
-    Write-Host "Codex Dream Skin is active on loopback port $Port; renderer is ready and native-window readiness is inconclusive."
+    Write-Host "Codex-Skin is active on loopback port $Port; renderer is ready and native-window readiness is inconclusive."
   } else {
-    Write-Host "Codex Dream Skin is active on verified loopback port $Port."
+    Write-Host "Codex-Skin is active on verified loopback port $Port."
   }
 } finally {
   if ($null -ne $operationLock) { Exit-DreamSkinOperationLock -Mutex $operationLock }

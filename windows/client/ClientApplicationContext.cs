@@ -43,7 +43,7 @@ internal sealed class ClientApplicationContext : ApplicationContext
 
         _tray = new NotifyIcon
         {
-            Text = "Codex Dream Skin",
+            Text = "Codex-Skin",
             Visible = true,
             ContextMenuStrip = menu,
             Icon = LoadIcon(options),
@@ -70,7 +70,7 @@ internal sealed class ClientApplicationContext : ApplicationContext
         }
         catch (Exception error)
         {
-            MessageBox.Show(error.Message, "Codex Dream Skin 客户端无法启动", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error.Message, "Codex-Skin 客户端无法启动", MessageBoxButtons.OK, MessageBoxIcon.Error);
             ExitClient();
         }
     }
@@ -89,7 +89,7 @@ internal sealed class ClientApplicationContext : ApplicationContext
         }
         catch (Exception error)
         {
-            MessageBox.Show(error.Message, "Codex Dream Skin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(error.Message, "Codex-Skin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         finally
         {

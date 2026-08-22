@@ -204,7 +204,7 @@ export class ThemeExporter {
     if (!LICENSES.has(license)) fail("license is unsupported");
     const summary = safeText(
       options.summary,
-      "Theme exported from Codex Dream Skin Control Center.",
+      "Theme exported from Codex-Skin Control Center.",
       500,
       "summary",
       PROVENANCE_CONTROL,

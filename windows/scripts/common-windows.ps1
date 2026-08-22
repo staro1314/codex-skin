@@ -16,9 +16,9 @@ function Enter-DreamSkinOperationLock {
   if (-not $acquired) {
     $mutex.Dispose()
     if ($TimeoutMilliseconds -eq 0) {
-      throw 'Another Codex Dream Skin install, start, restore, or verify operation is already running.'
+      throw 'Another Codex-Skin install, start, restore, or verify operation is already running.'
     }
-    throw "Another Codex Dream Skin operation did not finish within $TimeoutMilliseconds ms."
+    throw "Another Codex-Skin operation did not finish within $TimeoutMilliseconds ms."
   }
   return $mutex
 }
@@ -132,10 +132,10 @@ function Stop-DreamSkinClientProcess {
     }
   } catch { $failures += $_.Exception.Message }
   if ($failures.Count -gt 0 -and $RequireStopped) {
-    throw 'Could not close the Codex Dream Skin client: ' + ($failures -join '; ')
+    throw 'Could not close the Codex-Skin client: ' + ($failures -join '; ')
   }
   if ($RequireStopped -and (Test-DreamSkinClientActive -ClientPath $normalized)) {
-    throw 'The Codex Dream Skin client is still active. Exit it and retry the operation.'
+    throw 'The Codex-Skin client is still active. Exit it and retry the operation.'
   }
 }
 
@@ -1353,7 +1353,7 @@ function Stop-DreamSkinCodex {
 function Confirm-DreamSkinRestart {
   param([string]$Message)
   $shell = New-Object -ComObject WScript.Shell
-  return $shell.Popup($Message, 0, 'Codex Dream Skin', 52) -eq 6
+  return $shell.Popup($Message, 0, 'Codex-Skin', 52) -eq 6
 }
 
 function Invoke-DreamSkinCodexWindowActivation {

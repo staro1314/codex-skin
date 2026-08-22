@@ -17,7 +17,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 fail() {
-  printf 'Codex Dream Skin update check: %s\n' "$*" >&2
+  printf 'Codex-Skin update check: %s\n' "$*" >&2
   exit 1
 }
 
@@ -93,7 +93,7 @@ if [ "$INTERACTIVE" = "true" ]; then
 on run argv
   display dialog "发现新版本 " & (item 1 of argv) & return & return & \
     "当前版本为 " & (item 2 of argv) & "。" buttons {"稍后", "前往下载"} \
-    default button "前往下载" with title "Codex Dream Skin"
+    default button "前往下载" with title "Codex-Skin"
 end run
 APPLESCRIPT
     then
@@ -102,7 +102,7 @@ APPLESCRIPT
   else
     /usr/bin/osascript - "v$CURRENT_VERSION" <<'APPLESCRIPT' >/dev/null
 on run argv
-  display alert "Codex Dream Skin" message "当前已是最新版本 " & (item 1 of argv) buttons {"好"}
+  display alert "Codex-Skin" message "当前已是最新版本 " & (item 1 of argv) buttons {"好"}
 end run
 APPLESCRIPT
   fi

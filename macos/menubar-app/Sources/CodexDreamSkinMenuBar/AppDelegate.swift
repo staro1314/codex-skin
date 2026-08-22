@@ -212,9 +212,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       return true
     }
     mark.isTemplate = true
-    mark.accessibilityDescription = "Codex Dream Skin"
+    mark.accessibilityDescription = "Codex-Skin"
     button.image = mark
-    button.toolTip = "Codex Dream Skin"
+    button.toolTip = "Codex-Skin"
     rebuildMenu()
   }
 
@@ -525,7 +525,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       if result.succeeded,
          let parsed = StatusSnapshot(jsonData: Data(result.output.utf8)) {
         self.snapshot = parsed
-        self.statusItem.button?.toolTip = "Codex Dream Skin · \(parsed.title)"
+        self.statusItem.button?.toolTip = "Codex-Skin · \(parsed.title)"
         self.statusItem.button?.appearsDisabled = parsed.session == "unknown" || parsed.session == "stale"
         self.rebuildMenu()
       }
@@ -1151,7 +1151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
   private func postUpdateAvailableNotification(version: String, releaseURL: String) {
     let content = UNMutableNotificationContent()
-    content.title = "Codex Dream Skin 有新版本"
+    content.title = "Codex-Skin 有新版本"
     content.body = "\(version) 已发布，点按前往下载页面。"
     content.sound = .default
     content.userInfo = ["releaseURL": releaseURL]
@@ -1200,7 +1200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       if SMAppService.mainApp.status == .requiresApproval {
         showInfo(
           title: "需要系统确认",
-          message: "请在“系统设置 → 通用 → 登录项”中允许 Codex Dream Skin。"
+          message: "请在“系统设置 → 通用 → 登录项”中允许 Codex-Skin。"
         )
       }
     } catch {
@@ -1264,7 +1264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       }
       self.showInfo(
         title: "恢复完成",
-        message: "本地引擎和登录启动已移除。最后请把“Codex Dream Skin.app”移到废纸篓。"
+        message: "本地引擎和登录启动已移除。最后请把“Codex-Skin.app”移到废纸篓。"
       )
       NSApp.terminate(nil)
     }

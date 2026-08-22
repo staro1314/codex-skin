@@ -95,7 +95,7 @@ foreach ($requiredDefinition in @(
   'ChangesAssociations=yes',
   'UsePreviousAppDir=yes',
   'Uninstallable=yes',
-  'OutputBaseFilename=CodexDreamSkin-Setup-v{#AppVersion}',
+  'OutputBaseFilename=Codex-Skin-Setup-v{#AppVersion}',
   'Source: "{#StageRoot}\payload\*"',
   'DestDir: "{app}\payload"',
   'Flags: unchecked',
@@ -114,11 +114,11 @@ foreach ($requiredDefinition in @(
   'ewNoWait',
   'CompletionFile',
   'procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);',
-  "RaiseException('Codex Dream Skin initialization could not be started.');",
+  "RaiseException('Codex-Skin initialization could not be started.');",
   'procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);',
   'if CurUninstallStep <> usUninstall then',
   "RunBootstrap(ExpandConstant('{app}\setup-bootstrap.ps1'), '-Uninstall', True, ExitCode)",
-  "'Codex Dream Skin could not restore Codex (exit code ' +",
+  "'Codex-Skin could not restore Codex (exit code ' +",
   "IntToStr(ExitCode) + '). No installed files were removed.'",
   'function PrepareToInstall(var NeedsRestart: Boolean): String;',
   'GetPreviousUninstaller',
@@ -158,9 +158,9 @@ if (-not $definition.Contains('#define PersistentPowerShellPath "{win}\System32\
   throw 'Persistent shortcuts and URL handlers must use a System32 PowerShell path that 64-bit launchers can access.'
 }
 $clientShortcutEntries = @(
-  'Name: "{group}\Codex Dream Skin"',
-  'Name: "{userdesktop}\Codex Dream Skin"',
-  'Name: "{userstartup}\Codex Dream Skin"'
+  'Name: "{group}\Codex-Skin"',
+  'Name: "{userdesktop}\Codex-Skin"',
+  'Name: "{userstartup}\Codex-Skin"'
 )
 foreach ($entry in $clientShortcutEntries) {
   $line = ([regex]::Match(
@@ -194,7 +194,7 @@ $runBootstrapIndex = $definition.IndexOf(
   [System.StringComparison]::Ordinal
 )
 $uninstallFailureIndex = $definition.LastIndexOf(
-  "'Codex Dream Skin could not restore Codex (exit code ' +",
+  "'Codex-Skin could not restore Codex (exit code ' +",
   [System.StringComparison]::Ordinal
 )
 if ($uninstallStepIndex -lt 0 -or $runBootstrapIndex -le $uninstallStepIndex -or
@@ -259,7 +259,7 @@ foreach ($requiredBuilderContract in @(
   'hostfxr.dll',
   'hostpolicy.dll',
   'coreclr.dll',
-  '"CodexDreamSkin-Setup-v$version.exe"'
+  '"Codex-Skin-Setup-v$version.exe"'
 )) {
   if (-not $builder.Contains($requiredBuilderContract)) {
     throw "Windows release builder is missing a required operation: $requiredBuilderContract"
@@ -292,7 +292,7 @@ foreach ($requiredRepairContract in @(
   '$missingEngineFiles.Count -eq 0',
   'Ensure-DreamSkinWebView2Runtime',
   'Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped',
-  'A newer Codex Dream Skin',
+  'A newer Codex-Skin',
   'The installer payload is missing its bundled Node.js runtime',
   'Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot',
   'Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $stateRoot'

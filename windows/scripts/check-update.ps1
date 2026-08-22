@@ -31,8 +31,8 @@ function Show-DreamSkinUpdateResult {
   Add-Type -AssemblyName System.Windows.Forms
   if ($Result.updateAvailable) {
     $choice = [System.Windows.Forms.MessageBox]::Show(
-      "Codex Dream Skin $($Result.latestVersion) is available.`r`n`r`nOpen the GitHub download page?",
-      'Codex Dream Skin Update',
+      "Codex-Skin $($Result.latestVersion) is available.`r`n`r`nOpen the GitHub download page?",
+      'Codex-Skin Update',
       [System.Windows.Forms.MessageBoxButtons]::YesNo,
       [System.Windows.Forms.MessageBoxIcon]::Information
     )
@@ -42,8 +42,8 @@ function Show-DreamSkinUpdateResult {
     return
   }
   [void][System.Windows.Forms.MessageBox]::Show(
-    "Codex Dream Skin $($Result.currentVersion) is up to date.",
-    'Codex Dream Skin Update',
+    "Codex-Skin $($Result.currentVersion) is up to date.",
+    'Codex-Skin Update',
     [System.Windows.Forms.MessageBoxButtons]::OK,
     [System.Windows.Forms.MessageBoxIcon]::Information
   )
@@ -85,7 +85,7 @@ try {
     Add-Type -AssemblyName System.Windows.Forms
     [void][System.Windows.Forms.MessageBox]::Show(
       "Could not check for updates.`r`n`r`n$($_.Exception.Message)",
-      'Codex Dream Skin Update',
+      'Codex-Skin Update',
       [System.Windows.Forms.MessageBoxButtons]::OK,
       [System.Windows.Forms.MessageBoxIcon]::Warning
     )

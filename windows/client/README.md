@@ -1,4 +1,4 @@
-# Codex Dream Skin Client
+# Codex-Skin Client
 
 This is the Windows product entry point. It owns the native window, embedded
 WebView2 view, tray menu, single-instance mutex, and the hidden local Node

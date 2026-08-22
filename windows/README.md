@@ -1,10 +1,10 @@
-# Codex Dream Skin for Windows
+# Codex-Skin for Windows
 
 <p align="center">
   <strong>中文</strong> · <a href="./README.en.md">English</a>
 </p>
 
-Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加载外部主题。它保留原生侧栏、项目选择、任务内容和输入框，不修改 WindowsApps、`app.asar` 或应用签名。
+Codex-Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加载外部主题。它保留原生侧栏、项目选择、任务内容和输入框，不修改 WindowsApps、`app.asar` 或应用签名。
 
 ## 运行要求
 
@@ -17,7 +17,7 @@ Codex Dream Skin 通过本机回环 CDP 给官方 Codex Windows 桌面应用加�
 ## Release 安装（推荐普通用户）
 
 普通用户请从 [GitHub Releases](https://github.com/staro1314/codex-skin/releases) 下载
-`CodexDreamSkin-Setup-vX.Y.Z.exe`，按 [`docs/install-windows.md`](../docs/install-windows.md) 的图形
+`Codex-Skin-Setup-vX.Y.Z.exe`，按 [`docs/install-windows.md`](../docs/install-windows.md) 的图形
 界面步骤安装。安装器自带固定 Node 运行时，不需要 clone 仓库或运行 `.ps1`；默认按当前用户安装，
 不应要求管理员权限。未签名的新下载偶尔会触发 SmartScreen，按“更多信息 → 仍要运行”即可，
 不要关闭 Defender。后续更新运行新的 Setup.exe 覆盖安装，主题和图片会保留。
@@ -40,9 +40,9 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 
 安装器会校验官方 Codex Store 包和 Node.js，按需安装 WebView2 Runtime，保存可恢复的外观配置，并初始化本地主题仓库。正式 Setup 还会把控制中心安装为原生客户端；默认还会创建这些快捷方式：
 
-- `Codex Dream Skin`：打开原生控制中心客户端。
-- `Codex Dream Skin - Tray`：以后台模式启动客户端并驻留系统托盘。
-- `Codex Dream Skin - Restore`：恢复官方外观并关闭已保存的 CDP 会话。
+- `Codex-Skin`：打开原生控制中心客户端。
+- `Codex-Skin - Tray`：以后台模式启动客户端并驻留系统托盘。
+- `Codex-Skin - Restore`：恢复官方外观并关闭已保存的 CDP 会话。
 
 源码安装命令与日常快捷方式都使用 `RemoteSigned`，不会绕过系统或企业组策略。安装器会先校验运行时副本的 SHA-256，再仅对 `%LOCALAPPDATA%\CodexDreamSkin\engine` 中受管的 PowerShell 副本清除下载区标记。
 
@@ -59,7 +59,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-
 
 ## 启动与验证
 
-推荐从 `Codex Dream Skin` 快捷方式启动客户端。关闭窗口只会隐藏到托盘；从托盘退出客户端才会停止其内部控制中心服务。客户端的“启动 / 重新应用 Codex”仍会调用经过验证的 PowerShell 启动流程，并在 Codex 已经运行时先询问是否重启。
+推荐从 `Codex-Skin` 快捷方式启动客户端。关闭窗口只会隐藏到托盘；从托盘退出客户端才会停止其内部控制中心服务。客户端的“启动 / 重新应用 Codex”仍会调用经过验证的 PowerShell 启动流程，并在 Codex 已经运行时先询问是否重启。
 
 命令行启动：
 
@@ -96,7 +96,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\doctor-d
 
 ## 更换和保存主题
 
-打开 `Codex Dream Skin` 客户端后可以（后台启动时也可从托盘双击打开）：
+打开 `Codex-Skin` 客户端后可以（后台启动时也可从托盘双击打开）：
 
 - 更换 PNG、JPEG 或 WebP 背景图。
 - 导入普通 `.zip` 主题包到“已保存主题”（不支持 `.dreamskin`）。
@@ -195,7 +195,7 @@ Get-AppxPackage -Name OpenAI.Codex
 
 ### 验证找不到 CDP 端点
 
-通过 `Codex Dream Skin` 快捷方式启动 Codex，再运行验证脚本。普通 Codex 启动方式不会打开 Dream Skin 所需的调试会话。
+通过 `Codex-Skin` 快捷方式启动 Codex，再运行验证脚本。普通 Codex 启动方式不会打开 Dream Skin 所需的调试会话。
 
 Codex Store `26.715.10079.0` 起，owl runtime 可能把应用包激活参数转换为 `codex://` 路径。当前启动器会识别这一行为，并对同一个已验证 Store 包内的精确 `ChatGPT.exe` 尝试一次原始参数回退；不会修改文件或 WindowsApps 权限。
 

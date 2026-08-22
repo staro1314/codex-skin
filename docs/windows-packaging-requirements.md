@@ -188,7 +188,7 @@ SHA-256 不一致时必须重新下载正确版本，不得改 manifest 迎合�
 每次构建使用新的输出目录或确认旧目录中没有同名旧包。正式产物命名固定为：
 
 ```text
-release/CodexDreamSkin-Setup-vX.Y.Z.exe
+release/Codex-Skin-Setup-vX.Y.Z.exe
 release/SHA256SUMS.txt
 ```
 

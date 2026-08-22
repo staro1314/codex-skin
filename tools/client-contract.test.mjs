@@ -48,7 +48,7 @@ test("installed entry points target the native client while browser control rema
     fs.readFile(path.join(projectRoot, "macos", "scripts", "start-dream-skin-macos.sh"), "utf8"),
   ]);
   assert.match(installer, /CodexDreamSkin\\engine\\client\\CodexDreamSkin\.Client\.exe/);
-  assert.match(installer, /\{userdesktop\}\\Codex Dream Skin/);
+  assert.match(installer, /\{userdesktop\}\\Codex-Skin/);
   assert.match(installScript, /\$clientPath|\$engine\.Client/);
   assert.match(installScript, /Install-DreamSkinBaseTheme/);
   assert.match(installScript, /Get-DreamSkinCodexProcesses/);

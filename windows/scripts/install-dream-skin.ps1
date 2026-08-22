@@ -36,10 +36,10 @@ try {
     throw 'The saved Codex path is still running but no longer matches a registered Store package. Close it manually before installing.'
   }
   if (Test-DreamSkinTrayActive) {
-    throw 'Exit the Codex Dream Skin tray before reinstalling so every shortcut can move to the new runtime safely.'
+    throw 'Exit the Codex-Skin tray before reinstalling so every shortcut can move to the new runtime safely.'
   }
   if (Test-DreamSkinClientActive -ClientPath (Get-DreamSkinRuntimeEnginePaths -StateRoot $StateRoot).Client) {
-    throw 'Exit the Codex Dream Skin client before reinstalling so every shortcut can move to the new runtime safely.'
+    throw 'Exit the Codex-Skin client before reinstalling so every shortcut can move to the new runtime safely.'
   }
   $engine = Install-DreamSkinRuntimeEngine -SkillRoot $SkillRoot -StateRoot $StateRoot
   $null = Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $StateRoot
@@ -59,8 +59,19 @@ try {
     $clientPath = $engine.Client
     $portArgument = if ($PortExplicit) { " -Port $Port" } else { '' }
 
+    $legacyShortcutNames = @(
+      'Codex Dream Skin.lnk',
+      'Codex Dream Skin - Restore.lnk',
+      'Codex Dream Skin - Tray.lnk'
+    )
     foreach ($folder in @($desktop, $startMenu)) {
-      $shortcut = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin.lnk'))
+      foreach ($legacyName in $legacyShortcutNames) {
+        Remove-Item -LiteralPath (Join-Path $folder $legacyName) -Force -ErrorAction SilentlyContinue
+      }
+    }
+
+    foreach ($folder in @($desktop, $startMenu)) {
+      $shortcut = $shell.CreateShortcut((Join-Path $folder 'Codex-Skin.lnk'))
       if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
         $shortcut.TargetPath = $clientPath
         $shortcut.Arguments = '--show'
@@ -70,14 +81,14 @@ try {
       }
       $shortcut.WorkingDirectory = $engine.Root
       $shortcut.Description = if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
-        'Open the Codex Dream Skin control center client'
+        'Open the Codex-Skin control center client'
       } else {
-        'Launch the official Codex app with Codex Dream Skin'
+        'Launch the official Codex app with Codex-Skin'
       }
       $shortcut.Save()
     }
 
-    $restore = $shell.CreateShortcut((Join-Path $desktop 'Codex Dream Skin - Restore.lnk'))
+    $restore = $shell.CreateShortcut((Join-Path $desktop 'Codex-Skin - Restore.lnk'))
     $restore.TargetPath = $powershell
     $restore.Arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$restoreScript`"$portArgument -RestoreBaseTheme -PromptRestart"
     $restore.WorkingDirectory = $engine.Root
@@ -86,21 +97,21 @@ try {
 
     if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
       foreach ($folder in @($desktop, $startMenu)) {
-        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin - Tray.lnk'))
+        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex-Skin - Tray.lnk'))
         $tray.TargetPath = $clientPath
         $tray.Arguments = '--background'
         $tray.WorkingDirectory = $engine.Root
-        $tray.Description = 'Run the Codex Dream Skin client in the system tray'
+        $tray.Description = 'Run the Codex-Skin client in the system tray'
         $tray.Save()
       }
       Start-Process -FilePath $clientPath -ArgumentList '--background' -WindowStyle Hidden | Out-Null
     } else {
       foreach ($folder in @($desktop, $startMenu)) {
-        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin - Tray.lnk'))
+        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex-Skin - Tray.lnk'))
         $tray.TargetPath = $powershell
         $tray.Arguments = "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File `"$trayScript`"$portArgument"
         $tray.WorkingDirectory = $engine.Root
-        $tray.Description = 'Open Codex Dream Skin status and theme controls in the system tray'
+        $tray.Description = 'Open Codex-Skin status and theme controls in the system tray'
         $tray.Save()
       }
       Start-Process -FilePath $powershell -ArgumentList `
@@ -110,9 +121,9 @@ try {
   }
 
   if ($NoShortcuts) {
-    Write-Host "Codex Dream Skin base theme installed at $($engine.Root). Run $($engine.Start) to launch it."
+    Write-Host "Codex-Skin base theme installed at $($engine.Root). Run $($engine.Start) to launch it."
   } else {
-    Write-Host 'Codex Dream Skin installed. The launch shortcut asks before restarting an open Codex window.'
+    Write-Host 'Codex-Skin installed. The launch shortcut asks before restarting an open Codex window.'
   }
 } finally {
   Exit-DreamSkinOperationLock -Mutex $operationLock

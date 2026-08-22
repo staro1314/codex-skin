@@ -23,7 +23,7 @@ function Show-DreamSkinCommunityMessage {
   }
   [void][System.Windows.Forms.MessageBox]::Show(
     $Message,
-    'Codex Dream Skin',
+    'Codex-Skin',
     [System.Windows.Forms.MessageBoxButtons]::OK,
     $icon
   )

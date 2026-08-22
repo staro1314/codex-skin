@@ -84,7 +84,7 @@ Codex 退出。用户在客户端中点击启动皮肤后，才由客户端动�
 安装包继续使用现有 Inno Setup：
 
 ```text
-CodexDreamSkin-Setup-vX.Y.Z.exe
+Codex-Skin-Setup-vX.Y.Z.exe
 ```
 
 安装后的目录增加：
@@ -102,7 +102,7 @@ engine/
 
 安装器快捷方式统一指向客户端：
 
-- “Codex Dream Skin”：打开客户端窗口。
+- “Codex-Skin”：打开客户端窗口。
 - 登录启动：以后台托盘模式启动，不自动显示窗口。
 - 安装完成后：启动客户端窗口。
 

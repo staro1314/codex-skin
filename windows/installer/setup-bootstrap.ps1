@@ -13,7 +13,8 @@ $payloadScripts = Join-Path $payloadRoot 'scripts'
 $commonPath = Join-Path $payloadScripts 'common-windows.ps1'
 $themePath = Join-Path $payloadScripts 'theme-windows.ps1'
 $stateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
-$startupShortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'Codex Dream Skin.lnk'
+$startupShortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'Codex-Skin.lnk'
+$legacyStartupShortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'Codex Dream Skin.lnk'
 
 function Show-DreamSkinBootstrapMessage {
   param(
@@ -29,7 +30,7 @@ function Show-DreamSkinBootstrapMessage {
   }
   [void][System.Windows.Forms.MessageBox]::Show(
     $Message,
-    'Codex Dream Skin',
+    'Codex-Skin',
     [System.Windows.Forms.MessageBoxButtons]::OK,
     $icon
   )
@@ -104,7 +105,7 @@ try {
     $restoreRequired = (Test-Path -LiteralPath $engine.Root -PathType Container) -or
       (Test-Path -LiteralPath (Join-Path $stateRoot 'config.before-dream-skin.toml') -PathType Leaf)
     if ($restoreRequired -and -not (Test-Path -LiteralPath $engine.Restore -PathType Leaf)) {
-      throw 'The installed restore engine is missing. Reinstall Codex Dream Skin, then uninstall again so Codex can be restored safely.'
+      throw 'The installed restore engine is missing. Reinstall Codex-Skin, then uninstall again so Codex can be restored safely.'
     }
     if ($restoreRequired) {
       $restoreParameters = @{
@@ -120,7 +121,7 @@ try {
     if (Test-Path -LiteralPath $engine.Root -PathType Container) {
       Remove-DreamSkinRuntimeTree -Path $engine.Root -StateRoot $stateRoot
     }
-    Remove-Item -LiteralPath $startupShortcut -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $startupShortcut, $legacyStartupShortcut -Force -ErrorAction SilentlyContinue
     Write-DreamSkinBootstrapCompletion -ExitCode 0
     exit 0
   }
@@ -134,6 +135,17 @@ try {
   Ensure-DreamSkinWebView2Runtime -BootstrapperPath (
     Join-Path $payloadRoot 'dependencies\MicrosoftEdgeWebView2Setup.exe'
   )
+  if ($Install) {
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+    @(
+      (Join-Path $desktop 'Codex Dream Skin.lnk'),
+      (Join-Path $desktop 'Codex Dream Skin - Restore.lnk'),
+      (Join-Path $desktop 'Codex Dream Skin - Tray.lnk'),
+      (Join-Path $startMenu 'Codex Dream Skin.lnk'),
+      (Join-Path $startMenu 'Codex Dream Skin - Tray.lnk')
+    ) | ForEach-Object { Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue }
+  }
   $payloadVersion = ([System.IO.File]::ReadAllText((Join-Path $payloadRoot 'VERSION'))).Trim()
   if ($payloadVersion -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
     throw "The installer payload version is invalid: $payloadVersion"
@@ -143,7 +155,7 @@ try {
   } else { '' }
   if ($installedVersion -cmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -and
     ([version]$installedVersion) -gt ([version]$payloadVersion)) {
-    throw "A newer Codex Dream Skin v$installedVersion is already installed. Download that version or newer instead of downgrading to v$payloadVersion."
+    throw "A newer Codex-Skin v$installedVersion is already installed. Download that version or newer instead of downgrading to v$payloadVersion."
   }
   $requiredEngineFiles = @(
     'VERSION',
