@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1 — 2026-08-22
+
+### 变更
+
+- 用户可见应用名统一为 `Codex-Skin`，并同步 Windows 安装器、快捷方式、托盘、macOS App、DMG 和菜单栏显示名。
+- 保留 `CodexDreamSkin` 内部目录、状态路径和程序集标识，确保既有安装升级兼容。
+
 ## Unreleased
 
 ### 新增

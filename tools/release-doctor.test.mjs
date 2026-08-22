@@ -17,9 +17,10 @@ test("release doctor accepts only strict semantic versions and v-tags", () => {
 test("release doctor verifies the checked-out release inputs and versions", async () => {
   const result = await inspectReleaseTree();
   assert.equal(result.ok, true, result.errors.join(", "));
-  assert.equal(result.version, "1.0.0");
-  const tagged = await inspectReleaseTree(undefined, "v1.0.0");
-  assert.equal(tagged.ok, true, tagged.errors.join(", "));
+  assert.equal(result.version, "1.0.1");
+  const previousTag = await inspectReleaseTree(undefined, "v1.0.0");
+  assert.equal(previousTag.ok, false);
+  assert.match(previousTag.errors.join("\n"), /tag-version-mismatch=v1\.0\.0:1\.0\.1/);
   const mismatched = await inspectReleaseTree(undefined, "v1.5.13");
   assert.equal(mismatched.ok, false);
   assert.match(mismatched.errors.join("\n"), /tag-version-mismatch/);

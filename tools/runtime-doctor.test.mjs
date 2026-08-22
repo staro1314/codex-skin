@@ -15,7 +15,7 @@ for (const platform of ["windows", "darwin"]) {
   });
   assert.equal(report.pass, true, `${platform} static Doctor should pass`);
   assert.equal(report.status, "ready", `${platform} static Doctor should be ready`);
-  assert.equal(report.skinVersion, "1.0.0");
+  assert.equal(report.skinVersion, "1.0.1");
   assert.equal(report.checks.find((item) => item.id === "shared-contract-sync")?.status, "pass");
 }
 
