@@ -172,6 +172,8 @@ function Write-DreamSkinIcon {
   param([Parameter(Mandatory = $true)][string]$Path)
   $sizes = @(16, 24, 32, 48, 64, 256)
   $images = New-Object System.Collections.Generic.List[byte[]]
+  $rotationCos = 0.974370
+  $rotationSin = 0.224951
 
   foreach ($size in $sizes) {
     $pixelBytes = $size * $size * 4
@@ -196,46 +198,90 @@ function Write-DreamSkinIcon {
         $alphaRow = New-Object byte[] $size
         for ($column = 0; $column -lt $size; $column++) {
           $coverage = 0
-          $darkCoverage = 0
-          $dotCoverage = 0
-          $edgeCoverage = 0
+          $red = 0.0
+          $green = 0.0
+          $blue = 0.0
           foreach ($sampleY in @(0.125, 0.375, 0.625, 0.875)) {
             foreach ($sampleX in @(0.125, 0.375, 0.625, 0.875)) {
-              # DreamSkin 品牌 mark（与网站 favicon 同源）：白圆角方 +
-              # 墨色对角半区（x+y>=1）+ 青点 + 14% 发丝描边环。
+              # Plum Glass：深色圆角底、莓紫玻璃面板、倾斜的主题纸张。
               $x = ($column + $sampleX) / $size
               $y = ($row + $sampleY) / $size
-              $dx = [Math]::Max([Math]::Abs($x - 0.5) - 0.16, 0.0)
-              $dy = [Math]::Max([Math]::Abs($y - 0.5) - 0.16, 0.0)
-              $edgeDistance = [Math]::Sqrt($dx * $dx + $dy * $dy)
-              if ($edgeDistance -le 0.285) {
+
+              $outerDx = [Math]::Max([Math]::Abs($x - 0.5) - 0.32, 0.0)
+              $outerDy = [Math]::Max([Math]::Abs($y - 0.5) - 0.32, 0.0)
+              $outerDistance = [Math]::Sqrt($outerDx * $outerDx + $outerDy * $outerDy)
+              if ($outerDistance -le 0.10) {
                 $coverage++
-                if (($x + $y) -ge 1.0) { $darkCoverage++ }
-                $ddx = $x - 0.719
-                $ddy = $y - 0.281
-                if (($ddx * $ddx + $ddy * $ddy) -le (0.08 * 0.08)) { $dotCoverage++ }
-                if ($edgeDistance -gt (0.285 - [Math]::Max(0.028, 1.1 / $size))) { $edgeCoverage++ }
+
+                $shade = [Math]::Max(0.0, [Math]::Min(1.0, $y))
+                $red = 11.0 + (10.0 * $shade)
+                $green = 16.0 + (7.0 * $shade)
+                $blue = 32.0 + (15.0 * $shade)
+
+                $glassDx = [Math]::Max([Math]::Abs($x - 0.5) - 0.21, 0.0)
+                $glassDy = [Math]::Max([Math]::Abs($y - 0.5) - 0.21, 0.0)
+                $glassDistance = [Math]::Sqrt($glassDx * $glassDx + $glassDy * $glassDy)
+                if ($glassDistance -le 0.09) {
+                  $glassT = [Math]::Max(0.0, [Math]::Min(1.0, (($x + $y) - 0.32) / 1.36))
+                  $red = 75.0 + ((33.0 - 75.0) * $glassT)
+                  $green = 45.0 + ((23.0 - 45.0) * $glassT)
+                  $blue = 88.0 + ((55.0 - 88.0) * $glassT)
+
+                  $glassMargin = 0.09 - $glassDistance
+                  $rimBlend = [Math]::Max(0.0, [Math]::Min(1.0, (0.035 - $glassMargin) / 0.035)) * 0.44
+                  $rimT = [Math]::Max(0.0, [Math]::Min(1.0, ($x + $y - 0.72) / 0.64))
+                  $rimRed = 235.0 + ((133.0 - 235.0) * $rimT)
+                  $rimGreen = 160.0 + ((226.0 - 160.0) * $rimT)
+                  $rimBlue = 158.0 + ((211.0 - 158.0) * $rimT)
+                  $red = ($red * (1.0 - $rimBlend)) + ($rimRed * $rimBlend)
+                  $green = ($green * (1.0 - $rimBlend)) + ($rimGreen * $rimBlend)
+                  $blue = ($blue * (1.0 - $rimBlend)) + ($rimBlue * $rimBlend)
+
+                  $globalX = $x - 0.5
+                  $globalY = $y - 0.5
+                  $localX = ($globalX * $rotationCos) + ($globalY * $rotationSin)
+                  $localY = (-$globalX * $rotationSin) + ($globalY * $rotationCos)
+                  $pageDx = [Math]::Max([Math]::Abs($localX) - 0.18, 0.0)
+                  $pageDy = [Math]::Max([Math]::Abs($localY) - 0.26, 0.0)
+                  $pageDistance = [Math]::Sqrt($pageDx * $pageDx + $pageDy * $pageDy)
+                  if ($pageDistance -le 0.04) {
+                    $pageT = [Math]::Max(0.0, [Math]::Min(1.0, (($localX + (0.75 * $localY)) + 0.45) / 0.90))
+                    $red = 244.0 + ((124.0 - 244.0) * $pageT)
+                    $green = 193.0 + ((103.0 - 193.0) * $pageT)
+                    $blue = 183.0 + ((207.0 - 183.0) * $pageT)
+
+                    $pageMargin = 0.04 - $pageDistance
+                    $paperEdgeBlend = [Math]::Max(0.0, [Math]::Min(1.0, (0.018 - $pageMargin) / 0.018)) * 0.55
+                    $red = ($red * (1.0 - $paperEdgeBlend)) + (247.0 * $paperEdgeBlend)
+                    $green = ($green * (1.0 - $paperEdgeBlend)) + (199.0 * $paperEdgeBlend)
+                    $blue = ($blue * (1.0 - $paperEdgeBlend)) + (193.0 * $paperEdgeBlend)
+
+                    $line = $false
+                    foreach ($lineY in @(-0.12, 0.0, 0.12)) {
+                      if (($localX -ge -0.14) -and ($localX -le 0.15) -and ([Math]::Abs($localY - $lineY) -le 0.018)) {
+                        $line = $true
+                      }
+                    }
+                    if ($line) {
+                      $red = 94.0
+                      $green = 62.0
+                      $blue = 109.0
+                    } elseif (($localX -gt 0.12) -and ($localY -gt 0.20) -and (($localX + $localY) -gt 0.32)) {
+                      $red = 169.0
+                      $green = 231.0
+                      $blue = 220.0
+                    }
+                  }
+                }
               }
             }
           }
 
           $alpha = [int][Math]::Round(255.0 * $coverage / 16.0)
           $alphaRow[$column] = [byte]$alpha
-          $darkBlend = $darkCoverage / 16.0
-          $dotBlend = $dotCoverage / 16.0
-          $edgeBlend = 0.14 * ($edgeCoverage / 16.0)
-          $red = 253.0 * (1.0 - $darkBlend) + 23.0 * $darkBlend
-          $green = 253.0 * (1.0 - $darkBlend) + 24.0 * $darkBlend
-          $blue = 252.0 * (1.0 - $darkBlend) + 28.0 * $darkBlend
-          $red = $red * (1.0 - $dotBlend) + 45.0 * $dotBlend
-          $green = $green * (1.0 - $dotBlend) + 225.0 * $dotBlend
-          $blue = $blue * (1.0 - $dotBlend) + 194.0 * $dotBlend
-          $red = [int][Math]::Round($red * (1.0 - $edgeBlend) + 23.0 * $edgeBlend)
-          $green = [int][Math]::Round($green * (1.0 - $edgeBlend) + 24.0 * $edgeBlend)
-          $blue = [int][Math]::Round($blue * (1.0 - $edgeBlend) + 28.0 * $edgeBlend)
-          $writer.Write([byte]$blue)
-          $writer.Write([byte]$green)
-          $writer.Write([byte]$red)
+          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $blue))))
+          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $green))))
+          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $red))))
           $writer.Write([byte]$alpha)
         }
         $alphaRows[$row] = $alphaRow

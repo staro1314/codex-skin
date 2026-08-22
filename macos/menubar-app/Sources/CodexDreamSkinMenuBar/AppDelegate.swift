@@ -182,24 +182,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     menu.autoenablesItems = false
     statusItem.menu = menu
     guard let button = statusItem.button else { return }
-    // 菜单栏模板剪影：与 dreamskin.cc favicon 同源的品牌 mark
-    // （圆角方描边 + 墨色对角半区）。模板图仅黑 + 透明，青点在
-    // 此尺寸下省略，避免糊成噪点。
+    // 菜单栏模板剪影：Plum Glass 的玻璃框 + 倾斜主题面板。
+    // 菜单栏图标必须使用黑色模板图，彩色应用图标由 App/安装包使用。
     let mark = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
       let inset = rect.insetBy(dx: 1, dy: 1)
       let rounded = NSBezierPath(roundedRect: inset, xRadius: 5.2, yRadius: 5.2)
       NSColor.black.setStroke()
-      rounded.lineWidth = 1.4
+      rounded.lineWidth = 1.2
       rounded.stroke()
       NSGraphicsContext.current?.saveGraphicsState()
       rounded.addClip()
-      let diagonal = NSBezierPath()
-      diagonal.move(to: NSPoint(x: inset.minX, y: inset.maxY))
-      diagonal.line(to: NSPoint(x: inset.maxX, y: inset.minY))
-      diagonal.line(to: NSPoint(x: inset.maxX, y: inset.maxY))
-      diagonal.close()
+      let sheet = NSBezierPath()
+      sheet.move(to: NSPoint(x: 5.2, y: 4.0))
+      sheet.line(to: NSPoint(x: 13.9, y: 5.6))
+      sheet.line(to: NSPoint(x: 12.4, y: 14.1))
+      sheet.line(to: NSPoint(x: 3.7, y: 12.4))
+      sheet.close()
       NSColor.black.setFill()
-      diagonal.fill()
+      sheet.fill()
+      let line = NSBezierPath()
+      line.move(to: NSPoint(x: 5.6, y: 7.1))
+      line.line(to: NSPoint(x: 11.5, y: 8.2))
+      line.move(to: NSPoint(x: 5.2, y: 9.6))
+      line.line(to: NSPoint(x: 10.9, y: 10.7))
+      line.lineWidth = 0.8
+      NSColor.white.setStroke()
+      line.stroke()
       NSGraphicsContext.current?.restoreGraphicsState()
       return true
     }
