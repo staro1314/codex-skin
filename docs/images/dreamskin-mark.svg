@@ -1,12 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" aria-label="DreamSkin">
   <defs>
-    <clipPath id="dsc">
+    <linearGradient id="dsc-bg" x1="4" y1="3" x2="28" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12182b"/>
+      <stop offset="1" stop-color="#090d1b"/>
+    </linearGradient>
+    <linearGradient id="dsc-glass" x1="7" y1="6" x2="25" y2="26" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4b2d58"/>
+      <stop offset=".55" stop-color="#312044"/>
+      <stop offset="1" stop-color="#211932"/>
+    </linearGradient>
+    <linearGradient id="dsc-paper" x1="10" y1="9" x2="22" y2="23" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f4c1b7"/>
+      <stop offset=".45" stop-color="#dca1c4"/>
+      <stop offset="1" stop-color="#8c72d1"/>
+    </linearGradient>
+    <linearGradient id="dsc-rim" x1="7" y1="25" x2="25" y2="7" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e4a09e" stop-opacity=".7"/>
+      <stop offset=".5" stop-color="#8d5a9d" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#83e1d2" stop-opacity=".76"/>
+    </linearGradient>
+    <clipPath id="dsc-frame">
       <rect x="2" y="2" width="28" height="28" rx="9"/>
     </clipPath>
+    <clipPath id="dsc-paper-clip">
+      <rect x="9" y="8" width="14" height="15" rx="1.4"/>
+    </clipPath>
   </defs>
-  <rect x="2" y="2" width="28" height="28" rx="9" fill="#fdfdfc" stroke="#17181c" stroke-opacity=".14"/>
-  <g clip-path="url(#dsc)">
-    <path d="M2 30 30 2v28Z" fill="#17181c"/>
+
+  <rect x="2" y="2" width="28" height="28" rx="9" fill="url(#dsc-bg)" stroke="#7e6c9e" stroke-opacity=".28" stroke-width=".7"/>
+  <g clip-path="url(#dsc-frame)">
+    <rect x="5.5" y="5.5" width="21" height="21" rx="6.7" fill="url(#dsc-glass)" stroke="url(#dsc-rim)" stroke-width=".8"/>
+    <path d="M7 24.5 10.5 20" stroke="#efaaa4" stroke-opacity=".48" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M21.5 7.2 25 11" stroke="#8ae2d4" stroke-opacity=".72" stroke-width="1.1" stroke-linecap="round"/>
+
+    <g transform="rotate(13 16 15.5)">
+      <rect x="9" y="8" width="14" height="15" rx="1.4" fill="url(#dsc-paper)" stroke="#f2c3c0" stroke-opacity=".58" stroke-width=".6"/>
+      <path d="M19.8 8 23 11.2h-2.3a.9.9 0 0 1-.9-.9Z" fill="#a8e6dc" fill-opacity=".9"/>
+      <g clip-path="url(#dsc-paper-clip)" fill="none" stroke="#63466f" stroke-linecap="round">
+        <path d="M10.8 12.1h8.2" stroke-width="1.05"/>
+        <path d="M10.8 14.8h7.4" stroke-width="1.05"/>
+        <path d="M10.8 17.5h6.5" stroke-width="1.05"/>
+      </g>
+    </g>
   </g>
-  <circle cx="23" cy="9" r="2.5" fill="#2de1c2"/>
 </svg>
