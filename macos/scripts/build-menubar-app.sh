@@ -125,7 +125,7 @@ done
 /usr/bin/rsync -a "$ROOT/assets/" "$ENGINE/assets/"
 PUBLIC_PRESET="preset-gothic-void-crusade"
 PUBLIC_PRESET_SHA256="b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42"
-PUBLIC_PRESET_THEME_SHA256="8316c6ad29e3b84806358ab4a730c7e063b261e379179b9608cf751c282d66a7"
+PUBLIC_PRESET_THEME_SHA256="aab3fa23ccd623b67a3e30af074098595d0e3683cf12ee31a011c050cc48a54c"
 [ -d "$ROOT/presets/$PUBLIC_PRESET" ] \
   || { printf 'Public release preset missing: %s\n' "$PUBLIC_PRESET" >&2; exit 1; }
 actual_public_preset_sha256="$(LC_ALL=C /usr/bin/shasum -a 256 \
@@ -141,8 +141,8 @@ actual_public_preset_theme_sha256="$(LC_ALL=C /usr/bin/shasum -a 256 \
 VIDEO_FOX_PRESET="preset-video-fox-spirit"
 VIDEO_FOX_PRESET_IMAGE_SHA256="fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa"
 VIDEO_FOX_PRESET_VIDEO_SHA256="339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb"
-VIDEO_FOX_PRESET_THEME_SHA256="6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411"
-VIDEO_FOX_PRESET_CSS_SHA256="46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9"
+VIDEO_FOX_PRESET_THEME_SHA256="ec131c521f505d685aeddfdbf43070e06e96735cb6ec3b291e74ce13cdf4f5bd"
+VIDEO_FOX_PRESET_CSS_SHA256="afdd1692b3666bab37f912cabb91aa494c64f967aed5c018b3cb12a05fb43065"
 [ -d "$ROOT/presets/$VIDEO_FOX_PRESET" ] \
   || { printf 'Bundled video fox preset missing: %s\n' "$VIDEO_FOX_PRESET" >&2; exit 1; }
 for video_file in background.png background.mp4 theme.css theme.json; do

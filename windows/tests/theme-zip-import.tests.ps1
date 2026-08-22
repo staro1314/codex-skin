@@ -173,7 +173,7 @@ function Write-TestOfficialThemePack {
     themeId = $Id
     version = '1.2.3'
     skinApiVersion = 1
-    minClientVersion = '1.3.0'
+    minClientVersion = '1.0.0'
     platforms = @('macos', 'windows')
     capabilities = $capabilities
     publisher = [ordered]@{ id = 'dreamskin-studio'; displayName = 'DreamSkin Studio' }
@@ -428,7 +428,7 @@ try {
   New-TestZipFromDirectory -Source $missingIdSource -Archive $missingIdArchive
   $missingId = Import-DreamSkinThemeZip -ArchivePath $missingIdArchive -StateRoot $stateRoot
   if ($missingId.Status -cne 'Imported' -or
-    $missingId.Id -cne 'import-b009c788e6a9307c35ed281e' -or -not $missingId.Renamed) {
+    $missingId.Id -cne 'import-d1bf737e014bc0ddcbc4ee08' -or -not $missingId.Renamed) {
     throw 'A missing source theme id did not use the stable cross-platform semantic fallback id.'
   }
 

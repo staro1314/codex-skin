@@ -7,18 +7,18 @@ import {
 } from "./release-doctor.mjs";
 
 test("release doctor accepts only strict semantic versions and v-tags", () => {
-  assert.equal(parseReleaseVersion("1.5.12"), "1.5.12");
+  assert.equal(parseReleaseVersion("1.0.0"), "1.0.0");
   assert.equal(parseReleaseVersion("01.5.12"), null);
   assert.equal(parseReleaseVersion("1.5"), null);
-  assert.equal(releaseVersionFromTag("v1.5.12"), "1.5.12");
+  assert.equal(releaseVersionFromTag("v1.0.0"), "1.0.0");
   assert.equal(releaseVersionFromTag("1.5.12"), null);
 });
 
 test("release doctor verifies the checked-out release inputs and versions", async () => {
   const result = await inspectReleaseTree();
   assert.equal(result.ok, true, result.errors.join(", "));
-  assert.equal(result.version, "1.5.12");
-  const tagged = await inspectReleaseTree(undefined, "v1.5.12");
+  assert.equal(result.version, "1.0.0");
+  const tagged = await inspectReleaseTree(undefined, "v1.0.0");
   assert.equal(tagged.ok, true, tagged.errors.join(", "));
   const mismatched = await inspectReleaseTree(undefined, "v1.5.13");
   assert.equal(mismatched.ok, false);

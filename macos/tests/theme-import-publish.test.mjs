@@ -620,7 +620,7 @@ try {
   const missingIdStage = await makeStage("missing-id", undefined, fallbackVectorOptions);
   const missingId = await publish(missingIdStage);
   assert.equal(missingId.status, "imported");
-  assert.equal(missingId.id, "import-b009c788e6a9307c35ed281e");
+  assert.equal(missingId.id, "import-d1bf737e014bc0ddcbc4ee08");
   assert.equal(missingId.renamed, true);
 
   const nonStringIdStage = await makeStage("non-string-id", 42, fallbackVectorOptions);

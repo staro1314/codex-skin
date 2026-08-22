@@ -120,7 +120,7 @@ test("simplified theme packages stage video beside the poster without embedding 
     "--source", source,
     "--stage", stage,
     "--platform", "windows",
-    "--client-version", "1.5.12",
+    "--client-version", "1.0.0",
   ], { cwd: projectRoot });
   const result = JSON.parse(stdout);
   assert.equal(result.format, "simple");
@@ -135,7 +135,7 @@ test("legacy image-only simplified packages remain valid", async () => {
     "--source", source,
     "--stage", stage,
     "--platform", "macos",
-    "--client-version", "1.5.12",
+    "--client-version", "1.0.0",
   ], { cwd: projectRoot });
   assert.equal(JSON.parse(stdout).video, null);
 });

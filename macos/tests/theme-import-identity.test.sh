@@ -84,7 +84,7 @@ MISSING_RESULT="$("$NODE" -e '
   const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
   process.stdout.write(`${value.status}:${value.id}`);
 ' "$TMP/missing-id-output")"
-[ "$MISSING_RESULT" = 'imported:import-b009c788e6a9307c35ed281e' ] || {
+[ "$MISSING_RESULT" = 'imported:import-d1bf737e014bc0ddcbc4ee08' ] || {
   printf 'missing source theme id did not use the stable cross-platform fallback id.\n' >&2
   exit 1
 }
@@ -97,7 +97,7 @@ NON_STRING_RESULT="$("$NODE" -e '
   const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
   process.stdout.write(`${value.status}:${value.id}`);
 ' "$TMP/non-string-id-output")"
-[ "$NON_STRING_RESULT" = 'duplicate:import-b009c788e6a9307c35ed281e' ] || {
+[ "$NON_STRING_RESULT" = 'duplicate:import-d1bf737e014bc0ddcbc4ee08' ] || {
   printf 'semantically identical non-string source id did not resolve as a stable duplicate.\n' >&2
   exit 1
 }

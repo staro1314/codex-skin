@@ -33,17 +33,17 @@ $publicPresetRoot = Join-Path (Join-Path (Join-Path $repositoryRoot 'macos') 'pr
 $publicPresetImagePath = Join-Path $publicPresetRoot 'background.jpg'
 $publicPresetThemePath = Join-Path $publicPresetRoot 'theme.json'
 $publicPresetImageSha256 = 'b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42'
-$publicPresetThemeSha256 = '8316c6ad29e3b84806358ab4a730c7e063b261e379179b9608cf751c282d66a7'
+$publicPresetThemeSha256 = 'aab3fa23ccd623b67a3e30af074098595d0e3683cf12ee31a011c050cc48a54c'
 $videoFoxPresetRoot = Join-Path (Join-Path (Join-Path $repositoryRoot 'macos') 'presets') `
   'preset-video-fox-spirit'
 $videoFoxPresetThemePath = Join-Path $videoFoxPresetRoot 'theme.json'
 $videoFoxPresetImagePath = Join-Path $videoFoxPresetRoot 'background.png'
 $videoFoxPresetVideoPath = Join-Path $videoFoxPresetRoot 'background.mp4'
 $videoFoxPresetCssPath = Join-Path $videoFoxPresetRoot 'theme.css'
-$videoFoxPresetThemeSha256 = '6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411'
+$videoFoxPresetThemeSha256 = 'ec131c521f505d685aeddfdbf43070e06e96735cb6ec3b291e74ce13cdf4f5bd'
 $videoFoxPresetImageSha256 = 'fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa'
 $videoFoxPresetVideoSha256 = '339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb'
-$videoFoxPresetCssSha256 = '46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9'
+$videoFoxPresetCssSha256 = 'afdd1692b3666bab37f912cabb91aa494c64f967aed5c018b3cb12a05fb43065'
 $webView2BootstrapperUrl = 'https://go.microsoft.com/fwlink/?linkid=2124703'
 
 function Read-ReleaseTextFile {
@@ -517,8 +517,14 @@ try {
 
   $clientPublishRoot = Join-Path $WorkingDirectory 'client-publish'
   & $dotnet publish $clientProjectPath --configuration Release --runtime win-x64 `
-    --self-contained true --output $clientPublishRoot --nologo
+    --self-contained true --output $clientPublishRoot --nologo `
+    -p:DebugType=None -p:DebugSymbols=false
   if ($LASTEXITCODE -ne 0) { throw ".NET client publish failed with exit code $LASTEXITCODE." }
+  $debugSymbols = @(Get-ChildItem -LiteralPath $clientPublishRoot -File -Recurse |
+      Where-Object { $_.Extension -ieq '.pdb' })
+  if ($debugSymbols.Count -gt 0) {
+    throw "Release client publish contains debug symbol files: $($debugSymbols.FullName -join ', ')"
+  }
   foreach ($runtimeFile in @('hostfxr.dll', 'hostpolicy.dll', 'coreclr.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $clientPublishRoot $runtimeFile) -PathType Leaf)) {
       throw ".NET client publish did not produce the self-contained runtime file: $runtimeFile"

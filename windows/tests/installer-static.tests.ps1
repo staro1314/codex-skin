@@ -254,6 +254,8 @@ foreach ($requiredBuilderContract in @(
   "'NOTICE.md'",
   "Write-DreamSkinIcon -Path",
   '--self-contained true',
+  '-p:DebugType=None',
+  '-p:DebugSymbols=false',
   'hostfxr.dll',
   'hostpolicy.dll',
   'coreclr.dll',

@@ -1047,7 +1047,7 @@ function Get-DreamSkinSourceThemeIdentity {
     $licenseIdentity = (Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvariant()
   }
   $identity = "dreamskin-source-theme-fallback/1`0theme.json`0$themeHash" +
-    "`0image`0$imageHash`0video`0$videoIdentity`0theme.css`0$cssIdentity`0LICENSE.txt`0$licenseIdentity"
+    "`0image`0$imageHash`0theme.css`0$cssIdentity`0video`0$videoIdentity`0LICENSE.txt`0$licenseIdentity"
   $identityBytes = [System.Text.Encoding]::UTF8.GetBytes($identity)
   $identityHasher = [System.Security.Cryptography.SHA256]::Create()
   try {
