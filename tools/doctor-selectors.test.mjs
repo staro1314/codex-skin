@@ -68,7 +68,7 @@ assert.equal(brokenHome.exitCode, 1);
 const settings = resultFor("settings", ["settings-panel"]);
 assert.equal(settings.pass, true);
 assert.equal(settings.tiers.L1.length, 0, "Settings must not inherit home/all L1 requirements");
-assert.deepEqual(settings.tiers.L2.map(({ key }) => key), ["settings-panel", "appearance-radio"]);
+assert.deepEqual(settings.tiers.L2.map(({ key }) => key), ["settings-panel", "settings-page", "appearance-radio"]);
 assert.equal(settings.tiers.L2.find(({ key }) => key === "settings-panel").status, "ok");
 assert.equal(settings.tiers.L2.find(({ key }) => key === "appearance-radio").status, "miss");
 

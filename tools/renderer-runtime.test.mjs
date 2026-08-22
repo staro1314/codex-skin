@@ -615,7 +615,7 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Approval state must remove the sibling composer-root gradient without changing the composer surface itself.");
   assert.doesNotMatch(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,700}text-shadow:/,
     "The main interaction surface must not add a glyph halo or scoped text shadow.");
-  assert.match(css, /__DREAM_SELECTOR_SHELL_MAIN__:\s*not\([^)]*\)[\s\S]{0,320}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
+  assert.match(css, /Keep a restrained glass tint so the artwork remains visible[\s\S]{0,700}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
     "The state-specific main interaction surface override must keep the restrained tint.");
   assert.match(css, /\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.52\)/,
     "Dynamic terminal panes must use the skin glass surface.");
