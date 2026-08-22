@@ -16,6 +16,7 @@ permissions:
 
 env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.sha }}
 
 jobs:
   guard:
@@ -24,7 +25,7 @@ jobs:
       - name: Check out the immutable event commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.RELEASE_REF }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -34,9 +35,8 @@ jobs:
         run: |
           set -euo pipefail
           event_sha="$(git rev-parse HEAD)"
-          release_sha="$event_sha"
-          test "$event_sha" = "${{ github.sha }}"
-          test "$release_sha" = "${{ github.sha }}"
+          release_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test "$event_sha" = "$release_sha"
           node tools/release-doctor.mjs --tag "$RELEASE_TAG"
           node tools/sync-runtime-assets.mjs --check
           node --test tools/*.test.mjs
@@ -47,11 +47,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.RELEASE_REF }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Restore macOS shell entry point permissions
+        run: chmod +x macos/scripts/*.sh macos/tests/*.sh
       - name: Build macOS release archive
         run: ./macos/scripts/build-release.sh
       - uses: actions/upload-artifact@v4
@@ -66,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.RELEASE_REF }}
           fetch-depth: 0
       - name: Build Windows installer
         shell: pwsh
