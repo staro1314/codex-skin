@@ -120,17 +120,31 @@ function Stop-DreamSkinClientProcess {
   if (-not $ClientPath) { return }
   try { $normalized = [System.IO.Path]::GetFullPath($ClientPath) } catch { throw 'The Dream Skin client path is invalid.' }
   $failures = @()
+  $processes = @()
   try {
     $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'CodexDreamSkin.Client.exe'" -ErrorAction Stop |
       Where-Object { $_.ExecutablePath -and
         [System.IO.Path]::GetFullPath($_.ExecutablePath).Equals($normalized, [System.StringComparison]::OrdinalIgnoreCase) })
-    foreach ($process in $processes) {
-      try {
-        Stop-Process -Id ([int]$process.ProcessId) -Force -ErrorAction Stop
-        Wait-Process -Id ([int]$process.ProcessId) -Timeout 5 -ErrorAction SilentlyContinue
-      } catch { $failures += "PID $($process.ProcessId): $($_.Exception.Message)" }
-    }
-  } catch { $failures += $_.Exception.Message }
+  } catch {
+    # Win32_Process command-line/path inspection can be denied for another
+    # same-user client. Fall back to the process API, then keep the exact
+    # executable-path check before stopping anything.
+    try {
+      $processes = @(Get-Process -Name 'CodexDreamSkin.Client' -ErrorAction Stop | Where-Object {
+        try {
+          $_.Path -and [System.IO.Path]::GetFullPath($_.Path).Equals(
+            $normalized, [System.StringComparison]::OrdinalIgnoreCase)
+        } catch { $false }
+      })
+    } catch { $failures += $_.Exception.Message }
+  }
+  foreach ($process in $processes) {
+    try {
+      $processId = if ($process.ProcessId) { [int]$process.ProcessId } else { [int]$process.Id }
+      Stop-Process -Id $processId -Force -ErrorAction Stop
+      Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
+    } catch { $failures += "PID $processId`: $($_.Exception.Message)" }
+  }
   if ($failures.Count -gt 0 -and $RequireStopped) {
     throw 'Could not close the Codex Dream Skin client: ' + ($failures -join '; ')
   }
@@ -218,7 +232,12 @@ function Stop-DreamSkinTrayProcess {
       }
     }
   } catch {
-    $failures += $_.Exception.Message
+    # If process command-line inspection is denied, the tray mutex still
+    # proves whether a Dream Skin tray is active. Do not fail an install just
+    # because unrelated PowerShell processes are not inspectable.
+    if (Test-DreamSkinTrayActive) {
+      $failures += $_.Exception.Message
+    }
   }
   if ($failures.Count -gt 0) {
     $message = 'Could not close the Dream Skin tray automatically: ' + ($failures -join '; ')

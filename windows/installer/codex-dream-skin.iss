@@ -57,8 +57,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "{#StageRoot}\languages\ChineseSimplified.isl"
 
 [Messages]
-english.ConfirmUninstall=Uninstall will close Codex, restore its original appearance, remove the Dream Skin runtime, and keep saved themes and images.%n%nContinue?
-chinesesimplified.ConfirmUninstall=卸载将关闭 Codex、恢复官方外观并移除 Dream Skin 运行时；已保存主题和图片会保留。%n%n是否继续？
+english.ConfirmUninstall=Uninstall will stop Dream Skin's own runtime, restore its saved Codex configuration, remove the Dream Skin runtime, and keep saved themes and images. Codex does not need to be open.%n%nContinue?
+chinesesimplified.ConfirmUninstall=卸载将停止 Dream Skin 自身运行时、恢复已保存的 Codex 配置并移除 Dream Skin 运行时；Codex 无需打开，已保存主题和图片会保留。%n%n是否继续？
 
 [Tasks]
 Name: "startup"; Description: "Start Codex Dream Skin when I sign in"; GroupDescription: "Additional options:"; Flags: unchecked
@@ -290,40 +290,19 @@ begin
   if not GetPreviousUninstaller(PreviousUninstaller, PreviousInstallDir) then
     exit;
 
-  { When the selected directory is the registered old directory, use the
-    current package's bootstrap. This repairs an old/broken bootstrap before
-    Inno replaces its payload. A different selected directory must use the
-    registered uninstaller so the old directory is not orphaned. }
-  if CompareText(PreviousInstallDir, ExpandConstant('{app}')) = 0 then
+  { The managed engine is outside the Inno application directory. Before
+    replacing an existing install, release only Dream Skin-owned processes;
+    do not invoke an uninstaller or restore/inspect Codex. }
+  ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');
+  ExtractTemporaryFiles('{tmp}\payload\*');
+  TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
+  if not RunBootstrap(TemporaryBootstrap, '-PrepareInstall', WizardSilent, ExitCode) then
   begin
-    ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');
-    ExtractTemporaryFiles('{tmp}\payload\*');
-    TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
-    if not RunBootstrap(TemporaryBootstrap, '-Uninstall', WizardSilent, ExitCode) then
-    begin
-      Result := '无法卸载当前 Codex Dream Skin 安装，安装过程未修改文件。请关闭 Dream Skin 后重试。';
-      exit;
-    end;
-    if ExitCode <> 0 then
-      Result := '无法卸载当前 Codex Dream Skin 安装（退出码 ' +
-        IntToStr(ExitCode) + '），安装过程未修改文件。';
-    exit;
-  end;
-
-  if not Exec(
-    PreviousUninstaller,
-    '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART',
-    PreviousInstallDir,
-    SW_HIDE,
-    ewWaitUntilTerminated,
-    ExitCode
-  ) then
-  begin
-    Result := '无法启动旧版 Codex Dream Skin 卸载程序，安装过程未修改文件。';
+    Result := '无法准备旧版 Codex Dream Skin 运行时，安装过程未修改文件。';
     exit;
   end;
   if ExitCode <> 0 then
-    Result := '旧版 Codex Dream Skin 卸载失败（退出码 ' +
+    Result := '无法准备旧版 Codex Dream Skin 运行时（退出码 ' +
       IntToStr(ExitCode) + '），安装过程未修改文件。';
 end;
 

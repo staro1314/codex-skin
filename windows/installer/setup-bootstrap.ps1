@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [switch]$Install,
+  [switch]$PrepareInstall,
   [switch]$LaunchTray,
   [switch]$Uninstall,
   [switch]$Silent,
@@ -79,6 +80,9 @@ try {
   if ($Install -and ($LaunchTray -or $Uninstall)) {
     throw 'Choose exactly one installer bootstrap action.'
   }
+  if ($PrepareInstall -and ($Install -or $LaunchTray -or $Uninstall)) {
+    throw 'Choose exactly one installer bootstrap action.'
+  }
   if ($Uninstall -and
     (-not (Test-Path -LiteralPath $commonPath -PathType Leaf) -or
       -not (Test-Path -LiteralPath $themePath -PathType Leaf))) {
@@ -97,6 +101,16 @@ try {
   . $themePath
 
   $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $stateRoot
+  if ($PrepareInstall) {
+    # An upgrade/reinstall only needs to release Dream Skin-owned files. It
+    # must not restore Codex or inspect a Codex process; the new payload is
+    # deployed below and the client owns any later apply/restart action.
+    Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
+    Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
+    Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped
+    Write-DreamSkinBootstrapCompletion -ExitCode 0
+    exit 0
+  }
   if ($Uninstall) {
     Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
@@ -109,6 +123,7 @@ try {
     if ($restoreRequired) {
       $restoreParameters = @{
         Uninstall = $true
+        DeploymentOnly = $true
         ForceRestart = $true
         NoRelaunch = $true
       }
