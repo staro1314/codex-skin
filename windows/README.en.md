@@ -187,7 +187,11 @@ The scripts accept only a registered official Store package. They do not launch 
 
 ### The installer asks you to close Codex
 
-Close every Codex window and run the installer again. Installation requires stable app and configuration state.
+Release Setup should not require Codex to be open or closed. It only stops Dream
+Skin-owned client, tray, and Node processes before replacing the managed runtime.
+If an older package still shows the old prompt, download the current Setup.exe
+again; the browser/source install script is a separate flow and does require
+Codex to be closed because it edits `config.toml`.
 
 ### Antivirus reports the old tray shortcut
 

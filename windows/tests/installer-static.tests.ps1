@@ -100,7 +100,7 @@ foreach ($requiredDefinition in @(
   'DestDir: "{app}\payload"',
   'Flags: unchecked',
   'Flags: nowait postinstall skipifsilent',
-  'english.ConfirmUninstall=Uninstall will close Codex',
+  'english.ConfirmUninstall=Uninstall will stop Dream Skin''s own runtime',
   'Name: "chinesesimplified"; MessagesFile: "{#StageRoot}\languages\ChineseSimplified.isl"',
   'chinesesimplified.ConfirmUninstall=',
   '-ExecutionPolicy RemoteSigned',
@@ -123,8 +123,8 @@ foreach ($requiredDefinition in @(
   'function PrepareToInstall(var NeedsRestart: Boolean): String;',
   'GetPreviousUninstaller',
   "'UninstallString'",
-  "RunBootstrap(TemporaryBootstrap, '-Uninstall', WizardSilent, ExitCode)",
-  "'/VERYSILENT /SUPPRESSMSGBOXES /NORESTART'",
+  "RunBootstrap(TemporaryBootstrap, '-PrepareInstall', WizardSilent, ExitCode)",
+  'do not invoke an uninstaller or restore/inspect Codex.',
   '[InstallDelete]',
   'Type: filesandordirs; Name: "{app}\payload"',
   '[Registry]',
@@ -202,6 +202,24 @@ if ($uninstallStepIndex -lt 0 -or $runBootstrapIndex -le $uninstallStepIndex -or
   $definition.Contains('function InitializeUninstall(): Boolean;')) {
   throw 'Uninstall restoration must run after confirmation and abort before file deletion on failure.'
 }
+$prepareInstallIndex = $definition.IndexOf(
+  'function PrepareToInstall(var NeedsRestart: Boolean): String;',
+  [System.StringComparison]::Ordinal
+)
+$prepareInstallEndIndex = $definition.IndexOf(
+  'procedure CurStepChanged(CurStep: TSetupStep);',
+  [System.StringComparison]::Ordinal
+)
+if ($prepareInstallIndex -lt 0 -or $prepareInstallEndIndex -le $prepareInstallIndex) {
+  throw 'Installer prepare-install hook is missing.'
+}
+$prepareInstallBody = $definition.Substring(
+  $prepareInstallIndex,
+  $prepareInstallEndIndex - $prepareInstallIndex
+)
+if ($prepareInstallBody.Contains('Exec(') -or $prepareInstallBody.Contains("'-Uninstall'")) {
+  throw 'Installer upgrades must not invoke an old uninstaller or Codex restore flow.'
+}
 if ([regex]::Matches($definition, '(?m)^Name: "startup";').Count -ne 1 -or
   [regex]::Matches($definition, '(?m)^Name: "startup";[^\r\n]*Flags: unchecked\r?$').Count -ne 1) {
   throw 'The installer startup task must exist exactly once and remain unchecked by default.'
@@ -265,6 +283,9 @@ foreach ($requiredBuilderContract in @(
 }
 
 foreach ($requiredRepairContract in @(
+  '[switch]$PrepareInstall',
+  'if ($PrepareInstall)',
+  'An upgrade/reinstall only needs to release Dream Skin-owned files.',
   '[switch]$Install',
   '$needsInstall = $Install',
   '$requiredEngineFiles',
@@ -322,6 +343,7 @@ if ($builder.Contains('WebView2RuntimePath') -or
 foreach ($requiredUninstallBinding in @(
   '$restoreParameters = @{',
   'Uninstall = $true',
+  'DeploymentOnly = $true',
   'ForceRestart = $true',
   'NoRelaunch = $true',
   '$restoreParameters.RestoreBaseTheme = $true',
@@ -354,6 +376,14 @@ foreach ($requiredSecurityBootstrap in @(
 )) {
   if (-not $common.Contains($requiredSecurityBootstrap)) {
     throw "Node signature validation no longer explicitly loads the PowerShell security module: $requiredSecurityBootstrap"
+  }
+}
+foreach ($requiredProcessStopContract in @(
+  "Get-Process -Name 'CodexDreamSkin.Client'",
+  'Test-DreamSkinTrayActive'
+)) {
+  if (-not $common.Contains($requiredProcessStopContract)) {
+    throw "Dream Skin-owned process cleanup is missing its permission-safe fallback: $requiredProcessStopContract"
   }
 }
 $securityImportIndex = $common.IndexOf('Import-DreamSkinPowerShellSecurityModule', [System.StringComparison]::Ordinal)

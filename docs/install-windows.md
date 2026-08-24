@@ -5,12 +5,13 @@ Node.js 或执行 PowerShell 脚本。
 
 ## 首次安装
 
-先从 Microsoft Store 安装官方 ChatGPT / Codex 桌面应用，至少启动一次后退出。
+先从 Microsoft Store 安装官方 ChatGPT / Codex 桌面应用。正式 Setup 的部署、更新和卸载不要求 Codex
+保持打开，也不要求为了安装手动退出；只有之后在控制中心应用主题时，客户端才会按操作需要处理 Codex 重启。
 
 1. 在 GitHub 的 [Releases](https://github.com/staro1314/codex-skin/releases) 下载最新的
    `CodexDreamSkin-Setup-vX.Y.Z.exe`。`SHA256SUMS.txt` 是可选的完整性校验文件。
 2. 双击安装器，按向导完成安装。默认安装到当前用户的 LocalAppData，不需要管理员权限；正式 Setup
-   不调用浏览器测试安装流程，也不会因为安装本身要求退出 Codex。
+   不调用浏览器测试安装流程，也不会因为安装、更新或卸载要求 Codex 处于打开状态。
 3. 安装完成后，从开始菜单启动 Codex Dream Skin，系统托盘会显示主题图标。
 
 ### 为什么有时会看到“Windows 已保护你的电脑”
@@ -58,11 +59,10 @@ Node.js 或执行 PowerShell 脚本。
 更新和重新安装会先处理旧安装，再写入新版本：
 
 1. 从 Releases 下载新的 `CodexDreamSkin-Setup-vX.Y.Z.exe`。
-2. 运行新的安装器。安装器通过固定 `AppId` 找到旧版本；同一安装目录会使用新包自带的
-   bootstrap 先卸载旧运行时，再安装新版本；如果你选择了不同目录，则调用旧目录的卸载程序，避免
-   留下旧安装。
-3. 若旧版本正在运行，安装器会先关闭 Dream Skin 客户端/托盘；卸载恢复需要时也会关闭 Codex，
-   失败则在复制新文件前中止，不会留下半更新状态。
+2. 运行新的安装器。安装器通过固定 `AppId` 找到旧版本；安装前只会停止旧的 Dream Skin 客户端、
+   托盘和 Node 服务，再原子替换受管运行时，不会调用 Codex 恢复流程。
+3. Codex 可以保持打开。安装器不修改 Codex `config.toml`，也不会强制关闭 Codex；活动窗口已经加载的
+   皮肤会在 Codex 下次重启后消失，主题、图片和配置备份会保留。
 4. 重新启动快捷方式；活动主题、已保存主题、图片和配置备份会保留。
 
 SmartScreen 的决定针对下载到本机的具体文件。你对某个安装器点击“仍要运行”后，通常不会在每次
@@ -74,9 +74,11 @@ SmartScreen 的决定针对下载到本机的具体文件。你对某个安装�
 
 ## 卸载与恢复
 
-在“设置 → 应用 → 已安装的应用”中卸载 Codex Dream Skin。卸载器会先恢复 Codex 官方外观并关闭
-CDP；恢复失败时会停止卸载，不会直接删除运行文件。默认保留 `%LOCALAPPDATA%\CodexDreamSkin` 中的
-主题和图片，方便重新安装；确认不再需要时再手动删除该数据目录。
+在“设置 → 应用 → 已安装的应用”中卸载 Codex Dream Skin，也可以运行安装目录中的 `unins000.exe`。
+卸载器只停止 Dream Skin 自身客户端、托盘和 Node 服务，恢复已保存的 Codex 配置，不要求 Codex 打开，
+也不会强制关闭 Codex。若 Codex 正在运行，当前窗口已加载的皮肤会在下次重启后消失。恢复失败时会停止
+卸载，不会直接删除运行文件。默认保留 `%LOCALAPPDATA%\CodexDreamSkin` 中的主题和图片，方便重新安装；
+确认不再需要时再手动删除该数据目录。
 
 如果安装目录是自定义路径（例如 `D:\Program Files\CodexDreamSkin`），仍应从系统卸载入口或该目录
 中的 `unins000.exe` 卸载。若旧版卸载器损坏，直接运行同一或更新版本的 Setup.exe，安装器会在覆盖前
