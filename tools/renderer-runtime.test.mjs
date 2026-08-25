@@ -36,6 +36,7 @@ function makeFixture({
   profileMenu = false,
   floatingLeftPanel = false,
   utilitySidePanel = false,
+  utilitySidePanelTriggerLabel = "显示/隐藏侧边面板",
   bottomPanel = false,
   environmentInfoPopover = false,
   environmentInfoBackdrop = false,
@@ -265,10 +266,10 @@ function makeFixture({
         "utility-side-panel-trigger",
         body,
         new Map([[
-          "aria-label", "显示/隐藏侧边栏",
+          "aria-label", utilitySidePanelTriggerLabel,
         ], ["aria-pressed", "true"]]),
       );
-      const triggerSelector = 'button[aria-label="显示/隐藏侧边栏"]';
+      const triggerSelector = `button[aria-label="${utilitySidePanelTriggerLabel}"]`;
       register("button", trigger);
       register(triggerSelector, trigger);
       const utilitySelector =
@@ -943,6 +944,15 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(utilitySidePanel.partFixtures.utilitySidePanel.getAttribute("data-ds-part"),
     "utility-side-panel",
     "The exact open right utility sidebar must receive its dedicated visual part.");
+
+  const legacyUtilitySidePanel = makeFixture({
+    nativeAppearance: "dark", utilitySidePanel: true,
+    utilitySidePanelTriggerLabel: "显示/隐藏侧边栏",
+  });
+  vm.runInNewContext(legacyUtilitySidePanel.payloadFor(), legacyUtilitySidePanel.context);
+  assert.equal(legacyUtilitySidePanel.partFixtures.utilitySidePanel.getAttribute("data-ds-part"),
+    "utility-side-panel",
+    "The legacy right utility sidebar trigger label must remain supported.");
 
   const bottomPanel = makeFixture({ nativeAppearance: "dark", bottomPanel: true });
   vm.runInNewContext(bottomPanel.payloadFor(), bottomPanel.context);

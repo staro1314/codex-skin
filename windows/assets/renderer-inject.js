@@ -910,10 +910,13 @@
       menu.getAttribute?.("aria-labelledby") !== triggerId) return [];
     return [menu];
   };
-  const pressedPanelTrigger = (ariaLabel) => genericNodes(
-    `button[aria-label="${ariaLabel}"]`,
-  ).find((node) => node.getAttribute?.("aria-pressed") === "true");
-  const utilitySidePanelNodes = () => pressedPanelTrigger("显示/隐藏侧边栏")
+  const pressedPanelTrigger = (...ariaLabels) => ariaLabels
+    .flatMap((ariaLabel) => genericNodes(`button[aria-label="${ariaLabel}"]`))
+    .find((node) => node.getAttribute?.("aria-pressed") === "true");
+  const utilitySidePanelNodes = () => pressedPanelTrigger(
+    "显示/隐藏侧边栏",
+    "显示/隐藏侧边面板",
+  )
     ? selectorNodes("utility-side-panel") : [];
   const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
     ? selectorNodes("bottom-panel") : [];

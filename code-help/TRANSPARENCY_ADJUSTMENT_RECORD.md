@@ -319,6 +319,16 @@ data-ds-part="environment-info-popover"
 button[aria-label="显示/隐藏侧边栏"][aria-pressed="true"]
 ```
 
+Codex 151.0.7922（Windows，2026-08-25）实际使用的 aria-label 已变为：
+
+```text
+button[aria-label="显示/隐藏侧边面板"][aria-pressed="true"]
+```
+
+运行时同时兼容以上两个触发器标签。2026-08-25 的现场证据显示：面板外层仍命中下面的结构选择器，但旧运行时代码只检查“显示/隐藏侧边栏”，因此没有写入 `data-ds-part="utility-side-panel"`；计算背景随即回退为原生 `rgb(17, 17, 17)`。本次修复只补充触发器标签兼容，不改变面板 alpha、模糊、页签层或其他面板规则。
+
+修复后现场验收（Windows Codex 151.0.7922，保持面板打开）：marker 数量为 `1`；外层计算背景为 `rgba(23, 21, 21, 0.56)`、工具栏为 `rgba(23, 21, 21, 0.62)`，两者背景图均为 `none`；utility 内可见的 `rgb(17,17,17)`/`rgb(21,22,23)` 不透明黑色后代数量为 `0`。关闭再打开后 marker 从 `0` 恢复为 `1`，外层 alpha 仍为 `.56`，最终保持打开状态。当前 composer 仍为原有 `rgba(23,21,21,.10)` 和原有 inset 微高光，底部面板当前未打开且未被本次代码修改。
+
 **精确定位**
 
 ```css
