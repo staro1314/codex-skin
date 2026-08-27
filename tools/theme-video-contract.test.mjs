@@ -15,6 +15,7 @@ import {
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const canonicalVersion = (await fs.readFile(path.join(projectRoot, "VERSION"), "utf8")).trim();
 const validator = path.join(projectRoot, "runtime", "theme-package-validator.mjs");
 const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-dream-skin-video-contract-"));
 
@@ -120,7 +121,7 @@ test("simplified theme packages stage video beside the poster without embedding 
     "--source", source,
     "--stage", stage,
     "--platform", "windows",
-    "--client-version", "1.5.12",
+    "--client-version", canonicalVersion,
   ], { cwd: projectRoot });
   const result = JSON.parse(stdout);
   assert.equal(result.format, "simple");
@@ -135,7 +136,7 @@ test("legacy image-only simplified packages remain valid", async () => {
     "--source", source,
     "--stage", stage,
     "--platform", "macos",
-    "--client-version", "1.5.12",
+    "--client-version", canonicalVersion,
   ], { cwd: projectRoot });
   assert.equal(JSON.parse(stdout).video, null);
 });

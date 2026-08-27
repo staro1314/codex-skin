@@ -37,15 +37,13 @@ Windows 正式安装器：
 
 ### 2.1 版本矩阵
 
-发布版本必须先确定一个合法的三段式版本 `X.Y.Z`，并同步以下六处版本源：
+发布版本必须先确定一个合法的三段式版本 `X.Y.Z`。仓库根目录 `VERSION` 是唯一可编辑版本源；平台目录和包元数据由同步工具生成：
 
 ```text
+VERSION                                  canonical source
 windows/VERSION
 macos/VERSION
 macos/package.json                         version
-macos/scripts/common-macos.sh              SKIN_VERSION
-macos/scripts/injector.mjs                  SKIN_VERSION
-windows/scripts/injector.mjs               SKIN_VERSION
 ```
 
 共享兼容性文件和平台生成副本必须通过现有同步工具更新，不得只手工修改 Windows 或
@@ -55,9 +53,7 @@ macOS 的某一份副本：
 node tools/sync-runtime-assets.mjs --check
 ```
 
-版本发生变化时，更新绑定旧版本的测试断言、变更日志和发布说明。构建器至少会校验
-`windows/VERSION`、`macos/VERSION` 和 `macos/package.json` 一致；其他版本源也必须在提交
-前核对。
+版本发生变化时，只修改根目录 `VERSION` 并运行同步工具；测试断言应读取该文件，历史变更日志和发布说明保留对应发布版本。Release Doctor 会校验根目录版本与生成副本一致，构建器和运行时从根目录或已打包的 `VERSION` 文件读取版本。
 
 ### 2.2 构建来源
 

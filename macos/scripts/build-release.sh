@@ -5,7 +5,8 @@ export LC_ALL=C
 export LANG=C
 export LC_CTYPE=C
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
-VERSION="$(/usr/bin/tr -d '[:space:]' < "$ROOT/VERSION")"
+REPOSITORY_ROOT="$(cd "$ROOT/.." && pwd -P)"
+VERSION="$(/usr/bin/tr -d '[:space:]' < "$REPOSITORY_ROOT/VERSION")"
 RELEASE_DIR="$ROOT/release"
 ARCHIVE="$RELEASE_DIR/codex-dream-skin-studio-v$VERSION.zip"
 TMP="$(/usr/bin/mktemp -d /tmp/codex-dream-skin-release.XXXXXX)"
@@ -20,6 +21,7 @@ if [ "${1:-}" != "--skip-tests" ]; then "$ROOT/tests/run-tests.sh"; fi
   --exclude 'release/' \
   --exclude 'presets/preset-arina-hashimoto/' \
   "$ROOT/" "$TMP/codex-dream-skin-studio/"
+/bin/cp "$REPOSITORY_ROOT/VERSION" "$TMP/codex-dream-skin-studio/VERSION"
 
 # The macOS tree is also published as a standalone ZIP. Bundle prompt guides
 # and their referenced images, then translate repository paths for this root.

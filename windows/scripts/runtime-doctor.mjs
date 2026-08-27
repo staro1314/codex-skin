@@ -207,15 +207,16 @@ export async function runDoctor({
   }
 
   if (projectRoot) {
-    const sourceVersionFiles = ["windows/VERSION", "macos/VERSION", "macos/package.json"];
+    const sourceVersionFiles = ["VERSION", "windows/VERSION", "macos/VERSION", "macos/package.json"];
     try {
-      const windowsVersion = (await readText(path.join(projectRoot, sourceVersionFiles[0]))).trim();
-      const macosVersion = (await readText(path.join(projectRoot, sourceVersionFiles[1]))).trim();
-      const packageVersion = (await readJson(path.join(projectRoot, sourceVersionFiles[2]))).version;
-      const versions = [windowsVersion, macosVersion, packageVersion];
+      const canonicalVersion = (await readText(path.join(projectRoot, sourceVersionFiles[0]))).trim();
+      const windowsVersion = (await readText(path.join(projectRoot, sourceVersionFiles[1]))).trim();
+      const macosVersion = (await readText(path.join(projectRoot, sourceVersionFiles[2]))).trim();
+      const packageVersion = (await readJson(path.join(projectRoot, sourceVersionFiles[3]))).version;
+      const versions = [canonicalVersion, windowsVersion, macosVersion, packageVersion];
       checks.push(new Set(versions).size === 1
-        ? check("version-parity", "DS-VERSION-001", "pass", `Windows, macOS, and package versions agree at ${windowsVersion}.`)
-        : check("version-parity", "DS-VERSION-001", "fail", `Platform version sources disagree: ${versions.join(", ")}.`, "Update all platform version sources together."));
+        ? check("version-parity", "DS-VERSION-001", "pass", `Canonical and generated version sources agree at ${canonicalVersion}.`)
+        : check("version-parity", "DS-VERSION-001", "fail", `Canonical and generated version sources disagree: ${versions.join(", ")}.`, "Run the version sync from the repository checkout."));
     } catch {
       checks.push(check("version-parity", "DS-VERSION-001", "warn", "The source checkout version matrix is not available from this runtime root.", "Run the Doctor from the repository checkout to validate all version sources."));
     }

@@ -10,6 +10,12 @@ const projectRoot = path.resolve(toolsRoot, "..");
 const checkOnly = process.argv.slice(2).includes("--check");
 const unknown = process.argv.slice(2).filter((arg) => arg !== "--check");
 if (unknown.length) throw new Error(`Unknown argument: ${unknown[0]}`);
+const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const canonicalVersion = (await fs.readFile(path.join(projectRoot, "VERSION"), "utf8")).trim();
+if (!versionPattern.test(canonicalVersion)) {
+  throw new Error(`VERSION must contain a three-part semantic version: ${canonicalVersion}`);
+}
+const versionFile = `${canonicalVersion}\n`;
 
 const selectorSource = await fs.readFile(path.join(toolsRoot, "selectors.json"), "utf8");
 const contract = JSON.parse(selectorSource);
@@ -130,15 +136,38 @@ const sourceImageMetadata = await fs.readFile(
   path.join(projectRoot, "runtime", "image-metadata.mjs"),
   "utf8",
 );
-const sourceCompatibility = await fs.readFile(
+const sourceCompatibilityText = await fs.readFile(
   path.join(projectRoot, "runtime", "compatibility.json"),
   "utf8",
 );
+const sourceCompatibility = JSON.parse(sourceCompatibilityText);
+if (sourceCompatibility.schema !== "codex-dream-skin/compatibility/1") {
+  throw new Error("runtime/compatibility.json has an unsupported schema");
+}
+const skinVersionPattern = /(\"skinVersion\"\s*:\s*\")[^\"]+(\")/;
+if (!skinVersionPattern.test(sourceCompatibilityText)) {
+  throw new Error("runtime/compatibility.json is missing skinVersion");
+}
+const compatibilityFile = sourceCompatibilityText.replace(
+  skinVersionPattern,
+  `$1${canonicalVersion}$2`,
+);
+const packageJson = JSON.parse(await fs.readFile(path.join(projectRoot, "macos", "package.json"), "utf8"));
+packageJson.version = canonicalVersion;
+const packageFile = `${JSON.stringify(packageJson, null, 2)}\n`;
 const sourceRuntimeDoctor = await fs.readFile(
   path.join(projectRoot, "runtime", "runtime-doctor.mjs"),
   "utf8",
 );
 const outputs = [
+  {
+    content: versionFile,
+    paths: ["macos/VERSION", "windows/VERSION"],
+  },
+  {
+    content: packageFile,
+    paths: ["macos/package.json"],
+  },
   {
     // The injector runs from a packaged platform tree, so stage the same
     // contract beside the renderer assets while keeping tools/selectors.json
@@ -191,8 +220,12 @@ const outputs = [
     paths: ["windows/scripts/image-metadata.mjs"],
   },
   {
-    content: sourceCompatibility,
-    paths: ["macos/assets/compatibility.json", "windows/assets/compatibility.json"],
+    content: compatibilityFile,
+    paths: [
+      "runtime/compatibility.json",
+      "macos/assets/compatibility.json",
+      "windows/assets/compatibility.json",
+    ],
   },
   {
     content: sourceRuntimeDoctor,

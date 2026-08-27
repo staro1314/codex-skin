@@ -3,6 +3,8 @@ param([switch]$EngineOnly)
 
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
+$RepositoryRoot = Split-Path -Parent $Root
+$CanonicalVersionPath = Join-Path $RepositoryRoot 'VERSION'
 . (Join-Path $Root 'scripts\common-windows.ps1')
 . (Join-Path $Root 'scripts\theme-windows.ps1')
 
@@ -14,7 +16,7 @@ try {
   $runtimeSourceRoot = Join-Path $temporaryRoot $runtimeSourceName
   $runtimeStateRoot = Join-Path $temporaryRoot 'runtime-state'
   New-Item -ItemType Directory -Path $runtimeSourceRoot | Out-Null
-  Copy-Item -LiteralPath (Join-Path $Root 'VERSION') -Destination $runtimeSourceRoot -Force
+  Copy-Item -LiteralPath $CanonicalVersionPath -Destination $runtimeSourceRoot -Force
   foreach ($directoryName in @('assets', 'scripts', 'presets')) {
     Copy-Item -LiteralPath (Join-Path $Root $directoryName) -Destination $runtimeSourceRoot `
       -Recurse -Force -ErrorAction Stop
@@ -1072,12 +1074,11 @@ try {
   $releaseFixturePresetDirectory = Join-Path $releaseFixturePresets 'preset-gothic-void-crusade'
   $releaseFixtureVideoPresetDirectory = Join-Path $releaseFixturePresets 'preset-video-fox-spirit'
   $releaseFixtureState = Join-Path $temporaryRoot 'release-theme-state'
-  $repositoryRoot = Split-Path -Parent $Root
-  $publicPresetRoot = Join-Path $repositoryRoot 'macos\presets\preset-gothic-void-crusade'
-  $videoFoxPresetRoot = Join-Path $repositoryRoot 'macos\presets\preset-video-fox-spirit'
+  $publicPresetRoot = Join-Path $RepositoryRoot 'macos\presets\preset-gothic-void-crusade'
+  $videoFoxPresetRoot = Join-Path $RepositoryRoot 'macos\presets\preset-video-fox-spirit'
   New-Item -ItemType Directory -Path $releaseFixtureAssets, $releaseFixtureScripts,
     $releaseFixturePresetDirectory, $releaseFixtureVideoPresetDirectory -Force | Out-Null
-  Copy-Item -LiteralPath (Join-Path $Root 'VERSION') -Destination $releaseFixtureRoot -Force
+  Copy-Item -LiteralPath $CanonicalVersionPath -Destination $releaseFixtureRoot -Force
   foreach ($releaseAsset in @(
     'compatibility.json', 'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json',
     'safe-css-validator.mjs', 'selectors.json',

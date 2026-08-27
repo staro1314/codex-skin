@@ -43,10 +43,10 @@ const stableTestidLiteral = (testid) => {
   }
   return JSON.stringify(`[data-testid="${testid}"]`);
 };
-const SKIN_VERSION = "1.5.12";
-// .github/workflows/ci.yml's version-consistency check greps this file for a
-// literal `const SKIN_VERSION = "...";` line, so the export stays a separate
-// statement rather than an inline `export const`.
+const SKIN_VERSION = (await fs.readFile(path.join(root, "VERSION"), "utf8")).trim();
+if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(SKIN_VERSION)) {
+  throw new Error(`VERSION must contain a three-part semantic version: ${SKIN_VERSION}`);
+}
 export { SKIN_VERSION };
 const MAX_ART_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 32 * 1024 * 1024;

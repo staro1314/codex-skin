@@ -18,9 +18,7 @@ $repositoryRoot = Split-Path -Parent $windowsRoot
 $manifestPath = Join-Path $installerRoot 'node-runtime.json'
 $definitionPath = Join-Path $installerRoot 'codex-dream-skin.iss'
 $bootstrapPath = Join-Path $installerRoot 'setup-bootstrap.ps1'
-$versionPath = Join-Path $windowsRoot 'VERSION'
-$macosVersionPath = Join-Path (Join-Path $repositoryRoot 'macos') 'VERSION'
-$macosPackagePath = Join-Path (Join-Path $repositoryRoot 'macos') 'package.json'
+$versionPath = Join-Path $repositoryRoot 'VERSION'
 $licensePath = Join-Path (Join-Path $repositoryRoot 'macos') 'LICENSE'
 $noticePath = Join-Path (Join-Path $repositoryRoot 'macos') 'NOTICE.md'
 $innoLanguageRoot = Join-Path $installerRoot 'languages'
@@ -131,14 +129,15 @@ function Resolve-DotnetExecutable {
 function Copy-ReleaseDirectory {
   param(
     [Parameter(Mandatory = $true)][string]$Source,
-    [Parameter(Mandatory = $true)][string]$Destination
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [string[]]$Exclude = @()
   )
   if (-not (Test-Path -LiteralPath $Source -PathType Container)) {
     throw "Required release directory does not exist: $Source"
   }
   New-Item -ItemType Directory -Path $Destination -Force | Out-Null
   foreach ($item in Get-ChildItem -LiteralPath $Source -Force) {
-    Copy-Item -LiteralPath $item.FullName -Destination $Destination -Recurse -Force -ErrorAction Stop
+    Copy-Item -LiteralPath $item.FullName -Destination $Destination -Recurse -Force -Exclude $Exclude -ErrorAction Stop
   }
 }
 
@@ -340,12 +339,7 @@ function Write-DreamSkinIcon {
 
 $version = (Read-ReleaseTextFile -Path $versionPath).Trim()
 if ($version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
-  throw "windows/VERSION must contain a three-part semantic version: $version"
-}
-$macosVersion = (Read-ReleaseTextFile -Path $macosVersionPath).Trim()
-$macosPackage = (Read-ReleaseTextFile -Path $macosPackagePath) | ConvertFrom-Json
-if ($macosVersion -cne $version -or "$($macosPackage.version)" -cne $version) {
-  throw "Release versions differ: windows=$version macOS=$macosVersion package=$($macosPackage.version)"
+  throw "VERSION must contain a three-part semantic version: $version"
 }
 
 $manifest = (Read-ReleaseTextFile -Path $manifestPath) | ConvertFrom-Json
@@ -524,7 +518,11 @@ try {
       throw ".NET client publish did not produce the self-contained runtime file: $runtimeFile"
     }
   }
-  Copy-ReleaseDirectory -Source $clientPublishRoot -Destination $clientRoot
+  Copy-ReleaseDirectory -Source $clientPublishRoot -Destination $clientRoot -Exclude '*.pdb'
+  $stagedDebugSymbols = @(Get-ChildItem -LiteralPath $clientRoot -Filter '*.pdb' -File -Recurse)
+  if ($stagedDebugSymbols.Count -gt 0) {
+    throw 'The Windows release payload must not contain client PDB debug symbols.'
+  }
 
   $expectedPayloadFiles = @(
     'VERSION',

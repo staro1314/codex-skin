@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createHealthSnapshot, normalizeHealthState, runDoctor } from "../runtime/runtime-doctor.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const canonicalVersion = (await fs.readFile(path.join(projectRoot, "VERSION"), "utf8")).trim();
 
 for (const platform of ["windows", "darwin"]) {
   const report = await runDoctor({
@@ -15,7 +16,7 @@ for (const platform of ["windows", "darwin"]) {
   });
   assert.equal(report.pass, true, `${platform} static Doctor should pass`);
   assert.equal(report.status, "ready", `${platform} static Doctor should be ready`);
-  assert.equal(report.skinVersion, "1.5.12");
+  assert.equal(report.skinVersion, canonicalVersion);
   assert.equal(report.checks.find((item) => item.id === "shared-contract-sync")?.status, "pass");
 }
 
@@ -68,7 +69,7 @@ assert.deepEqual(normalized, {
 
 const blocked = createHealthSnapshot({
   platform: "windows",
-  skinVersion: "1.5.12",
+  skinVersion: canonicalVersion,
   checks: [{
     id: "fixture",
     code: "DS-STATE-002",

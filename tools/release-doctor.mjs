@@ -9,6 +9,7 @@ const toolsRoot = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(toolsRoot, "..");
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const RELEASE_INPUTS = [
+  "VERSION",
   "runtime/compatibility.json",
   "tools/selectors.json",
   "tools/sync-runtime-assets.mjs",
@@ -47,6 +48,14 @@ async function inspectReleaseTree(root = projectRoot, tag = "") {
     if (await readText(root, relativePath) === null) errors.push(`missing=${relativePath}`);
   }
 
+  const canonicalVersion = parseReleaseVersion(await readText(root, "VERSION"));
+  const compatibilitySource = await readText(root, "runtime/compatibility.json");
+  let compatibilityVersion = null;
+  try {
+    compatibilityVersion = parseReleaseVersion(JSON.parse(compatibilitySource ?? "{}").skinVersion);
+  } catch {
+    errors.push("invalid=runtime/compatibility.json");
+  }
   const windowsVersion = parseReleaseVersion(await readText(root, "windows/VERSION"));
   const macosVersion = parseReleaseVersion(await readText(root, "macos/VERSION"));
   const packageSource = await readText(root, "macos/package.json");
@@ -56,25 +65,27 @@ async function inspectReleaseTree(root = projectRoot, tag = "") {
   } catch {
     errors.push("invalid=macos/package.json");
   }
+  if (!canonicalVersion) errors.push("invalid=VERSION");
+  if (!compatibilityVersion) errors.push("invalid=runtime/compatibility.json.skinVersion");
   if (!windowsVersion) errors.push("invalid=windows/VERSION");
   if (!macosVersion) errors.push("invalid=macos/VERSION");
   if (!packageVersion) errors.push("invalid=macos/package.json.version");
-  const versions = [windowsVersion, macosVersion, packageVersion].filter(Boolean);
-  if (versions.length === 3 && new Set(versions).size !== 1) {
+  const versions = [canonicalVersion, compatibilityVersion, windowsVersion, macosVersion, packageVersion].filter(Boolean);
+  if (versions.length === 5 && new Set(versions).size !== 1) {
     errors.push(`version-mismatch=${versions.join(",")}`);
   }
 
   if (tag) {
     const tagVersion = releaseVersionFromTag(tag);
     if (!tagVersion) errors.push(`invalid-tag=${tag}`);
-    else if (versions.length === 3 && tagVersion !== versions[0]) {
-      errors.push(`tag-version-mismatch=${tag}:${versions[0]}`);
+    else if (canonicalVersion && tagVersion !== canonicalVersion) {
+      errors.push(`tag-version-mismatch=${tag}:${canonicalVersion}`);
     }
   }
 
   return {
     ok: errors.length === 0,
-    version: versions.length === 3 && new Set(versions).size === 1 ? versions[0] : null,
+    version: versions.length === 5 && new Set(versions).size === 1 ? canonicalVersion : null,
     errors,
   };
 }

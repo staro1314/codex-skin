@@ -4,7 +4,7 @@
 
 ## 0. 当前基线
 
-- 项目版本：`1.5.12`
+- 项目版本：见仓库根目录 [`VERSION`](../VERSION)
 - Injector protocol：`3`
 - 共享源：`runtime/`
 - 双端生成资产：`macos/assets/`、`windows/assets/`
@@ -227,12 +227,9 @@ powershell -NoProfile -File windows\scripts\doctor-dream-skin.ps1 -Json
 
 按仓库发布约束同步检查：
 
-- `macos/VERSION`；
-- `windows/VERSION`；
-- `macos/package.json`；
-- `macos/scripts/common-macos.sh`；
-- `macos/scripts/injector.mjs`；
-- `windows/scripts/injector.mjs`；
+- 根目录 `VERSION` 是唯一可编辑版本源；
+- `macos/VERSION`、`windows/VERSION` 和 `macos/package.json` 由同步工具生成；
+- 平台脚本运行时从各自受管运行时中的 `VERSION` 读取版本；
 - `runtime/compatibility.json` 及双端生成副本。
 
 发布前还要确认：

@@ -3,7 +3,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 PACKAGE_ROOT="$ROOT/menubar-app"
-VERSION="$(/usr/bin/tr -d '[:space:]' < "$ROOT/VERSION")"
+REPOSITORY_ROOT="$(cd "$ROOT/.." && pwd -P)"
+VERSION="$(/usr/bin/tr -d '[:space:]' < "$REPOSITORY_ROOT/VERSION")"
 OUTPUT_APP="$ROOT/release/Codex Dream Skin.app"
 SKIP_TESTS="false"
 
@@ -159,7 +160,7 @@ done
   || { printf 'Bundled video fox metadata hash changed.\n' >&2; exit 1; }
 /bin/mkdir -p "$ENGINE/presets/$VIDEO_FOX_PRESET"
 /usr/bin/rsync -a "$ROOT/presets/$VIDEO_FOX_PRESET/" "$ENGINE/presets/$VIDEO_FOX_PRESET/"
-/bin/cp "$ROOT/VERSION" "$ENGINE/VERSION"
+/bin/cp "$REPOSITORY_ROOT/VERSION" "$ENGINE/VERSION"
 /bin/cp "$ROOT/LICENSE" "$RESOURCES/LICENSE.txt"
 /bin/cp "$ROOT/NOTICE.md" "$RESOURCES/NOTICE.md"
 /bin/chmod 755 "$ENGINE/scripts/"*.sh

@@ -239,7 +239,7 @@ if ($fileSources.Count -ne 6 -or
 }
 
 foreach ($requiredBuilderContract in @(
-  'Release versions differ:',
+  'VERSION must contain a three-part semantic version:',
   'Get-FileHash -LiteralPath $archivePath -Algorithm SHA256',
   'Copy-ZipEntry -Archive $zip -EntryName "$($manifest.nodeEntry)"',
   'Copy-ZipEntry -Archive $zip -EntryName "$($manifest.licenseEntry)"',
