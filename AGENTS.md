@@ -1,4 +1,4 @@
-# Codex Dream Skin Agent Guide
+# Codex Skin Agent Guide
 
 本文件适用于仓库根目录及全部子目录。平台目录中的 `SKILL.md` 提供运行时操作细节；与本文件冲突时，优先遵守更严格的安全和发布要求。
 
@@ -54,6 +54,7 @@
 
 - 优先复用 `runtime/` 的共享源，通过现有同步工具生成双端资产；不要直接制造 macOS、Windows 漂移。
 - 版本发布只修改仓库根目录 `VERSION`，然后运行 `node tools/sync-runtime-assets.mjs` 生成 `macos/VERSION`、`windows/VERSION`、`macos/package.json`、共享兼容性副本和受管运行时资产；不要手工修改生成副本。测试中的当前版本断言应读取根目录 `VERSION`，历史变更日志可保留其发布版本号。
+- 产品显示名、Studio 名称、安装包文件名和发布者只修改仓库根目录 `PRODUCT.json`，然后运行 `node tools/sync-runtime-assets.mjs` 生成双端产品副本；不要手工修改 `windows/assets/`、`macos/assets/` 或 `runtime/` 下的生成配置。`CodexDreamSkin` 等技术标识、状态目录、进程名和协议标识属于兼容性边界，不随显示名重命名。
 - 修改主题 schema、manifest、Safe CSS、导入或提取逻辑时，必须覆盖合法包、缺件、空文件、边界大小、哈希不符、路径攻击、链接、嵌套归档、压缩滥用、重复导入和 ID 冲突。
 - 修改共享 renderer 或 CSS 时，运行同步校验和双端 payload 检查；不得只验证一个平台副本。
 - macOS 相关改动至少运行适用的 Node、shell 语法和 Swift 测试；Windows 相关改动至少运行适用的 Node 与 PowerShell 测试。无法在本机执行的平台测试必须交给 CI 并明确说明。

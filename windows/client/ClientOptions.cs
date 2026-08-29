@@ -7,7 +7,8 @@ internal sealed record ClientOptions(
     string RuntimeRoot,
     string StateRoot,
     bool ShowWindow,
-    bool AllowEvergreenWebView2)
+    bool AllowEvergreenWebView2,
+    ProductIdentity Product)
 {
     public string ServerScript => Path.Combine(ServerRoot, "control-center", "server.mjs");
     public string StateFile => Path.Combine(StateRoot, "control-center.json");
@@ -54,12 +55,15 @@ internal sealed record ClientOptions(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "CodexDreamSkin");
 
+        var fullServerRoot = Path.GetFullPath(serverRoot);
+        var fullRuntimeRoot = Path.GetFullPath(runtimeRoot);
         var options = new ClientOptions(
-            Path.GetFullPath(serverRoot),
-            Path.GetFullPath(runtimeRoot),
+            fullServerRoot,
+            fullRuntimeRoot,
             Path.GetFullPath(stateRoot),
             showWindow,
-            allowEvergreen);
+            allowEvergreen,
+            ProductIdentity.Load(fullRuntimeRoot));
         if (!File.Exists(options.ServerScript))
             throw new FileNotFoundException("The embedded Control Center server is missing.", options.ServerScript);
         Directory.CreateDirectory(options.StateRoot);
@@ -118,6 +122,6 @@ internal sealed record ClientOptions(
             return source;
 
         throw new DirectoryNotFoundException(
-            "The Windows Dream Skin runtime root could not be located. Pass --runtime-root explicitly.");
+            "The Windows skin runtime root could not be located. Pass --runtime-root explicitly.");
     }
 }

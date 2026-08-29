@@ -14,7 +14,7 @@ internal static class Program
             using var mutex = new Mutex(true, $"Local\\CodexDreamSkin.Client.{sid}", out var createdNew);
             if (!createdNew)
             {
-                MessageBox.Show("Codex Dream Skin 客户端已经在运行。请从系统托盘打开控制中心。", "Codex Dream Skin", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"{options.Product.DisplayName} 客户端已经在运行。请从系统托盘打开控制中心。", options.Product.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -24,7 +24,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            MessageBox.Show(error.Message, "Codex Dream Skin 客户端启动失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error.Message, "Codex client startup failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

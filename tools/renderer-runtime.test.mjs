@@ -660,8 +660,8 @@ export async function runRendererRuntimeTest(assetRoot) {
   home.flushTimers(0);
   assert.equal(home.document.adoptedStyleSheets.length, 1);
   assert.equal(state.metrics.styleRepairs, 1);
-  assert.equal(home.rootStyle.values.get("--dream-skin-brand-subtitle"), '"CODEX DREAM SKIN"');
-  assert.equal(home.rootStyle.values.get("--dream-skin-status"), '"DREAM SKIN ONLINE"');
+  assert.equal(home.rootStyle.values.get("--dream-skin-brand-subtitle"), '"CODEX SKIN"');
+  assert.equal(home.rootStyle.values.get("--dream-skin-status"), '"CODEX SKIN ONLINE"');
   assert.equal(home.rootStyle.values.get("--ds-theme-surface-radius"), "12px");
   assert.equal(home.rootStyle.values.get("--ds-theme-surface-opacity"), "1");
   assert.equal(home.rootStyle.values.get("--ds-theme-surface-blur"), "0px");
@@ -693,7 +693,7 @@ export async function runRendererRuntimeTest(assetRoot) {
     nativeCommentPopup.payloadFor(), nativeCommentPopup.context,
   );
   assert.equal(nativeCommentResult?.installed, false,
-    "Native Codex comment popups must not install Dream Skin");
+    "Native Codex comment popups must not install Codex Skin");
   assert.equal(nativeCommentResult?.reason, "native-browser-comment-popup",
     "Native Codex comment popups must be identified before any skin layer is created");
   assert.equal(nativeCommentPopup.document.adoptedStyleSheets.length, 0);
@@ -708,7 +708,7 @@ export async function runRendererRuntimeTest(assetRoot) {
     transitioningCommentPopup.payloadFor(), transitioningCommentPopup.context,
   );
   assert.equal(transitionResult?.installed, false,
-    "A popup that transitions to native comment mode must disable Dream Skin");
+    "A popup that transitions to native comment mode must disable Codex Skin");
   assert.equal(transitionResult?.reason, "native-browser-comment-popup",
     "A popup that transitions to native comment mode must use the native isolation path");
   assert.equal(transitioningCommentPopup.window.__CODEX_DREAM_SKIN_STATE__, undefined);

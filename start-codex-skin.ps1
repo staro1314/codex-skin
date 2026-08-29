@@ -21,12 +21,22 @@ if ($Capture -and $Watch) {
 }
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$productPath = Join-Path $projectRoot 'PRODUCT.json'
 $startScript = Join-Path $projectRoot 'windows\scripts\start-dream-skin.ps1'
 $captureScript = Join-Path $projectRoot 'tools\capture-dom-fixture.mjs'
 $statePath = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin\state.json'
+$product = $null
+try { $product = Get-Content -LiteralPath $productPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch {
+  throw "Product configuration could not be read: $productPath"
+}
+if ("$($product.schema)" -cne 'codex-skin/product/1' -or
+  [string]::IsNullOrWhiteSpace("$($product.displayName)")) {
+  throw "Product configuration is invalid: $productPath"
+}
+$productName = "$($product.displayName)"
 
 if (-not (Test-Path -LiteralPath $startScript -PathType Leaf)) {
-  throw "Dream Skin start script was not found: $startScript"
+  throw "$productName start script was not found: $startScript"
 }
 if (($Capture -or $Watch) -and -not (Test-Path -LiteralPath $captureScript -PathType Leaf)) {
   throw "DOM capture tool was not found: $captureScript"
@@ -43,7 +53,7 @@ foreach ($managedScript in @(Get-ChildItem -LiteralPath $managedScriptRoot -Filt
   try {
     Unblock-File -LiteralPath $managedScript.FullName -ErrorAction Stop
   } catch {
-    throw "Could not unblock the local Dream Skin script $($managedScript.FullName): $($_.Exception.Message)"
+  throw "Could not unblock the local $productName script $($managedScript.FullName): $($_.Exception.Message)"
   }
 }
 
@@ -62,14 +72,14 @@ if ($OperationLockTimeoutMilliseconds -gt 0) {
   $startArguments += @('-OperationLockTimeoutMilliseconds', "$OperationLockTimeoutMilliseconds")
 }
 
-Write-Host "Starting Codex Dream Skin from $projectRoot ..."
+Write-Host "Starting $productName from $projectRoot ..."
 & powershell.exe @startArguments
 if ($LASTEXITCODE -ne 0) {
-  throw "Dream Skin startup failed with exit code $LASTEXITCODE."
+  throw "$productName startup failed with exit code $LASTEXITCODE."
 }
 
 if (-not ($Capture -or $Watch)) {
-  Write-Host 'Codex Dream Skin is running. Use -Capture for one redacted snapshot or -Watch for state sampling.'
+  Write-Host "$productName is running. Use -Capture for one redacted snapshot or -Watch for state sampling."
   exit 0
 }
 
@@ -79,7 +89,7 @@ if (Test-Path -LiteralPath $statePath -PathType Leaf) {
     $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
     if ($state.port) { $activePort = [int]$state.port }
   } catch {
-    Write-Warning "Could not read the active Dream Skin state; using requested port $Port."
+    Write-Warning "Could not read the active $productName state; using requested port $Port."
   }
 }
 

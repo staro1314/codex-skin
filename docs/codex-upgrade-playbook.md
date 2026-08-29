@@ -1,6 +1,6 @@
 # Codex 客户端升级跟随改造手册
 
-本手册用于 Codex Desktop 客户端升级后，按证据让 Codex Dream Skin 跟随升级。它是执行清单，不是“看到界面变化就猜 selector、改 CSS”的快速修复指南。
+本手册用于 Codex Desktop 客户端升级后，按证据让 Codex Skin 跟随升级。它是执行清单，不是“看到界面变化就猜 selector、改 CSS”的快速修复指南。
 
 ## 0. 当前基线
 
@@ -97,7 +97,7 @@ data-testid > role/语义属性 > 稳定类名 > CSS Module 前缀
 记录以下内容：
 
 - Codex 精确版本和平台；
-- Dream Skin 版本、分支和工作区状态；
+- Codex Skin 版本、分支和工作区状态；
 - 当前主题、活动主题和恢复状态；
 - Doctor JSON；
 - 首页、任务页、设置页和弹层截图；
@@ -275,7 +275,7 @@ powershell -NoProfile -File windows\scripts\doctor-dream-skin.ps1 -Json
 ```text
 Codex 版本：
 平台：
-Dream Skin 版本：
+Codex Skin 版本：
 升级前分支/工作区状态：
 CDP Browser ID：
 选择器变化：

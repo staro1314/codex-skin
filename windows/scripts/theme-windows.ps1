@@ -206,7 +206,7 @@ function Assert-DreamSkinNoReparseComponents {
     if (Test-Path -LiteralPath $current) {
       $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
       if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-        throw "Managed Dream Skin path contains a junction or symbolic link: $current"
+        throw "Managed $($script:DreamSkinProductName) path contains a junction or symbolic link: $current"
       }
     }
     $currentNormalized = $current.TrimEnd('\')
@@ -227,16 +227,16 @@ function Ensure-DreamSkinManagedDirectory {
   $fullRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd('\')
   if (-not ($fullPath.Equals($fullRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
       $fullPath.StartsWith($fullRoot + '\', [System.StringComparison]::OrdinalIgnoreCase))) {
-    throw "Managed Dream Skin path escaped its state root: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) path escaped its state root: $fullPath"
   }
   Assert-DreamSkinNoReparseComponents -Path $fullPath
   if (Test-Path -LiteralPath $fullPath -PathType Leaf) {
-    throw "Managed Dream Skin path is a file, not a directory: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) path is a file, not a directory: $fullPath"
   }
   New-Item -ItemType Directory -Force -Path $fullPath | Out-Null
   Assert-DreamSkinNoReparseComponents -Path $fullPath
   if (-not (Test-Path -LiteralPath $fullPath -PathType Container)) {
-    throw "Managed Dream Skin directory could not be created: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) directory could not be created: $fullPath"
   }
 }
 
@@ -248,19 +248,19 @@ function Remove-DreamSkinManagedDirectoryVerified {
   $fullPath = [System.IO.Path]::GetFullPath($Path)
   $fullRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd('\')
   if (-not ($fullPath.StartsWith($fullRoot + '\', [System.StringComparison]::OrdinalIgnoreCase))) {
-    throw "Managed Dream Skin cleanup escaped its state root: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) cleanup escaped its state root: $fullPath"
   }
   if (-not (Test-Path -LiteralPath $fullPath -ErrorAction Stop)) { return }
   Assert-DreamSkinNoReparseComponents -Path $fullPath
   if (-not (Test-Path -LiteralPath $fullPath -PathType Container -ErrorAction Stop)) {
-    throw "Managed Dream Skin cleanup target is not a directory: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) cleanup target is not a directory: $fullPath"
   }
   # Windows PowerShell 5.1's FileSystem provider cannot reliably recurse past
   # MAX_PATH. Directory.Delete uses the framework's long-path support after the
   # containment and reparse checks above have bound the exact managed target.
   [System.IO.Directory]::Delete($fullPath, $true)
   if (Test-Path -LiteralPath $fullPath -ErrorAction Stop) {
-    throw "Managed Dream Skin cleanup was not verified: $fullPath"
+    throw "Managed $($script:DreamSkinProductName) cleanup was not verified: $fullPath"
   }
 }
 
@@ -2313,7 +2313,7 @@ function Use-DreamSkinSavedTheme {
   Ensure-DreamSkinManagedDirectory -Path $paths.Saved -Root $paths.Root
   $directory = [System.IO.Path]::GetFullPath($ThemeDirectory)
   if (-not (Test-DreamSkinThemePathWithin -Path $directory -Root $paths.Saved)) {
-    throw 'Saved theme must remain inside the Dream Skin themes folder.'
+    throw "Saved theme must remain inside the $($script:DreamSkinProductName) themes folder."
   }
   $saved = Read-DreamSkinTheme -ThemeDirectory $directory
   $theme = $saved.Theme | ConvertTo-Json -Depth 8 | ConvertFrom-Json

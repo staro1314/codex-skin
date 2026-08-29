@@ -1,4 +1,4 @@
-# Codex Dream Skin 应用图标重新设计：轻纱·霜白
+# Codex Skin 应用图标重新设计：轻纱·霜白
 
 ## 状态
 
@@ -54,22 +54,22 @@
 
 ### 共享品牌源
 
-`docs/images/dreamskin-mark.svg` 作为可审阅的 32px 语义源，更新为“轻纱·霜白”。它只表达品牌图形，不承载运行时 CSS、网页布局或客户端行为。
+`assets/codex-skin-icon.png` 是已选定的 D 方案定稿位图，也是唯一的生产视觉源。它直接表达最终品牌图形，不承载运行时 CSS、网页布局或客户端行为；平台构建只能对它做尺寸归一化和容器封装。
 
 ### macOS
 
-保留 `macos/scripts/generate-app-icon.sh` 的输出流程和 `macos/menubar-app/Tools/generate-icon.swift` 的原生 PNG/ICNS 生成职责，只替换绘制几何和颜色常量。继续生成完整的 `iconset` 尺寸集合，不改变菜单栏应用的 bundle、签名、安装或启动逻辑。
+保留 `macos/scripts/generate-app-icon.sh` 的 `iconset`/ICNS 输出流程，直接读取 `assets/codex-skin-icon.png` 并使用系统工具生成完整尺寸集合。`generate-icon.swift` 仅保留为不改变像素内容的兼容性拷贝工具，不再绘制图形，不改变菜单栏应用的 bundle、签名、安装或启动逻辑。
 
 ### Windows
 
-保留 `windows/installer/build-release.ps1` 的多尺寸 ICO 结构以及现有托盘、安装器和快捷方式路径，只替换 `Write-DreamSkinIcon` 的几何采样和颜色混合规则。继续保留 16、24、32、48、64、256 尺寸，不改变 ICO 容器格式、安装流程或托盘行为。
+保留 `windows/installer/build-release.ps1` 的多尺寸 ICO 结构以及现有托盘、安装器和快捷方式路径；`Write-DreamSkinIcon` 直接读取 `assets/codex-skin-icon.png`，仅使用系统图像库生成 16、24、32、48、64、256 尺寸 PNG 帧并封装为 ICO，不重绘视觉内容，不改变 ICO 容器格式、安装流程或托盘行为。
 
 ### 不在本次范围
 
 - 不修改 Codex 官方安装包、`app.asar`、签名或系统权限。
 - 不改变应用窗口、主题渲染、CDP 注入、主题 ZIP、自动更新或 Release 版本。
 - 不删除旧图标历史记录；只更新当前品牌源和构建时生成规则。
-- 不把设计稿 PNG 直接作为唯一生产资产；生产图标仍由两端现有生成器构建。
+- 不再维护平台各自的图形几何和颜色常量；生产图标必须从已选定的 D 定稿位图生成。
 
 ## 验收标准
 

@@ -11,7 +11,7 @@
 - 新增本次发现记录 `findings.md`。
 - 新增本次会话进度 `progress.md`。
 - 已完成：更新 `TASK_PROGRESS.md`、运行验证、脚本语法检查、源码暂存和首次本地提交。
-- 首次本地提交：`41b8980 Initialize Codex Dream Skin repository baseline`；提交包含 221 个文件，未包含 `.codegraph/`。
+- 首次本地提交：`41b8980 Initialize Codex Skin repository baseline`；提交包含 221 个文件，未包含 `.codegraph/`。
 - Phase 1 已开始：范围限定为共享兼容性契约、跨平台 Doctor、统一健康状态和安装/同步检查；不涉及动态媒体实现。
 - 已新增 `runtime/compatibility.json`、`runtime/runtime-doctor.mjs`、Windows Doctor 入口和运行时 Doctor 测试；待生成双端副本并接入安装清单。
 - 同步检查、三份 Doctor 语法检查、Selector Doctor 和新增 Runtime Doctor 均通过。

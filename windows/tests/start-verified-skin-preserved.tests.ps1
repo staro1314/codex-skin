@@ -156,7 +156,7 @@ function Invoke-DreamSkinStartupFixture {
       & $startBlock -Port 9335
     } catch {
       $script:lastError = $_.Exception.Message
-      $failed = $_.Exception.Message -like 'Dream Skin verification failed.*'
+      $failed = $_.Exception.Message -like '* verification failed.*'
     }
   } finally {
     $env:LOCALAPPDATA = $originalLocalAppData

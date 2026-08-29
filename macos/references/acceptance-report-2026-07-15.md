@@ -2,7 +2,7 @@
 
 ## Result
 
-Codex Dream Skin Studio `1.0.0` passed its macOS release checks on the live Codex desktop app during the original private release validation.
+Codex Skin Studio `1.0.0` passed its macOS release checks on the live Codex desktop app during the original private release validation.
 
 - macOS architecture: `arm64`
 - Codex version: `26.707.72221`
@@ -33,5 +33,5 @@ Private release builds included CDP screenshots under `docs/screenshots/`. Those
 
 ```bash
 ~/.codex/codex-dream-skin-studio/scripts/verify-dream-skin-macos.sh \
-  --reload --screenshot "$HOME/Desktop/Codex Dream Skin Verification.png"
+  --reload --screenshot "$HOME/Desktop/Codex Skin Verification.png"
 ```

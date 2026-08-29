@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Codex Dream Skin · DOM 结构快照工具（macOS / Windows 双端通用）
+ * Codex Skin · DOM 结构快照工具（macOS / Windows 双端通用）
  * ================================================================
  * 从一个正在运行、带本机 CDP 调试端口的官方 Codex 桌面端导出
  * 「脱敏 DOM 结构快照」（fixture），用于：
@@ -16,7 +16,7 @@
  *   node capture-dom-fixture.mjs --out fixture.json  # 指定输出文件
  *   node capture-dom-fixture.mjs --wait 45           # 等待 Codex 就绪的秒数（默认 30）
  *
- * 前提：Codex 需带 --remote-debugging-port 启动（Dream Skin 启动器默认如此；
+ * 前提：Codex 需带 --remote-debugging-port 启动（Codex Skin 启动器默认如此；
  *       mac 默认端口 9341，Windows 默认 9335，被占用时会自动偏移，本脚本会扫描）。
  *
  * 隐私边界（脚本对页面只读，不写入任何内容）：
@@ -484,7 +484,7 @@ async function fetchJson(port, pathname, timeoutMs = 900) {
   }
 }
 
-/** 读取双端 Dream Skin 状态文件里记录的实际端口（端口被占用时会偏移）。 */
+/** 读取双端 Codex Skin 状态文件里记录的实际端口（端口被占用时会偏移）。 */
 async function stateFilePorts() {
   const files = [];
   if (process.platform === "darwin") {
@@ -829,7 +829,7 @@ async function main() {
   const found = await discover(options);
   if (!found) {
     console.error(
-      "未发现可用的 CDP 端口。请先用 Dream Skin 启动器启动 Codex：\n" +
+      "未发现可用的 CDP 端口。请先用 Codex Skin 启动器启动 Codex：\n" +
       "  macOS   : ~/.codex/codex-dream-skin-studio/scripts/start-dream-skin-macos.sh（或仓库 macos/scripts/ 下同名脚本）\n" +
       "  Windows : powershell -File .\\windows\\scripts\\start-dream-skin.ps1\n" +
       "或手动: <Codex 可执行文件> --remote-debugging-address=127.0.0.1 --remote-debugging-port=9341\n" +

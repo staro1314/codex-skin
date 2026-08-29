@@ -135,15 +135,25 @@ if [ "$CREATE_LAUNCHERS" = "true" ]; then
   customize_script="$(shell_quote "$SCRIPT_DIR/customize-theme-macos.sh")"
   verify_script="$(shell_quote "$SCRIPT_DIR/verify-dream-skin-macos.sh")"
   restore_script="$(shell_quote "$SCRIPT_DIR/restore-dream-skin-macos.sh")"
-  screenshot="$(shell_quote "$HOME/Desktop/Codex Dream Skin Verification.png")"
-  write_launcher "$HOME/Desktop/Codex Dream Skin.command" "exec $start_script --port $PORT --prompt-restart"
-  write_launcher "$HOME/Desktop/Codex Dream Skin - Customize.command" "exec $customize_script"
-  write_launcher "$HOME/Desktop/Codex Dream Skin - Verify.command" "$verify_script --screenshot $screenshot && /usr/bin/open $screenshot"
-  write_launcher "$HOME/Desktop/Codex Dream Skin - Restore.command" "exec $restore_script --restore-base-theme --restart-codex"
+  screenshot="$(shell_quote "$HOME/Desktop/$PRODUCT_DISPLAY_NAME Verification.png")"
+  for legacy_launcher in \
+    "$HOME/Desktop/Codex Dream Skin.command" \
+    "$HOME/Desktop/Codex Dream Skin - Customize.command" \
+    "$HOME/Desktop/Codex Dream Skin - Verify.command" \
+    "$HOME/Desktop/Codex Dream Skin - Restore.command"; do
+    if [ -f "$legacy_launcher" ] && [ ! -L "$legacy_launcher" ] &&
+       /usr/bin/grep -F -q '# CodexDreamSkinStudio launcher' "$legacy_launcher"; then
+      /bin/rm -f "$legacy_launcher"
+    fi
+  done
+  write_launcher "$HOME/Desktop/$PRODUCT_DISPLAY_NAME.command" "exec $start_script --port $PORT --prompt-restart"
+  write_launcher "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Customize.command" "exec $customize_script"
+  write_launcher "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Verify.command" "$verify_script --screenshot $screenshot && /usr/bin/open $screenshot"
+  write_launcher "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Restore.command" "exec $restore_script --restore-base-theme --restart-codex"
 fi
 
-printf 'Codex Dream Skin Studio %s installed at %s for Codex %s using its signed Node.js %s.\n' \
-  "$SKIN_VERSION" "$PROJECT_ROOT" "$CODEX_VERSION" "$NODE_VERSION"
+printf '%s %s installed at %s for Codex %s using its signed Node.js %s.\n' \
+  "$PRODUCT_STUDIO_NAME" "$SKIN_VERSION" "$PROJECT_ROOT" "$CODEX_VERSION" "$NODE_VERSION"
 printf 'Use the Desktop launchers to customize, start, verify, or restore the official appearance.\n'
 printf 'Bundled presets are ready in your theme library — pick one from the menu bar (已保存的主题) or switch-theme.\n'
 

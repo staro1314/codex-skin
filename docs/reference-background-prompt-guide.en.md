@@ -1,4 +1,4 @@
-# Codex Dream Skin Reference Image Prompts
+# Codex Skin Reference Image Prompts
 
 This guide generates **wallpaper artwork only** for use beneath real Codex controls. The recommended master is `2560 × 1440`, 16:9. A screenshot, app mockup, sidebar, card, or composer is not a usable theme background.
 
@@ -73,7 +73,7 @@ Names of specific real people (for example, “Arina Hashimoto”) must not be p
 
 Prompt text cannot replace the generator's size control. Select `2560 × 1440` in the generator UI or API as well. If that exact size is unavailable, generate the highest-quality 16:9 landscape output, crop it to 16:9, and then resize it to `2560 × 1440`. Do not stretch a non-16:9 image.
 
-Dream Skin uses `cover`, so 16:10, 4:3, and ultrawide windows crop some source pixels. For a right-side portrait, use this theme metadata:
+Codex Skin uses `cover`, so 16:10, 4:3, and ultrawide windows crop some source pixels. For a right-side portrait, use this theme metadata:
 
 ```json
 {

@@ -8,12 +8,14 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { PRODUCT_NAME, PRODUCT_STUDIO_NAME } from "../runtime/product.mjs";
 import { ThemeExporter } from "./theme-exporter.mjs";
 import { ThemeStore, validateUploadedMedia } from "./theme-store.mjs";
 
 const moduleRoot = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(moduleRoot, "..");
 const publicRoot = path.join(moduleRoot, "public");
+const productNameRegExp = PRODUCT_NAME.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 const STATIC_FILES = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
@@ -214,8 +216,8 @@ async function runWindowsAction({ action, themeId, stateRoot, runtimeRoot, worki
         ? "需要 Node.js 22 或更高版本，请重新打开控制中心后重试。"
         : /access to the path|access is denied/i.test(raw)
           ? "无法写入活动主题文件，可能有其他主题操作正在占用；请稍后重试。"
-          : /Codex is open without a verified Dream Skin CDP endpoint/i.test(raw)
-            ? "Codex 正在运行但尚未开启皮肤调试通道，请重试启动。"
+          : new RegExp(`Codex is open without a verified ${productNameRegExp} CDP endpoint`, "i").test(raw)
+            ? `${PRODUCT_NAME} 正在运行但尚未开启皮肤调试通道，请重试启动。`
             : /Codex did not expose a verified loopback CDP endpoint/i.test(raw)
               ? "Codex 未能开启本地皮肤调试通道，请先关闭 Codex 后再重试。"
               : /converted the CDP argument into a codex:\/\/ navigation path/i.test(raw)
@@ -433,7 +435,12 @@ export async function createControlCenter(options = {}) {
         if (url.pathname === "/" && url.searchParams.get("token") === token) {
           headers["Set-Cookie"] = `dream_skin_control_token=${token}; Max-Age=86400; Path=/; HttpOnly; SameSite=Strict`;
         }
-        return response(res, 200, await fs.readFile(path.join(publicRoot, name)), headers);
+        const body = name === "index.html"
+          ? (await fs.readFile(path.join(publicRoot, name), "utf8"))
+            .replaceAll("__DREAM_SKIN_PRODUCT_NAME__", PRODUCT_NAME)
+            .replaceAll("__DREAM_SKIN_PRODUCT_STUDIO_NAME__", PRODUCT_STUDIO_NAME)
+          : await fs.readFile(path.join(publicRoot, name));
+        return response(res, 200, body, headers);
       }
       if (!url.pathname.startsWith("/api/")) return json(res, 404, { error: "Not found" });
       // Media handles are random, short-lived and disclosed only by the authenticated

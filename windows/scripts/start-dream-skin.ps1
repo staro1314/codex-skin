@@ -75,7 +75,7 @@ try {
     $savedProcesses = Get-DreamSkinCodexProcesses -Codex $savedCodex
     $savedOwnsPort = Test-DreamSkinCodexPortOwner -Port $Port -Codex $savedCodex
     if ($currentProcesses.Count -gt 0 -and ($savedProcesses.Count -gt 0 -or $savedOwnsPort)) {
-      throw 'Multiple registered Codex package versions are active. Close them manually before starting Dream Skin.'
+      throw "Multiple registered Codex package versions are active. Close them manually before starting $($script:DreamSkinProductName)."
     }
     if ($savedProcesses.Count -gt 0 -or $savedOwnsPort) {
       if ($savedOwnsPort -and $savedProcesses.Count -eq 0) {
@@ -86,7 +86,7 @@ try {
         $codex = $savedCodex
         $codexToStop = $savedCodex
         $cdpIdentity = $savedIdentity
-        Write-Warning 'Reapplying Dream Skin to the still-running registered Codex version; the current Store version will be used after that app exits.'
+      Write-Warning "Reapplying $($script:DreamSkinProductName) to the still-running registered Codex version; the current Store version will be used after that app exits."
       } else {
         $codexToStop = $savedCodex
         $currentProcesses = $savedProcesses
@@ -103,14 +103,14 @@ try {
   if (-not $debugReady -and $codexProcesses.Count -gt 0) {
     $restartAuthorized = [bool]$RestartExisting
     if (-not $restartAuthorized -and $PromptRestart) {
-      $restartAuthorized = Confirm-DreamSkinRestart -Message 'Codex must restart once to enable Dream Skin. Unsaved input may be lost. Restart now?'
+      $restartAuthorized = Confirm-DreamSkinRestart -Message "Codex must restart once to enable $($script:DreamSkinProductName). Unsaved input may be lost. Restart now?"
       if (-not $restartAuthorized) {
-        Write-Host 'Dream Skin launch was cancelled; Codex was not changed.'
+      Write-Host "$($script:DreamSkinProductName) launch was cancelled; Codex was not changed."
         exit 0
       }
     }
     if (-not $restartAuthorized) {
-      throw 'Codex is open without a verified Dream Skin CDP endpoint. Close it first or explicitly use -RestartExisting.'
+      throw "Codex is open without a verified $($script:DreamSkinProductName) CDP endpoint. Close it first or explicitly use -RestartExisting."
     }
     Stop-DreamSkinCodex -Codex $codexToStop -AllowForce
     $closedExistingCodex = $true
@@ -186,7 +186,7 @@ try {
     if (($closedExistingCodex -or $debugLaunchAttempted) -and
       (Get-DreamSkinCodexProcesses -Codex $codex).Count -eq 0) {
       if ($debugLaunchAttempted) {
-        Write-Warning 'Dream Skin launch failed; reopening Codex without a debugging port.'
+      Write-Warning "$($script:DreamSkinProductName) launch failed; reopening Codex without a debugging port."
       }
       try { $null = Start-DreamSkinCodex -Codex $codex } catch {
         Write-Warning 'Launch rollback could not reopen Codex automatically.'
@@ -199,7 +199,7 @@ try {
     $recordedInjectorStopped = Stop-DreamSkinRecordedInjector -State $previousState
     if (-not $recordedInjectorStopped) {
       $staleStatePath = Archive-DreamSkinStateFile -Path $StatePath
-      Write-Warning "Archived stale Dream Skin state at $staleStatePath"
+      Write-Warning "Archived stale $($script:DreamSkinProductName) state at $staleStatePath"
     }
   } catch {
     if ($launchedWithCdp) {
@@ -310,7 +310,7 @@ try {
         # Some Codex builds never resolve the native-window probe, so do not
         # keep the control center waiting for a signal that is not required to
         # keep the watcher healthy.  The verified state and watcher stay alive.
-        Write-Warning 'Dream Skin is rendered; the native-window readiness probe is inconclusive. Continuing with the active session.'
+      Write-Warning "$($script:DreamSkinProductName) is rendered; the native-window readiness probe is inconclusive. Continuing with the active session."
         break
       }
       if (-not $forceInjectedAfterVerifyFailure) {
@@ -326,7 +326,7 @@ try {
         if ($once.ExitCode -eq 0) { break }
       }
       if ($daemon.HasExited) { throw "The injector exited during startup. See $StderrPath" }
-      if ((Get-Date) -ge $verifyDeadline) { throw "Dream Skin verification failed. See $VerifyPath" }
+      if ((Get-Date) -ge $verifyDeadline) { throw "$($script:DreamSkinProductName) verification failed. See $VerifyPath" }
       Start-Sleep -Seconds 3
     }
   } catch {
@@ -378,7 +378,7 @@ try {
       # unverified state we are in. The injector is already stopped and the
       # state file removed, so nothing claims this session is verified; Codex
       # keeps running with its debug port until the user closes it (#267).
-      Write-Warning 'Dream Skin could not verify this session, but the theme is rendered. Codex was left running; close and reopen it to return to the stock appearance.'
+    Write-Warning "$($script:DreamSkinProductName) could not verify this session, but the theme is rendered. Codex was left running; close and reopen it to return to the stock appearance."
     }
     if ($pauseWasSet -and $pauseCleared) {
       try {
@@ -391,9 +391,9 @@ try {
   }
 
   if ($skinLooksRendered) {
-    Write-Host "Codex Dream Skin is active on loopback port $Port; renderer is ready and native-window readiness is inconclusive."
+    Write-Host "$($script:DreamSkinProductName) is active on loopback port $Port; renderer is ready and native-window readiness is inconclusive."
   } else {
-    Write-Host "Codex Dream Skin is active on verified loopback port $Port."
+    Write-Host "$($script:DreamSkinProductName) is active on verified loopback port $Port."
   }
 } finally {
   if ($null -ne $operationLock) { Exit-DreamSkinOperationLock -Mutex $operationLock }

@@ -8,7 +8,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 REPOSITORY_ROOT="$(cd "$ROOT/.." && pwd -P)"
 VERSION="$(/usr/bin/tr -d '[:space:]' < "$REPOSITORY_ROOT/VERSION")"
 RELEASE_DIR="$ROOT/release"
-DMG="$RELEASE_DIR/CodexDreamSkin-v$VERSION.dmg"
+PRODUCT_ENV="$ROOT/assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
+DMG="$RELEASE_DIR/${PRODUCT_PACKAGE_STEM}-v$VERSION.dmg"
 SKIP_TESTS="false"
 
 while [ "$#" -gt 0 ]; do
@@ -33,22 +36,22 @@ cleanup() {
   /bin/rm -rf "$TMP"
 }
 trap cleanup EXIT
-APP="$TMP/Codex Dream Skin.app"
+APP="$TMP/$PRODUCT_DISPLAY_NAME.app"
 STAGE="$TMP/stage"
 /bin/mkdir -p "$STAGE" "$RELEASE_DIR"
 "$ROOT/scripts/build-menubar-app.sh" --skip-tests --output "$APP"
-/usr/bin/ditto "$APP" "$STAGE/Codex Dream Skin.app"
+/usr/bin/ditto "$APP" "$STAGE/$PRODUCT_DISPLAY_NAME.app"
 /bin/ln -s /Applications "$STAGE/Applications"
 
 /bin/rm -f "$DMG" "$DMG.sha256"
 LC_ALL=C LANG=C /usr/bin/hdiutil create -quiet -ov -format UDZO \
-  -volname "Codex Dream Skin" -srcfolder "$STAGE" "$DMG"
+  -volname "$PRODUCT_DISPLAY_NAME" -srcfolder "$STAGE" "$DMG"
 [ -s "$DMG" ] || { printf 'DMG was not created: %s\n' "$DMG" >&2; exit 1; }
 
 MOUNT="$TMP/mount"
 /bin/mkdir -p "$MOUNT"
 /usr/bin/hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG" >/dev/null
-MOUNTED_APP="$MOUNT/Codex Dream Skin.app"
+MOUNTED_APP="$MOUNT/$PRODUCT_DISPLAY_NAME.app"
 [ -d "$MOUNTED_APP" ] || { printf 'DMG does not contain the app bundle.\n' >&2; exit 1; }
 [ -L "$MOUNT/Applications" ] \
   && [ "$(/usr/bin/readlink "$MOUNT/Applications")" = "/Applications" ] \

@@ -164,7 +164,7 @@ test("$ patterns in every user-visible theme string survive the build", async ()
 });
 
 test("an ordinary theme name is unaffected by the fix", async () => {
-  const name = "桥本有菜 Dream Skin";
+  const name = "桥本有菜 Codex Skin";
   const loaded = await buildWith({ name });
   assertIntactPayload(loaded.payload, "ordinary");
   assert.equal(extractThemeArgument(loaded.payload).name, name);

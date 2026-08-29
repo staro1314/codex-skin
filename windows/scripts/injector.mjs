@@ -3,6 +3,7 @@ import { constants as fsConstants } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { PRODUCT_NAME } from "../assets/product.mjs";
 import { readImageMetadata } from "./image-metadata.mjs";
 import {
   detectedVideoMedia,
@@ -674,12 +675,12 @@ export async function loadTheme(themeDir) {
   const theme = {
     schemaVersion: 1,
     id: normalizeThemeText(raw.id, "custom", 80, "id", themePath),
-    name: normalizeThemeText(raw.name, "Codex Dream Skin", 80, "name", themePath),
-    brandSubtitle: normalizeThemeText(raw.brandSubtitle, "CODEX DREAM SKIN", 120, "brandSubtitle", themePath),
+    name: normalizeThemeText(raw.name, PRODUCT_NAME, 80, "name", themePath),
+    brandSubtitle: normalizeThemeText(raw.brandSubtitle, "CODEX SKIN", 120, "brandSubtitle", themePath),
     tagline: normalizeThemeText(raw.tagline, "Make something wonderful.", 120, "tagline", themePath),
     projectPrefix: normalizeThemeText(raw.projectPrefix, "选择项目 · ", 120, "projectPrefix", themePath),
     projectLabel: normalizeThemeText(raw.projectLabel, "◉  选择项目", 120, "projectLabel", themePath),
-    statusText: normalizeThemeText(raw.statusText, "DREAM SKIN ONLINE", 120, "statusText", themePath),
+    statusText: normalizeThemeText(raw.statusText, "CODEX SKIN ONLINE", 120, "statusText", themePath),
     quote: normalizeThemeText(raw.quote, "MAKE SOMETHING WONDERFUL", 120, "quote", themePath),
     image,
     appearance: normalizedChoice(raw.appearance, "appearance", THEME_CHOICES.appearance, "auto"),

@@ -20,7 +20,7 @@ try {
   }
   foreach ($registeredCodex in $registeredInstalls) {
     if ((Get-DreamSkinCodexProcesses -Codex $registeredCodex).Count -gt 0) {
-      throw 'Close Codex before installing Dream Skin so config.toml cannot change during the transaction.'
+      throw "Close Codex before installing $($script:DreamSkinProductName) so config.toml cannot change during the transaction."
     }
   }
 
@@ -36,10 +36,10 @@ try {
     throw 'The saved Codex path is still running but no longer matches a registered Store package. Close it manually before installing.'
   }
   if (Test-DreamSkinTrayActive) {
-    throw 'Exit the Codex Dream Skin tray before reinstalling so every shortcut can move to the new runtime safely.'
+    throw "Exit the $($script:DreamSkinProductName) tray before reinstalling so every shortcut can move to the new runtime safely."
   }
   if (Test-DreamSkinClientActive -ClientPath (Get-DreamSkinRuntimeEnginePaths -StateRoot $StateRoot).Client) {
-    throw 'Exit the Codex Dream Skin client before reinstalling so every shortcut can move to the new runtime safely.'
+    throw "Exit the $($script:DreamSkinProductName) client before reinstalling so every shortcut can move to the new runtime safely."
   }
   $engine = Install-DreamSkinRuntimeEngine -SkillRoot $SkillRoot -StateRoot $StateRoot
   $null = Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $StateRoot
@@ -58,9 +58,23 @@ try {
     $trayScript = $engine.Tray
     $clientPath = $engine.Client
     $portArgument = if ($PortExplicit) { " -Port $Port" } else { '' }
+    $primaryShortcutName = "$($script:DreamSkinProductName).lnk"
+    $restoreShortcutName = "$($script:DreamSkinProductName) - Restore.lnk"
+    $trayShortcutName = "$($script:DreamSkinProductName) - Tray.lnk"
+
+    $legacyShortcutNames = @(
+      'Codex Dream Skin.lnk',
+      'Codex Dream Skin - Restore.lnk',
+      'Codex Dream Skin - Tray.lnk'
+    )
+    foreach ($folder in @($desktop, $startMenu)) {
+      foreach ($legacyShortcutName in $legacyShortcutNames) {
+        Remove-Item -LiteralPath (Join-Path $folder $legacyShortcutName) -Force -ErrorAction SilentlyContinue
+      }
+    }
 
     foreach ($folder in @($desktop, $startMenu)) {
-      $shortcut = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin.lnk'))
+      $shortcut = $shell.CreateShortcut((Join-Path $folder $primaryShortcutName))
       if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
         $shortcut.TargetPath = $clientPath
         $shortcut.Arguments = '--show'
@@ -70,14 +84,14 @@ try {
       }
       $shortcut.WorkingDirectory = $engine.Root
       $shortcut.Description = if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
-        'Open the Codex Dream Skin control center client'
+        "Open the $($script:DreamSkinProductName) control center client"
       } else {
-        'Launch the official Codex app with Codex Dream Skin'
+        "Launch the official Codex app with $($script:DreamSkinProductName)"
       }
       $shortcut.Save()
     }
 
-    $restore = $shell.CreateShortcut((Join-Path $desktop 'Codex Dream Skin - Restore.lnk'))
+    $restore = $shell.CreateShortcut((Join-Path $desktop $restoreShortcutName))
     $restore.TargetPath = $powershell
     $restore.Arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$restoreScript`"$portArgument -RestoreBaseTheme -PromptRestart"
     $restore.WorkingDirectory = $engine.Root
@@ -86,21 +100,21 @@ try {
 
     if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
       foreach ($folder in @($desktop, $startMenu)) {
-        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin - Tray.lnk'))
+        $tray = $shell.CreateShortcut((Join-Path $folder $trayShortcutName))
         $tray.TargetPath = $clientPath
         $tray.Arguments = '--background'
         $tray.WorkingDirectory = $engine.Root
-        $tray.Description = 'Run the Codex Dream Skin client in the system tray'
+        $tray.Description = "Run the $($script:DreamSkinProductName) client in the system tray"
         $tray.Save()
       }
       Start-Process -FilePath $clientPath -ArgumentList '--background' -WindowStyle Hidden | Out-Null
     } else {
       foreach ($folder in @($desktop, $startMenu)) {
-        $tray = $shell.CreateShortcut((Join-Path $folder 'Codex Dream Skin - Tray.lnk'))
+        $tray = $shell.CreateShortcut((Join-Path $folder $trayShortcutName))
         $tray.TargetPath = $powershell
         $tray.Arguments = "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File `"$trayScript`"$portArgument"
         $tray.WorkingDirectory = $engine.Root
-        $tray.Description = 'Open Codex Dream Skin status and theme controls in the system tray'
+        $tray.Description = "Open $($script:DreamSkinProductName) status and theme controls in the system tray"
         $tray.Save()
       }
       Start-Process -FilePath $powershell -ArgumentList `
@@ -110,9 +124,9 @@ try {
   }
 
   if ($NoShortcuts) {
-    Write-Host "Codex Dream Skin base theme installed at $($engine.Root). Run $($engine.Start) to launch it."
+    Write-Host "$($script:DreamSkinProductName) base theme installed at $($engine.Root). Run $($engine.Start) to launch it."
   } else {
-    Write-Host 'Codex Dream Skin installed. The launch shortcut asks before restarting an open Codex window.'
+    Write-Host "$($script:DreamSkinProductName) installed. The launch shortcut asks before restarting an open Codex window."
   }
 } finally {
   Exit-DreamSkinOperationLock -Mutex $operationLock

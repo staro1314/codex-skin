@@ -91,9 +91,9 @@ try {
   $forceAuthorized = [bool]$ForceRestart
   if ($shouldCloseCodex -and $PromptRestart) {
     $restartMessage = if ($NoRelaunch) {
-      'Restore will close Codex and remove Dream Skin plus its CDP session. Continue?'
+      "Restore will close Codex and remove $($script:DreamSkinProductName) plus its CDP session. Continue?"
     } else {
-      'Restore will close Codex, remove Dream Skin and its CDP session, then reopen the official app. Continue?'
+      "Restore will close Codex, remove $($script:DreamSkinProductName) and its CDP session, then reopen the official app. Continue?"
     }
     $forceAuthorized = Confirm-DreamSkinRestart -Message $restartMessage
     if (-not $forceAuthorized) {
@@ -126,7 +126,7 @@ try {
     $recordedInjectorStopped = Stop-DreamSkinRecordedInjector -State $state
     if (-not $recordedInjectorStopped) {
       $staleStatePath = Archive-DreamSkinStateFile -Path $StatePath
-      Write-Warning "Archived stale Dream Skin state at $staleStatePath"
+      Write-Warning "Archived stale $($script:DreamSkinProductName) state at $staleStatePath"
     }
 
     if ($RecoverConfigBackup) {
@@ -150,6 +150,11 @@ try {
       $desktop = [Environment]::GetFolderPath('Desktop')
       $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
       @(
+        (Join-Path $desktop "$($script:DreamSkinProductName).lnk"),
+        (Join-Path $desktop "$($script:DreamSkinProductName) - Restore.lnk"),
+        (Join-Path $desktop "$($script:DreamSkinProductName) - Tray.lnk"),
+        (Join-Path $startMenu "$($script:DreamSkinProductName).lnk"),
+        (Join-Path $startMenu "$($script:DreamSkinProductName) - Tray.lnk"),
         (Join-Path $desktop 'Codex Dream Skin.lnk'),
         (Join-Path $desktop 'Codex Dream Skin - Restore.lnk'),
         (Join-Path $desktop 'Codex Dream Skin - Tray.lnk'),
@@ -175,7 +180,7 @@ try {
     throw $restoreError
   }
 
-  Write-Host 'Dream Skin restore actions completed; any saved CDP session was closed.'
+  Write-Host "$($script:DreamSkinProductName) restore actions completed; any saved CDP session was closed."
 } finally {
   Exit-DreamSkinOperationLock -Mutex $operationLock
 }

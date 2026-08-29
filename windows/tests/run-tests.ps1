@@ -168,7 +168,7 @@ try {
   $installSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\install-dream-skin.ps1')
   $commonSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\common-windows.ps1')
   $hashVerificationIndex = $commonSource.IndexOf(
-    'Staged Dream Skin runtime failed hash verification', [System.StringComparison]::Ordinal
+    'Staged $($script:DreamSkinProductName) runtime failed hash verification', [System.StringComparison]::Ordinal
   )
   $unblockIndex = $commonSource.IndexOf(
     'Unblock-File -LiteralPath $runtimeScript.FullName', [System.StringComparison]::Ordinal
@@ -680,9 +680,9 @@ try {
       throw 'Accepted an inconsistent CDP page target.'
     }
   }
-  $watchCommand = '"C:\Program Files\nodejs\node.exe" "C:\Dream Skin\injector.mjs" --watch --port 9335 --browser-id browser-123'
-  if (-not (Test-DreamSkinCommandLineToken -CommandLine $watchCommand -Token 'C:\Dream Skin\injector.mjs') -or
-    (Test-DreamSkinCommandLineToken -CommandLine $watchCommand -Token 'Dream Skin\injector.mjs')) {
+  $watchCommand = '"C:\Program Files\nodejs\node.exe" "C:\Codex Skin\injector.mjs" --watch --port 9335 --browser-id browser-123'
+  if (-not (Test-DreamSkinCommandLineToken -CommandLine $watchCommand -Token 'C:\Codex Skin\injector.mjs') -or
+    (Test-DreamSkinCommandLineToken -CommandLine $watchCommand -Token 'Codex Skin\injector.mjs')) {
     throw 'Injector command-line token validation is not boundary-safe.'
   }
   $forwardedDebugProcess = [pscustomobject]@{
@@ -759,16 +759,16 @@ try {
     (Test-DreamSkinBrowserId -Value 'browser 123')) {
     throw 'CDP browser ID validation is not boundary-safe.'
   }
-  $quotedProfile = ConvertTo-DreamSkinProcessArgument -Value '--user-data-dir=C:\Dream Skin\Profile\'
-  if ($quotedProfile -cne '"--user-data-dir=C:\Dream Skin\Profile\\"') {
+  $quotedProfile = ConvertTo-DreamSkinProcessArgument -Value '--user-data-dir=C:\Codex Skin\Profile\'
+  if ($quotedProfile -cne '"--user-data-dir=C:\Codex Skin\Profile\\"') {
     throw 'Process argument quoting did not protect spaces and a trailing backslash.'
   }
   $argumentLine = ConvertTo-DreamSkinArgumentLine -Arguments @(
     '--remote-debugging-address=127.0.0.1',
-    '--user-data-dir=C:\Dream Skin\Profile\',
+    '--user-data-dir=C:\Codex Skin\Profile\',
     ''
   )
-  if ($argumentLine -cne '--remote-debugging-address=127.0.0.1 "--user-data-dir=C:\Dream Skin\Profile\\" ""') {
+  if ($argumentLine -cne '--remote-debugging-address=127.0.0.1 "--user-data-dir=C:\Codex Skin\Profile\\" ""') {
     throw 'Packaged-app argument line quoting failed.'
   }
   Initialize-DreamSkinPackageLauncher
@@ -788,7 +788,7 @@ try {
     port = 9335
     injectorPid = 1234
     injectorStartedAt = '2026-01-01T00:00:00.0000000Z'
-    injectorPath = 'C:\Dream Skin\injector.mjs'
+    injectorPath = 'C:\Codex Skin\injector.mjs'
     nodePath = 'C:\Program Files\nodejs\node.exe'
     codexExe = 'C:\Program Files\WindowsApps\OpenAI.Codex\app\ChatGPT.exe'
     codexPackageRoot = 'C:\Program Files\WindowsApps\OpenAI.Codex'
@@ -1080,7 +1080,7 @@ try {
     $releaseFixturePresetDirectory, $releaseFixtureVideoPresetDirectory -Force | Out-Null
   Copy-Item -LiteralPath $CanonicalVersionPath -Destination $releaseFixtureRoot -Force
   foreach ($releaseAsset in @(
-    'compatibility.json', 'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json',
+    'compatibility.json', 'product.json', 'product.mjs', 'dream-skin.css', 'renderer-inject.js', 'safe-css-policy.json',
     'safe-css-validator.mjs', 'selectors.json',
     'theme-package-validator.mjs'
   )) {
@@ -1356,7 +1356,7 @@ try {
   $stateReadIndex = $startSource.IndexOf('$previousState = Read-DreamSkinState', [System.StringComparison]::Ordinal)
   $restartPromptIndex = $startSource.IndexOf('$restartAuthorized = Confirm-DreamSkinRestart', [System.StringComparison]::Ordinal)
   $recordedStopIndex = $startSource.IndexOf('$recordedInjectorStopped = Stop-DreamSkinRecordedInjector', [System.StringComparison]::Ordinal)
-  $cancelIndex = $startSource.IndexOf("Write-Host 'Dream Skin launch was cancelled", [System.StringComparison]::Ordinal)
+  $cancelIndex = $startSource.IndexOf('launch was cancelled; Codex was not changed', [System.StringComparison]::Ordinal)
   $pauseClearIndex = $startSource.IndexOf('Set-DreamSkinPaused -Paused $false', [System.StringComparison]::Ordinal)
   if ($stateReadIndex -lt 0 -or $pauseClearIndex -le $stateReadIndex -or
     ($restartPromptIndex -ge 0 -and $pauseClearIndex -le $restartPromptIndex) -or

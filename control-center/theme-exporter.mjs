@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { PRODUCT_NAME } from "../runtime/product.mjs";
 import { validateThemePackageDirectory } from "../runtime/theme-package-validator.mjs";
 import { createZip } from "./zip-writer.mjs";
 
@@ -95,7 +96,7 @@ function publicTheme(entry, id, image, video) {
   const result = {
     schemaVersion: 1,
     id,
-    name: safeText(source.name, "Dream Skin Theme", 80, "theme name"),
+    name: safeText(source.name, `${PRODUCT_NAME} Theme`, 80, "theme name"),
     image,
     appearance: new Set(["auto", "light", "dark"]).has(source.appearance) ? source.appearance : "auto",
     art: {
@@ -204,7 +205,7 @@ export class ThemeExporter {
     if (!LICENSES.has(license)) fail("license is unsupported");
     const summary = safeText(
       options.summary,
-      "Theme exported from Codex Dream Skin Control Center.",
+      `Theme exported from ${PRODUCT_NAME} Control Center.`,
       500,
       "summary",
       PROVENANCE_CONTROL,

@@ -298,7 +298,7 @@ function Assert-DreamSkinTomlLineEditingSafe {
   param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Content)
 
   if ($Content.Contains('"""') -or $Content.Contains("'''")) {
-    throw 'Refusing to rewrite TOML containing multiline strings; use single-line values before installing Dream Skin.'
+    throw "Refusing to rewrite TOML containing multiline strings; use single-line values before installing $($script:DreamSkinProductName)."
   }
   $null = Get-DreamSkinTomlTableHeaders -Content $Content
 
@@ -491,10 +491,10 @@ function Read-DreamSkinAppearanceMarker {
   try {
     $marker = (Read-DreamSkinUtf8File -Path $markerPath) | ConvertFrom-Json -ErrorAction Stop
   } catch {
-    throw "Dream Skin appearance marker is unreadable; config was preserved: $markerPath"
+    throw "$($script:DreamSkinProductName) appearance marker is unreadable; config was preserved: $markerPath"
   }
   if ($null -eq $marker -or $marker -is [string] -or $marker -is [array]) {
-    throw "Dream Skin appearance marker is invalid; config was preserved: $markerPath"
+    throw "$($script:DreamSkinProductName) appearance marker is invalid; config was preserved: $markerPath"
   }
   $schemaVersion = 0
   try { $schemaVersion = [int]$marker.schemaVersion } catch { $schemaVersion = 0 }
@@ -503,7 +503,7 @@ function Read-DreamSkinAppearanceMarker {
     -not [bool]$marker.appearanceThemeManaged
   $validV2 = $schemaVersion -eq 2 -and $marker.appearanceThemeManaged -is [bool]
   if (-not ($validUnmanagedV1 -or $validV2)) {
-    throw "Dream Skin appearance marker is invalid; config was preserved: $markerPath"
+    throw "$($script:DreamSkinProductName) appearance marker is invalid; config was preserved: $markerPath"
   }
   return $marker
 }

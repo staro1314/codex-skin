@@ -117,7 +117,7 @@ pwsh.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned `
 
 All commands must exit `0`. Keep the complete failure output if one does not.
 
-Before manual renderer testing, close Codex and exit the Dream Skin tray, then
+Before manual renderer testing, close Codex and exit the Codex Skin tray, then
 install the runtime from this checkout. Do not reuse the engine left by an
 older PR head or Release:
 

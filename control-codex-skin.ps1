@@ -3,9 +3,19 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$productPath = Join-Path $projectRoot 'PRODUCT.json'
 $serverScript = Join-Path $projectRoot 'control-center\server.mjs'
 $stateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
 $stateFile = Join-Path $stateRoot 'control-center.json'
+$product = $null
+try { $product = Get-Content -LiteralPath $productPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch {
+  throw "Product configuration could not be read: $productPath"
+}
+if ("$($product.schema)" -cne 'codex-skin/product/1' -or
+  [string]::IsNullOrWhiteSpace("$($product.displayName)")) {
+  throw "Product configuration is invalid: $productPath"
+}
+$productName = "$($product.displayName)"
 
 function Test-ControlCenterState {
   param([Parameter(Mandatory = $true)]$State)
@@ -36,7 +46,7 @@ function Stop-ControlCenterState {
     return
   }
 
-  Write-Host "Existing Control Center detected (PID $processId). Stopping it before restart..."
+  Write-Host "Existing $productName Control Center detected (PID $processId). Stopping it before restart..."
   try {
     Stop-Process -Id $processId -ErrorAction Stop
   } catch {
@@ -76,7 +86,7 @@ foreach ($managedScript in @(Get-ChildItem -LiteralPath $managedScriptRoot -Filt
   try {
     Unblock-File -LiteralPath $managedScript.FullName -ErrorAction Stop
   } catch {
-    throw "Could not unblock the local Dream Skin script $($managedScript.FullName): $($_.Exception.Message)"
+    throw "Could not unblock the local $productName script $($managedScript.FullName): $($_.Exception.Message)"
   }
 }
 

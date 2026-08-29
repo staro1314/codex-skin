@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+PRODUCT_ENV="$SCRIPT_DIR/../assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
+
 ARCHIVE="${1:-}"
 DESTINATION="${2:-}"
 MAX_ARCHIVE_BYTES=$((32 * 1024 * 1024))
@@ -14,7 +19,7 @@ EXTRACT_ROOT=""
 PROBE_COUNT_FILE=""
 
 fail_extract() {
-  printf 'ChatGPT Dream Skin: %s\n' "$*" >&2
+  printf '%s: %s\n' "$PRODUCT_DISPLAY_NAME" "$*" >&2
   exit 1
 }
 

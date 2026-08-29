@@ -1,10 +1,20 @@
-# Codex Dream Skin
+# Codex Skin
 
-Codex Dream Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工具。它通过本机回环 CDP 连接 Codex 的渲染进程，注入受控的 CSS 和装饰 DOM，在不修改官方安装包、`app.asar` 或代码签名的前提下，给 Codex 增加可替换的背景、透明层和主题视觉。
+Codex Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工具。它通过本机回环 CDP 连接 Codex 的渲染进程，注入受控的 CSS 和装饰 DOM，在不修改官方安装包、`app.asar` 或代码签名的前提下，给 Codex 增加可替换的背景、透明层和主题视觉。
 
 它保留 Codex 原生的侧栏、项目选择、建议卡、任务内容、输入框和菜单交互，不使用整窗截图覆盖，也不改写 API Key、Base URL 或模型供应商配置。
 
-当前代码版本见仓库根目录 [`VERSION`](./VERSION)。项目同时包含 Windows 和 macOS 实现，并将共享渲染逻辑、主题校验和媒体元数据处理收敛在 `runtime/`。Windows Release 构建会在打包前及 staging 后再次校验公开内置主题的图片与 `theme.json` SHA-256；内容发生未审查漂移时直接失败，不生成不确定的正式安装包。
+当前代码版本见仓库根目录 [`VERSION`](./VERSION)；产品显示名、Studio 名称、安装包文件名和发布者见 [`PRODUCT.json`](./PRODUCT.json)。版本和产品配置都是单一可编辑源，平台副本由 `node tools/sync-runtime-assets.mjs` 生成，不要手工修改 `windows/`、`macos/` 或 `runtime/` 下的对应副本。项目同时包含 Windows 和 macOS 实现，并将共享渲染逻辑、主题校验和媒体元数据处理收敛在 `runtime/`。Windows Release 构建会在打包前及 staging 后再次校验公开内置主题的图片与 `theme.json` SHA-256；内容发生未审查漂移时直接失败，不生成不确定的正式安装包。
+
+### 产品配置
+
+需要改应用名称时只修改根目录 [`PRODUCT.json`](./PRODUCT.json) 的 `displayName`、`studioName`、`packageStem` 或 `publisher`，然后执行：
+
+```powershell
+node tools/sync-runtime-assets.mjs
+```
+
+该配置会驱动 Windows 安装程序名、默认安装目录、快捷方式与客户端显示名，以及 macOS `.app`/DMG 名称和控制中心标题。`CodexDreamSkin`、`CodexDreamSkinStudio` 等技术标识仍用于兼容已有安装、状态目录和进程，不属于可见产品名称。
 
 ## 效果展示
 
@@ -30,7 +40,7 @@ Codex Dream Skin 是一个面向官方 Codex Desktop 的外部主题与换肤工
 ## 工作原理
 
 ```text
-Dream Skin 启动器 / 托盘 / 菜单栏
+Codex Skin 启动器 / 托盘 / 菜单栏
         |
         | 启动官方 Codex，并将 CDP 限制到 127.0.0.1
         v
@@ -75,7 +85,7 @@ Codex Desktop 升级后的选择器取证、共享资产同步、原生审批窗
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\install-dream-skin.ps1
 ```
 
-安装后通过 `Codex Dream Skin` 快捷方式启动，或运行：
+安装后通过 `Codex Skin` 快捷方式启动，或运行：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\start-dream-skin.ps1 -PromptRestart
@@ -89,7 +99,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-codex-skin
 
 普通用户无需打开 PowerShell，直接双击仓库根目录的 `start-codex-skin.cmd` 即可启动。启动成功后窗口自动关闭；失败时窗口会保留并暂停，方便查看错误。
 
-正式 Windows 用户使用安装后的 `CodexDreamSkin.Client.exe` 客户端：它在本地托盘中运行隐藏服务，并在内置 WebView2 窗口中承载控制中心。Setup 会把“视频狐妖”视频预设及其 poster、MP4、Safe CSS 和元数据一并安装到已保存主题库，但仍保留图片主题作为默认活动主题。Setup 只携带约 2 MB 的 Microsoft WebView2 Evergreen Bootstrapper，安装时若系统尚未有 WebView2 Runtime 才补装运行时；不会把整套固定版浏览器运行时塞进 Dream Skin 安装包。客户端开发调试可从 `windows/client` 运行。
+正式 Windows 用户使用安装后的 `CodexDreamSkin.Client.exe` 客户端：它在本地托盘中运行隐藏服务，并在内置 WebView2 窗口中承载控制中心。Setup 会把“视频狐妖”视频预设及其 poster、MP4、Safe CSS 和元数据一并安装到已保存主题库，但仍保留图片主题作为默认活动主题。Setup 只携带约 2 MB 的 Microsoft WebView2 Evergreen Bootstrapper，安装时若系统尚未有 WebView2 Runtime 才补装运行时；不会把整套固定版浏览器运行时塞进 Codex Skin 安装包。客户端开发调试可从 `windows/client` 运行。
 
 仓库根目录的 `control-codex-skin.cmd` 仅用于开发测试。它会在 `127.0.0.1` 的随机端口启动本地控制中心并自动打开浏览器，不是正式产品入口。控制中心支持：
 

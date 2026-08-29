@@ -78,7 +78,7 @@ async function makeThemeDir(overrides) {
   const theme = {
     schemaVersion: 1,
     id: `payload-case-${themeSequence}`,
-    name: "Dream Skin",
+    name: "Codex Skin",
     image: "background.png",
     ...overrides,
   };

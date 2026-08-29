@@ -39,7 +39,7 @@ if /usr/bin/grep -R -n --include='*.sh' -E '/usr/bin/osascript[[:space:]]+-e[[:s
 fi
 if ! /usr/bin/grep -F -q 'sfimage=paintpalette.fill' \
   "$ROOT/menubar/codex_dream_skin.10s.sh"; then
-  printf 'SwiftBar menu title must retain the Dream Skin palette icon.\n' >&2
+  printf 'SwiftBar menu title must retain the Codex Skin palette icon.\n' >&2
   exit 1
 fi
 if ! /usr/bin/grep -F -q 'flag: "wx"' "$ROOT/scripts/write-theme.mjs"; then
@@ -139,7 +139,7 @@ if /usr/bin/grep -F -q \
 fi
 if ! /usr/bin/grep -F -q '# CodexDreamSkinStudio launcher' \
    "$ROOT/scripts/restore-dream-skin-macos.sh"; then
-  printf 'macOS uninstall must remove only launchers owned by Dream Skin.\n' >&2
+  printf 'macOS uninstall must remove only launchers owned by Codex Skin.\n' >&2
   exit 1
 fi
 
@@ -155,6 +155,8 @@ if ! /usr/bin/cmp -s "$ROOT/assets/dream-skin.css" "$PROJECT_ROOT/windows/assets
     ! /usr/bin/cmp -s "$ROOT/assets/safe-css-validator.mjs" "$PROJECT_ROOT/windows/assets/safe-css-validator.mjs" ||
     ! /usr/bin/cmp -s "$ROOT/assets/selectors.json" "$PROJECT_ROOT/windows/assets/selectors.json" ||
     ! /usr/bin/cmp -s "$ROOT/assets/compatibility.json" "$PROJECT_ROOT/windows/assets/compatibility.json" ||
+    ! /usr/bin/cmp -s "$ROOT/assets/product.json" "$PROJECT_ROOT/windows/assets/product.json" ||
+    ! /usr/bin/cmp -s "$ROOT/assets/product.mjs" "$PROJECT_ROOT/windows/assets/product.mjs" ||
     ! /usr/bin/cmp -s "$ROOT/assets/theme-package-validator.mjs" "$PROJECT_ROOT/windows/assets/theme-package-validator.mjs" ||
     ! /usr/bin/cmp -s "$ROOT/scripts/validate-safe-css-file.mjs" "$PROJECT_ROOT/windows/scripts/validate-safe-css-file.mjs"; then
   printf 'macOS and Windows runtime assets are not byte-identical.\n' >&2

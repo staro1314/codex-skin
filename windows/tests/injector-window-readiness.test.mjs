@@ -481,11 +481,11 @@ test("start cannot announce active after renderer verification exhausts its dead
   const source = await fs.readFile(startPath, "utf8");
   const verifyStart = source.indexOf("$verifyDeadline =");
   const successBreak = source.indexOf("if ($verify.ExitCode -eq 0) { break }", verifyStart);
-  const failureThrow = source.indexOf('throw "Dream Skin verification failed.', successBreak);
+  const failureThrow = source.indexOf('verification failed. See $VerifyPath', successBreak);
   const startupCatch = source.indexOf("$startupError = $_", failureThrow);
   const stateCleanup = source.indexOf("Remove-Item -LiteralPath $StatePath", startupCatch);
   const rethrow = source.indexOf("throw $startupError", stateCleanup);
-  const activeMessage = source.indexOf('Write-Host "Codex Dream Skin is active', rethrow);
+  const activeMessage = source.indexOf('Write-Host "$($script:DreamSkinProductName) is active', rethrow);
   assert.ok(verifyStart >= 0 && successBreak > verifyStart,
     "Startup must only leave the verify loop on a zero injector exit code.");
   assert.ok(failureThrow > successBreak && startupCatch > failureThrow,

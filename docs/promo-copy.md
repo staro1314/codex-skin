@@ -26,13 +26,13 @@ https://github.com/staro1314/codex-skin
 
 1. 我给 Codex 做了个皮肤商店：从人民的 AI 到初音未来  
 2. 写代码也能有爱豆同款桌面  
-3. Codex Dream Skin：不拆包，也能把官方界面变成你的
+3. Codex Skin：不拆包，也能把官方界面变成你的
 
 正文：
 
 还在用默认灰白 Codex？有点可惜。
 
-**Codex Dream Skin** 是一套给 Codex 桌面端用的外部主题方案：  
+**Codex Skin** 是一套给 Codex 桌面端用的外部主题方案：
 用本机 CDP 把样式和横幅「贴」上去，**不修改官方 `.app` / `app.asar`**，侧栏、建议卡、项目选择、输入框都是原生可点。
 
 你看到的热巴紫夜、千玺清透、Miku 蓝粉、KUN 黑金、ENFP 小宇宙……都是同一套能力换图 + 换色的结果。

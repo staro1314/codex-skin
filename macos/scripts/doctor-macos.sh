@@ -41,7 +41,7 @@ if [ -f "$STATE_PATH" ] && verified_cdp_endpoint "$PORT"; then
     LIVE="true"
   fi
 fi
-[ "$REQUIRE_LIVE" = "false" ] || [ "$LIVE" = "true" ] || fail "No verified live Dream Skin session is active."
+[ "$REQUIRE_LIVE" = "false" ] || [ "$LIVE" = "true" ] || fail "No verified live $PRODUCT_DISPLAY_NAME session is active."
 
 if [ "$JSON" = "true" ]; then
   doctor_args=(
@@ -61,7 +61,7 @@ fi
   const payload = JSON.parse(process.argv[1]);
   const result = {
     pass: true,
-    product: "Codex Dream Skin Studio",
+    product: process.argv[9],
     version: process.argv[2],
     platform: `darwin-${process.argv[3]}`,
     codexVersion: process.argv[4],
@@ -79,4 +79,4 @@ fi
     },
   };
   console.log(JSON.stringify(result, null, 2));
-' "$PAYLOAD_JSON" "$SKIN_VERSION" "$(/usr/bin/uname -m)" "$CODEX_VERSION" "$CODEX_TEAM_ID" "$NODE_VERSION" "$LIVE" "$PORT"
+' "$PAYLOAD_JSON" "$SKIN_VERSION" "$(/usr/bin/uname -m)" "$CODEX_VERSION" "$CODEX_TEAM_ID" "$NODE_VERSION" "$LIVE" "$PORT" "$PRODUCT_STUDIO_NAME"

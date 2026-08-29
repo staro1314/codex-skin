@@ -45,7 +45,7 @@ try {
     throw "No verified Codex CDP endpoint is active on loopback port $Port."
   }
   if ($null -ne $state -and $state.browserId -and "$($state.browserId)" -cne $cdpIdentity.BrowserId) {
-    throw 'The active CDP browser does not match the saved Dream Skin session; state was preserved.'
+    throw "The active CDP browser does not match the saved $($script:DreamSkinProductName) session; state was preserved."
   }
 
   # Without an explicit --theme-dir the injector falls back to the engine's

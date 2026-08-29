@@ -23,7 +23,7 @@ function Show-DreamSkinCommunityMessage {
   }
   [void][System.Windows.Forms.MessageBox]::Show(
     $Message,
-    'Codex Dream Skin',
+    $script:DreamSkinProductName,
     [System.Windows.Forms.MessageBoxButtons]::OK,
     $icon
   )
@@ -322,7 +322,7 @@ function Invoke-DreamSkinCommunityStartAndVerify {
   $startScript = Join-Path $PSScriptRoot 'start-dream-skin.ps1'
   Assert-DreamSkinNoReparseComponents -Path $startScript
   if (-not (Test-Path -LiteralPath $startScript -PathType Leaf)) {
-    throw 'The managed Dream Skin start script is missing.'
+    throw "The managed $($script:DreamSkinProductName) start script is missing."
   }
   $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
   $argumentLine = '-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ' +
@@ -334,10 +334,10 @@ function Invoke-DreamSkinCommunityStartAndVerify {
   if (-not $startProcess.WaitForExit($OperationLockTimeoutMilliseconds)) {
     try { Stop-Process -InputObject $startProcess -Force -ErrorAction SilentlyContinue } catch {}
     [void]$startProcess.WaitForExit(15000)
-    throw "Dream Skin start verification did not finish within $OperationLockTimeoutMilliseconds ms."
+    throw "$($script:DreamSkinProductName) start verification did not finish within $OperationLockTimeoutMilliseconds ms."
   }
   if ($startProcess.ExitCode -ne 0) {
-    throw "Dream Skin could not start and visibly verify the active theme (exit code $($startProcess.ExitCode))."
+    throw "$($script:DreamSkinProductName) could not start and visibly verify the active theme (exit code $($startProcess.ExitCode))."
   }
 }
 
@@ -349,16 +349,16 @@ function Assert-DreamSkinCommunityActiveBaseline {
     [int]$RendererTimeoutMilliseconds = 30000
   )
   if (Test-DreamSkinPaused -StateRoot $StateRoot) {
-    throw 'One-click apply requires an active, unpaused Dream Skin renderer.'
+    throw "One-click apply requires an active, unpaused $($script:DreamSkinProductName) renderer."
   }
   $selectedFingerprint = Get-DreamSkinThemeRuntimeContentFingerprint `
     -ThemeDirectory $Paths.Active
   $session = Get-DreamSkinLiveSessionContext -StateRoot $StateRoot
   if ($null -eq $session) {
-    throw 'One-click apply requires an existing verified Dream Skin session.'
+    throw "One-click apply requires an existing verified $($script:DreamSkinProductName) session."
   }
   if (-not (Test-DreamSkinPathEqual -Left $session.Paths.Active -Right $Paths.Active)) {
-    throw 'The active Dream Skin session does not use the selected theme directory.'
+    throw "The active $($script:DreamSkinProductName) session does not use the selected theme directory."
   }
   $verify = Invoke-DreamSkinNative -FilePath $session.NodePath -ArgumentList @(
     $session.Injector,

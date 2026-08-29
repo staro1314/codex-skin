@@ -9,7 +9,7 @@ set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (
   echo.
-  echo Codex Dream Skin failed to start. Exit code: %EXIT_CODE%
+  echo The skin launcher failed to start. Exit code: %EXIT_CODE%
   echo Close this window after reading the error, then retry.
   pause
 )

@@ -6,6 +6,9 @@ set +e
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:${PATH:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+PRODUCT_ENV="$SCRIPT_DIR/../assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
 STATE_ROOT="${HOME}/Library/Application Support/CodexDreamSkinStudio"
 LOG_OUT="${STATE_ROOT}/menubar-apply.log"
 
@@ -19,17 +22,17 @@ progress() {
 }
 
 notify_progress() {
-  /usr/bin/osascript - "$*" >/dev/null 2>&1 <<'APPLESCRIPT' &
+  /usr/bin/osascript - "$*" "$PRODUCT_DISPLAY_NAME" >/dev/null 2>&1 <<'APPLESCRIPT' &
 on run argv
-  display notification (item 1 of argv) with title "ChatGPT Dream Skin"
+  display notification (item 1 of argv) with title (item 2 of argv)
 end run
 APPLESCRIPT
 }
 
 alert() {
-  /usr/bin/osascript - "$1" >/dev/null 2>&1 <<'APPLESCRIPT' || true
+  /usr/bin/osascript - "$1" "$PRODUCT_DISPLAY_NAME" >/dev/null 2>&1 <<'APPLESCRIPT' || true
 on run argv
-  display alert "ChatGPT Dream Skin" message (item 1 of argv)
+  display alert (item 2 of argv) message (item 1 of argv)
 end run
 APPLESCRIPT
 }
@@ -37,11 +40,11 @@ APPLESCRIPT
 confirm() {
   local message="$1"
   local ok_label="${2:-继续}"
-  /usr/bin/osascript - "$message" "$ok_label" >/dev/null 2>&1 <<'APPLESCRIPT'
+  /usr/bin/osascript - "$message" "$ok_label" "$PRODUCT_DISPLAY_NAME" >/dev/null 2>&1 <<'APPLESCRIPT'
 on run argv
   set promptText to item 1 of argv
   set okLabel to item 2 of argv
-  display dialog promptText buttons {"取消", okLabel} default button okLabel with title "ChatGPT Dream Skin"
+  display dialog promptText buttons {"取消", okLabel} default button okLabel with title (item 3 of argv)
 end run
 APPLESCRIPT
 }

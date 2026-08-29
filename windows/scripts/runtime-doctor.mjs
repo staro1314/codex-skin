@@ -6,9 +6,24 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+async function loadProductName() {
+  for (const candidate of [
+    path.join(here, "product.json"),
+    path.join(here, "..", "assets", "product.json"),
+  ]) {
+    try {
+      const product = JSON.parse(await fs.readFile(candidate, "utf8"));
+      if (typeof product.displayName === "string" && product.displayName.trim()) return product.displayName;
+    } catch {}
+  }
+  return "Codex";
+}
+const PRODUCT_NAME = await loadProductName();
 const DEFAULT_NODE_MAJOR = 20;
 const REQUIRED_FILES = [
   "VERSION",
+  "assets/product.json",
+  "assets/product.mjs",
   "assets/compatibility.json",
   "assets/dream-skin.css",
   "assets/renderer-inject.js",
@@ -22,6 +37,8 @@ const REQUIRED_FILES = [
 ];
 const EXACT_SHARED_FILES = [
   ["runtime/compatibility.json", "assets/compatibility.json"],
+  ["runtime/product.json", "assets/product.json"],
+  ["runtime/product.mjs", "assets/product.mjs"],
   ["runtime/safe-css-policy.json", "assets/safe-css-policy.json"],
   ["runtime/safe-css-validator.mjs", "assets/safe-css-validator.mjs"],
   ["runtime/theme-package-validator.mjs", "assets/theme-package-validator.mjs"],
@@ -144,14 +161,14 @@ async function readState(stateFile) {
   try {
     const state = await readJson(stateFile);
     if (!state || Array.isArray(state) || typeof state !== "object") {
-      return { state: null, check: check("state-shape", "DS-STATE-001", "fail", "The saved Dream Skin state is not an object.", "Restore the official appearance and retry.") };
+      return { state: null, check: check("state-shape", "DS-STATE-001", "fail", `The saved ${PRODUCT_NAME} state is not an object.`, "Restore the official appearance and retry.") };
     }
-    return { state, check: check("state-shape", "DS-STATE-001", "pass", "Saved Dream Skin state is readable.") };
+    return { state, check: check("state-shape", "DS-STATE-001", "pass", `Saved ${PRODUCT_NAME} state is readable.`) };
   } catch {
     const present = await existsAsFile(stateFile);
     return present
-      ? { state: null, check: check("state-shape", "DS-STATE-001", "fail", "The saved Dream Skin state is not valid JSON.", "Restore the official appearance and retry.") }
-      : { state: null, check: check("state-shape", "DS-STATE-001", "warn", "No saved Dream Skin session state was found.", "Start Codex through Dream Skin when a live skin session is needed.") };
+      ? { state: null, check: check("state-shape", "DS-STATE-001", "fail", `The saved ${PRODUCT_NAME} state is not valid JSON.`, "Restore the official appearance and retry.") }
+      : { state: null, check: check("state-shape", "DS-STATE-001", "warn", `No saved ${PRODUCT_NAME} session state was found.`, `Start ${PRODUCT_NAME} when a live skin session is needed.`) };
   }
 }
 
@@ -180,7 +197,7 @@ export async function runDoctor({
   }
   checks.push(missing.length === 0
     ? check("platform-files", "DS-ENV-001", "pass", "Required platform runtime files are present.")
-    : check("platform-files", "DS-ENV-001", "fail", `Required platform runtime files are missing: ${missing.join(", ")}.`, "Reinstall the Dream Skin runtime from a complete release or source checkout."));
+    : check("platform-files", "DS-ENV-001", "fail", `Required platform runtime files are missing: ${missing.join(", ")}.`, `Reinstall the ${PRODUCT_NAME} runtime from a complete release or source checkout.`));
 
   const compatibilityPath = path.join(platformRoot, "assets", "compatibility.json");
   try {
@@ -257,10 +274,10 @@ export async function runDoctor({
   if (stateResult.state && ["active", "applying", "paused"].includes(normalizedState.session)) {
     checks.push(normalizedState.browserId
       ? check("session-identity", "DS-STATE-003", "pass", "The saved session contains a valid CDP Browser ID.")
-      : check("session-identity", "DS-STATE-003", "fail", "The saved session is missing its CDP Browser ID lease.", "Restore the official appearance, then start Dream Skin again."));
+      : check("session-identity", "DS-STATE-003", "fail", "The saved session is missing its CDP Browser ID lease.", `Restore the official appearance, then start ${PRODUCT_NAME} again.`));
   }
   if (stateResult.state && normalizedState.operation === "failed") {
-    checks.push(check("last-operation", "DS-RUN-001", "warn", "The last Dream Skin operation failed.", "Read the platform error log, restore the last known good theme, and retry."));
+    checks.push(check("last-operation", "DS-RUN-001", "warn", `The last ${PRODUCT_NAME} operation failed.`, "Read the platform error log, restore the last known good theme, and retry."));
   }
   const live = Boolean(
     stateResult.state
@@ -271,12 +288,12 @@ export async function runDoctor({
   );
   if (requireLive) {
     checks.push(live
-      ? check("live-session", "DS-STATE-002", "pass", "A live verified Dream Skin session is active.")
-      : check("live-session", "DS-STATE-002", "fail", "No live verified Dream Skin session is active.", "Start Codex through Dream Skin, then run the Doctor again."));
+      ? check("live-session", "DS-STATE-002", "pass", `A live verified ${PRODUCT_NAME} session is active.`)
+      : check("live-session", "DS-STATE-002", "fail", `No live verified ${PRODUCT_NAME} session is active.`, `Start ${PRODUCT_NAME}, then run the Doctor again.`));
   } else if (stateResult.state) {
     checks.push(live
       ? check("live-session", "DS-STATE-002", "pass", "The saved state describes a live verified session.")
-      : check("live-session", "DS-STATE-002", "warn", "The saved state does not describe a live verified session.", "Start Codex through Dream Skin when a live skin session is needed."));
+      : check("live-session", "DS-STATE-002", "warn", "The saved state does not describe a live verified session.", `Start ${PRODUCT_NAME} when a live skin session is needed.`));
   }
 
   return createHealthSnapshot({

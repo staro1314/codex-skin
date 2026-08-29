@@ -299,7 +299,7 @@ export class ThemeStore {
       schemaVersion: 1,
       id,
       name: normalized.name,
-      brandSubtitle: "CODEX DREAM SKIN",
+      brandSubtitle: "CODEX SKIN",
       tagline: "Visual theme created in Control Center.",
       image: imageName,
       appearance: normalized.appearance,

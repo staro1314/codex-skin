@@ -1,4 +1,4 @@
-# Codex Dream Skin 窗口透明度调整记录
+# Codex Skin 窗口透明度调整记录
 
 最后核对时间：2026-08-21
 适用工作区：`D:\\project\\personal\\codex-skin`

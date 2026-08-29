@@ -1,5 +1,25 @@
 . (Join-Path $PSScriptRoot 'config-utf8.ps1')
 
+$productPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'assets\product.json'
+if (-not (Test-Path -LiteralPath $productPath -PathType Leaf)) {
+  throw "Generated product configuration is missing: $productPath"
+}
+$product = [System.IO.File]::ReadAllText($productPath) | ConvertFrom-Json
+if ("$($product.schema)" -cne 'codex-skin/product/1' -or
+  [string]::IsNullOrWhiteSpace("$($product.displayName)") -or
+  [string]::IsNullOrWhiteSpace("$($product.studioName)") -or
+  [string]::IsNullOrWhiteSpace("$($product.packageStem)")) {
+  throw "Generated product configuration is invalid: $productPath"
+}
+$script:DreamSkinProduct = $product
+$script:DreamSkinProductName = "$($product.displayName)"
+$script:DreamSkinProductStudioName = "$($product.studioName)"
+$script:DreamSkinProductPackageStem = "$($product.packageStem)"
+
+function Get-DreamSkinProductName {
+  return $script:DreamSkinProductName
+}
+
 function Enter-DreamSkinOperationLock {
   param(
     [ValidateRange(0, 300000)]
@@ -16,9 +36,9 @@ function Enter-DreamSkinOperationLock {
   if (-not $acquired) {
     $mutex.Dispose()
     if ($TimeoutMilliseconds -eq 0) {
-      throw 'Another Codex Dream Skin install, start, restore, or verify operation is already running.'
+      throw "Another $($script:DreamSkinProductName) install, start, restore, or verify operation is already running."
     }
-    throw "Another Codex Dream Skin operation did not finish within $TimeoutMilliseconds ms."
+    throw "Another $($script:DreamSkinProductName) operation did not finish within $TimeoutMilliseconds ms."
   }
   return $mutex
 }
@@ -118,7 +138,7 @@ function Stop-DreamSkinClientProcess {
     [switch]$RequireStopped
   )
   if (-not $ClientPath) { return }
-  try { $normalized = [System.IO.Path]::GetFullPath($ClientPath) } catch { throw 'The Dream Skin client path is invalid.' }
+  try { $normalized = [System.IO.Path]::GetFullPath($ClientPath) } catch { throw "The $($script:DreamSkinProductName) client path is invalid." }
   $failures = @()
   $processes = @()
   try {
@@ -146,10 +166,10 @@ function Stop-DreamSkinClientProcess {
     } catch { $failures += "PID $processId`: $($_.Exception.Message)" }
   }
   if ($failures.Count -gt 0 -and $RequireStopped) {
-    throw 'Could not close the Codex Dream Skin client: ' + ($failures -join '; ')
+    throw "Could not close the $($script:DreamSkinProductName) client: " + ($failures -join '; ')
   }
   if ($RequireStopped -and (Test-DreamSkinClientActive -ClientPath $normalized)) {
-    throw 'The Codex Dream Skin client is still active. Exit it and retry the operation.'
+    throw "The $($script:DreamSkinProductName) client is still active. Exit it and retry the operation."
   }
 }
 
@@ -170,7 +190,7 @@ function Get-DreamSkinRuntimeNodeProcesses {
       }
     )
   } catch {
-    throw 'Could not inspect the bundled Dream Skin Node.js process: ' + $_.Exception.Message
+    throw "Could not inspect the bundled $($script:DreamSkinProductName) Node.js process: " + $_.Exception.Message
   }
 }
 
@@ -192,10 +212,10 @@ function Stop-DreamSkinRuntimeNodeProcess {
     }
   } catch { $failures += $_.Exception.Message }
   if ($failures.Count -gt 0 -and $RequireStopped) {
-    throw 'Could not close the bundled Dream Skin Node.js service: ' + ($failures -join '; ')
+    throw "Could not close the bundled $($script:DreamSkinProductName) Node.js service: " + ($failures -join '; ')
   }
   if ($RequireStopped -and @(Get-DreamSkinRuntimeNodeProcesses -NodePath $NodePath).Count -gt 0) {
-    throw 'The bundled Dream Skin Node.js service is still active. Retry after the control center closes.'
+    throw "The bundled $($script:DreamSkinProductName) Node.js service is still active. Retry after the control center closes."
   }
 }
 
@@ -233,19 +253,19 @@ function Stop-DreamSkinTrayProcess {
     }
   } catch {
     # If process command-line inspection is denied, the tray mutex still
-    # proves whether a Dream Skin tray is active. Do not fail an install just
+    # proves whether the product tray is active. Do not fail an install just
     # because unrelated PowerShell processes are not inspectable.
     if (Test-DreamSkinTrayActive) {
       $failures += $_.Exception.Message
     }
   }
   if ($failures.Count -gt 0) {
-    $message = 'Could not close the Dream Skin tray automatically: ' + ($failures -join '; ')
+  $message = "Could not close the $($script:DreamSkinProductName) tray automatically: " + ($failures -join '; ')
     if ($RequireStopped) { throw $message }
     Write-Warning $message
   }
   if ($RequireStopped -and (Test-DreamSkinTrayActive)) {
-    throw 'The Dream Skin tray is still active. Exit it and retry the operation.'
+    throw "The $($script:DreamSkinProductName) tray is still active. Exit it and retry the operation."
   }
 }
 
@@ -253,15 +273,15 @@ function Assert-DreamSkinRuntimeTree {
   param([Parameter(Mandatory = $true)][string]$Path)
   $root = [System.IO.Path]::GetFullPath($Path)
   if (-not (Test-Path -LiteralPath $root -PathType Container)) {
-    throw "Dream Skin runtime directory does not exist: $root"
+    throw "$($script:DreamSkinProductName) runtime directory does not exist: $root"
   }
   if (-not (Get-Command Assert-DreamSkinNoReparseComponents -ErrorAction SilentlyContinue)) {
-    throw 'Dream Skin managed-path validation is unavailable.'
+    throw "$($script:DreamSkinProductName) managed-path validation is unavailable."
   }
   Assert-DreamSkinNoReparseComponents -Path $root
   foreach ($item in Get-ChildItem -LiteralPath $root -Recurse -Force -ErrorAction Stop) {
     if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-      throw "Dream Skin runtime contains a junction or symbolic link: $($item.FullName)"
+      throw "$($script:DreamSkinProductName) runtime contains a junction or symbolic link: $($item.FullName)"
     }
   }
 }
@@ -274,7 +294,7 @@ function Remove-DreamSkinRuntimeTree {
   $fullPath = [System.IO.Path]::GetFullPath($Path)
   $fullStateRoot = [System.IO.Path]::GetFullPath($StateRoot)
   if (-not (Test-DreamSkinPathWithin -Path $fullPath -Root $fullStateRoot)) {
-    throw "Refusing to remove a runtime path outside the Dream Skin state root: $fullPath"
+    throw "Refusing to remove a runtime path outside the $($script:DreamSkinProductName) state root: $fullPath"
   }
   if (-not (Test-Path -LiteralPath $fullPath)) { return }
   Assert-DreamSkinRuntimeTree -Path $fullPath
@@ -287,7 +307,7 @@ function Install-DreamSkinRuntimeEngine {
     [Parameter(Mandatory = $true)][string]$StateRoot
   )
   if (-not (Get-Command Ensure-DreamSkinManagedDirectory -ErrorAction SilentlyContinue)) {
-    throw 'Dream Skin managed-directory validation is unavailable.'
+    throw "$($script:DreamSkinProductName) managed-directory validation is unavailable."
   }
 
   $sourceRoot = [System.IO.Path]::GetFullPath($SkillRoot)
@@ -295,6 +315,8 @@ function Install-DreamSkinRuntimeEngine {
   $engine = Get-DreamSkinRuntimeEnginePaths -StateRoot $fullStateRoot
   $required = @(
     'VERSION',
+    'assets\product.json',
+    'assets\product.mjs',
     'assets\dream-reference.jpg',
     'assets\dream-skin.css',
     'assets\renderer-inject.js',
@@ -361,7 +383,7 @@ function Install-DreamSkinRuntimeEngine {
   }
   foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $relative) -PathType Leaf)) {
-      throw "Dream Skin runtime source is incomplete: $relative"
+      throw "$($script:DreamSkinProductName) runtime source is incomplete: $relative"
     }
   }
   $sourceDirectories = @('assets', 'scripts', 'presets')
@@ -373,7 +395,7 @@ function Install-DreamSkinRuntimeEngine {
     $sourceDirectory = Join-Path $sourceRoot $directoryName
     if ((Test-DreamSkinPathEqual -Left $fullStateRoot -Right $sourceDirectory) -or
       (Test-DreamSkinPathWithin -Path $fullStateRoot -Root $sourceDirectory)) {
-      throw "Dream Skin state root cannot be created inside its runtime source: $fullStateRoot"
+    throw "$($script:DreamSkinProductName) state root cannot be created inside its runtime source: $fullStateRoot"
     }
     Assert-DreamSkinRuntimeTree -Path $sourceDirectory
   }
@@ -394,7 +416,7 @@ function Install-DreamSkinRuntimeEngine {
     Assert-DreamSkinRuntimeTree -Path $stagingRoot
     foreach ($relative in $required) {
       if (-not (Test-Path -LiteralPath (Join-Path $stagingRoot $relative) -PathType Leaf)) {
-        throw "Staged Dream Skin runtime is incomplete: $relative"
+        throw "Staged $($script:DreamSkinProductName) runtime is incomplete: $relative"
       }
     }
 
@@ -408,7 +430,7 @@ function Install-DreamSkinRuntimeEngine {
       Get-ChildItem -LiteralPath $stagedFileRoots -Recurse -File -Force -ErrorAction Stop
     )
     if ($sourceFiles.Count -ne $stagedFiles.Count) {
-      throw 'Staged Dream Skin runtime file count does not match its source.'
+      throw "Staged $($script:DreamSkinProductName) runtime file count does not match its source."
     }
     foreach ($sourceFile in $sourceFiles) {
       $relative = $sourceFile.FullName.Substring($sourcePrefix.Length)
@@ -416,7 +438,7 @@ function Install-DreamSkinRuntimeEngine {
       if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf) -or
         (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceFile.FullName).Hash -cne
         (Get-FileHash -Algorithm SHA256 -LiteralPath $stagedFile).Hash) {
-        throw "Staged Dream Skin runtime failed hash verification: $relative"
+        throw "Staged $($script:DreamSkinProductName) runtime failed hash verification: $relative"
       }
     }
 
@@ -447,7 +469,7 @@ function Install-DreamSkinRuntimeEngine {
           Move-Item -LiteralPath $backupRoot -Destination $engine.Root -ErrorAction Stop
           $hasBackup = $false
         } catch {
-          throw "Dream Skin runtime update failed and its previous engine could not be restored. Backup preserved at ${backupRoot}: $installError"
+      throw "$($script:DreamSkinProductName) runtime update failed and its previous engine could not be restored. Backup preserved at ${backupRoot}: $installError"
         }
       }
       throw
@@ -466,7 +488,7 @@ function Install-DreamSkinRuntimeEngine {
     if (Test-Path -LiteralPath $stagingRoot) {
       try { Remove-DreamSkinRuntimeTree -Path $stagingRoot -StateRoot $fullStateRoot } catch {
         try {
-          Write-Warning "Could not remove the staged Dream Skin runtime: $($_.Exception.Message)"
+      Write-Warning "Could not remove the staged $($script:DreamSkinProductName) runtime: $($_.Exception.Message)"
         } catch {
           # Cleanup must never mask the runtime installation result.
         }
@@ -910,7 +932,7 @@ function Start-DreamSkinCodexForDebugging {
   } catch {
     $failureKind = Get-DreamSkinDirectLaunchFailureKind -Exception $_.Exception
     throw [System.InvalidOperationException]::new(
-      "Codex $($Codex.Version) converted the CDP argument into a codex:// navigation path. Direct launch of the validated Store executable failed ($failureKind), so this Codex/Windows combination cannot expose the Dream Skin debugging endpoint without modifying the protected app package.",
+      "Codex $($Codex.Version) converted the CDP argument into a codex:// navigation path. Direct launch of the validated Store executable failed ($failureKind), so this Codex/Windows combination cannot expose the $($script:DreamSkinProductName) debugging endpoint without modifying the protected app package.",
       $_.Exception)
   }
 
@@ -921,7 +943,7 @@ function Start-DreamSkinCodexForDebugging {
     } catch {
       throw "Direct Codex launch did not retain the CDP arguments and could not be closed safely: $($_.Exception.Message)"
     }
-    throw "Codex $($Codex.Version) did not retain the CDP argument during package activation or validated direct launch. Dream Skin cannot run without modifying the protected app package."
+    throw "Codex $($Codex.Version) did not retain the CDP argument during package activation or validated direct launch. $($script:DreamSkinProductName) cannot run without modifying the protected app package."
   }
 
   return [pscustomobject]@{
@@ -1195,7 +1217,7 @@ function Read-DreamSkinState {
     }
     return $state
   } catch {
-    throw "Dream Skin state is unreadable; it was preserved for inspection: $Path"
+    throw "$($script:DreamSkinProductName) state is unreadable; it was preserved for inspection: $Path"
   }
 }
 
@@ -1274,13 +1296,13 @@ function Stop-DreamSkinRecordedInjector {
   $identityMatches = [bool]($isNodeExecutable -and $nodeMatches -and $injectorMatches -and $startMatches)
 
   if (-not $identityMatches) {
-    throw "The recorded injector PID $processId is running, but its visible identity does not match the saved Dream Skin process. State was preserved."
+    throw "The recorded injector PID $processId is running, but its visible identity does not match the saved $($script:DreamSkinProductName) process. State was preserved."
   }
 
   Stop-Process -InputObject $processHandle -Force -ErrorAction Stop
   [void]$processHandle.WaitForExit(15000)
   if (-not $processHandle.HasExited) {
-    throw "The recorded Dream Skin injector did not stop: PID $processId"
+    throw "The recorded $($script:DreamSkinProductName) injector did not stop: PID $processId"
   }
   return $true
 }
@@ -1372,7 +1394,7 @@ function Stop-DreamSkinCodex {
 function Confirm-DreamSkinRestart {
   param([string]$Message)
   $shell = New-Object -ComObject WScript.Shell
-  return $shell.Popup($Message, 0, 'Codex Dream Skin', 52) -eq 6
+  return $shell.Popup($Message, 0, $script:DreamSkinProductName, 52) -eq 6
 }
 
 function Invoke-DreamSkinCodexWindowActivation {

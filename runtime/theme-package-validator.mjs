@@ -6,6 +6,7 @@ import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { PRODUCT_NAME } from "./product.mjs";
 import { decodeAndValidateSafeCss } from "./safe-css-validator.mjs";
 
 const LIMITS = Object.freeze({
@@ -523,7 +524,7 @@ function validateManifest(value, platform, clientVersion) {
   const requiredClient = parseSemver(manifest.minClientVersion, "manifest.minClientVersion");
   const installedClient = parseSemver(clientVersion, "client version");
   if (compareSemver(requiredClient, installedClient) > 0) {
-    fail(`Theme requires Dream Skin ${manifest.minClientVersion} or newer; installed version is ${clientVersion}`);
+    fail(`Theme requires ${PRODUCT_NAME} ${manifest.minClientVersion} or newer; installed version is ${clientVersion}`);
   }
   const platforms = assertStringSet(manifest.platforms, "manifest.platforms", {
     min: 1,

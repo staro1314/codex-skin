@@ -335,7 +335,7 @@ try {
   });
   await expectRejected(bytesMismatch.source, "macos", /byte length/, "bytes-mismatch");
   const future = await makeOfficial("future-client", { minClientVersion: "9.9.9" });
-  await expectRejected(future.source, "macos", /requires Dream Skin 9\.9\.9/, "future-client");
+  await expectRejected(future.source, "macos", /requires Codex Skin 9\.9\.9/, "future-client");
   const wrongPlatform = await makeOfficial("wrong-platform", { platforms: ["macos"] });
   await expectRejected(wrongPlatform.source, "windows", /does not support windows/, "wrong-platform");
   const wrongId = await makeOfficial("wrong-id", { manifestThemeId: "different.theme" });

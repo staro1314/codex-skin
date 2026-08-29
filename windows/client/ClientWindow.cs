@@ -14,7 +14,7 @@ internal sealed class ClientWindow : Form
     {
         _options = options;
         _runtime = runtime;
-        Text = "Codex Dream Skin";
+        Text = options.Product.DisplayName;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(1080, 720);
         ClientSize = new Size(1440, 920);

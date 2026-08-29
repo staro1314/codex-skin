@@ -3,6 +3,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 VERSION_PATH="$ROOT/VERSION"
+PRODUCT_ENV="$ROOT/assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
 REPOSITORY="staro1314/codex-skin"
 RELEASE_URL="https://github.com/$REPOSITORY/releases/latest"
 JSON="false"
@@ -17,7 +20,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 fail() {
-  printf 'Codex Dream Skin update check: %s\n' "$*" >&2
+  printf '%s update check: %s\n' "$PRODUCT_DISPLAY_NAME" "$*" >&2
   exit 1
 }
 
@@ -89,20 +92,20 @@ fi
 
 if [ "$INTERACTIVE" = "true" ]; then
   if [ "$UPDATE_AVAILABLE" = "true" ]; then
-    if /usr/bin/osascript - "v$LATEST_VERSION" "v$CURRENT_VERSION" <<'APPLESCRIPT' >/dev/null
+    if /usr/bin/osascript - "v$LATEST_VERSION" "v$CURRENT_VERSION" "$PRODUCT_DISPLAY_NAME" <<'APPLESCRIPT' >/dev/null
 on run argv
   display dialog "发现新版本 " & (item 1 of argv) & return & return & \
     "当前版本为 " & (item 2 of argv) & "。" buttons {"稍后", "前往下载"} \
-    default button "前往下载" with title "Codex Dream Skin"
+    default button "前往下载" with title (item 3 of argv)
 end run
 APPLESCRIPT
     then
       /usr/bin/open "$RELEASE_URL"
     fi
   else
-    /usr/bin/osascript - "v$CURRENT_VERSION" <<'APPLESCRIPT' >/dev/null
+    /usr/bin/osascript - "v$CURRENT_VERSION" "$PRODUCT_DISPLAY_NAME" <<'APPLESCRIPT' >/dev/null
 on run argv
-  display alert "Codex Dream Skin" message "当前已是最新版本 " & (item 1 of argv) buttons {"好"}
+  display alert (item 2 of argv) message "当前已是最新版本 " & (item 1 of argv) buttons {"好"}
 end run
 APPLESCRIPT
   fi

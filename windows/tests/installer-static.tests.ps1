@@ -3,6 +3,9 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $windowsRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = Split-Path -Parent $windowsRoot
+$productPath = Join-Path $repositoryRoot 'PRODUCT.json'
+$iconSourcePath = Join-Path $repositoryRoot 'assets\codex-skin-icon.png'
 $installerRoot = Join-Path $windowsRoot 'installer'
 $definitionPath = Join-Path $installerRoot 'codex-dream-skin.iss'
 $builderPath = Join-Path $installerRoot 'build-release.ps1'
@@ -14,6 +17,18 @@ $actionPath = Join-Path $windowsRoot 'scripts\control-center-action.ps1'
 $importPath = Join-Path $windowsRoot 'scripts\control-center-import.ps1'
 $manifestPath = Join-Path $installerRoot 'node-runtime.json'
 $builderAst = $null
+
+if (-not (Test-Path -LiteralPath $productPath -PathType Leaf)) {
+  throw "Canonical product configuration does not exist: $productPath"
+}
+$product = [System.IO.File]::ReadAllText($productPath) | ConvertFrom-Json
+if ("$($product.schema)" -cne 'codex-skin/product/1' -or
+  [string]::IsNullOrWhiteSpace("$($product.displayName)") -or
+  [string]::IsNullOrWhiteSpace("$($product.packageStem)")) {
+  throw 'Canonical product configuration is invalid.'
+}
+$appName = "$($product.displayName)"
+$packageStem = "$($product.packageStem)"
 
 foreach ($scriptPath in @($builderPath, $bootstrapPath, $communityApplyPath, $commonPath, $actionPath, $importPath)) {
   if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
@@ -95,12 +110,13 @@ foreach ($requiredDefinition in @(
   'ChangesAssociations=yes',
   'UsePreviousAppDir=yes',
   'Uninstallable=yes',
-  'OutputBaseFilename=CodexDreamSkin-Setup-v{#AppVersion}',
+  'OutputBaseFilename={#PackageStem}-Setup-v{#AppVersion}',
+  'DefaultDirName={localappdata}\Programs\{#InstallDirectory}',
   'Source: "{#StageRoot}\payload\*"',
   'DestDir: "{app}\payload"',
   'Flags: unchecked',
   'Flags: nowait postinstall skipifsilent',
-  'english.ConfirmUninstall=Uninstall will stop Dream Skin''s own runtime',
+  'english.ConfirmUninstall=Uninstall will stop {#AppName}''s own runtime',
   'Name: "chinesesimplified"; MessagesFile: "{#StageRoot}\languages\ChineseSimplified.isl"',
   'chinesesimplified.ConfirmUninstall=',
   '-ExecutionPolicy RemoteSigned',
@@ -114,11 +130,11 @@ foreach ($requiredDefinition in @(
   'ewNoWait',
   'CompletionFile',
   'procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);',
-  "RaiseException('Codex Dream Skin initialization could not be started.');",
+  "RaiseException('{#AppName} initialization could not be started.');",
   'procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);',
   'if CurUninstallStep <> usUninstall then',
   "RunBootstrap(ExpandConstant('{app}\setup-bootstrap.ps1'), '-Uninstall', True, ExitCode)",
-  "'Codex Dream Skin could not restore Codex (exit code ' +",
+  "'{#AppName} could not restore Codex (exit code ' +",
   "IntToStr(ExitCode) + '). No installed files were removed.'",
   'function PrepareToInstall(var NeedsRestart: Boolean): String;',
   'GetPreviousUninstaller',
@@ -158,9 +174,9 @@ if (-not $definition.Contains('#define PersistentPowerShellPath "{win}\System32\
   throw 'Persistent shortcuts and URL handlers must use a System32 PowerShell path that 64-bit launchers can access.'
 }
 $clientShortcutEntries = @(
-  'Name: "{group}\Codex Dream Skin"',
-  'Name: "{userdesktop}\Codex Dream Skin"',
-  'Name: "{userstartup}\Codex Dream Skin"'
+  'Name: "{group}\{#AppName}"',
+  'Name: "{userdesktop}\{#AppName}"',
+  'Name: "{userstartup}\{#AppName}"'
 )
 foreach ($entry in $clientShortcutEntries) {
   $line = ([regex]::Match(
@@ -194,7 +210,7 @@ $runBootstrapIndex = $definition.IndexOf(
   [System.StringComparison]::Ordinal
 )
 $uninstallFailureIndex = $definition.LastIndexOf(
-  "'Codex Dream Skin could not restore Codex (exit code ' +",
+  "'{#AppName} could not restore Codex (exit code ' +",
   [System.StringComparison]::Ordinal
 )
 if ($uninstallStepIndex -lt 0 -or $runBootstrapIndex -le $uninstallStepIndex -or
@@ -239,6 +255,12 @@ if ($fileSources.Count -ne 6 -or
 }
 
 foreach ($requiredBuilderContract in @(
+  'PRODUCT.json',
+  'Read-DreamSkinProductConfig',
+  '/DAppName=$($product.displayName)',
+  '/DAppPublisher=$($product.publisher)',
+  '/DPackageStem=$($product.packageStem)',
+  '/DInstallDirectory=$($product.packageStem)',
   'VERSION must contain a three-part semantic version:',
   'Get-FileHash -LiteralPath $archivePath -Algorithm SHA256',
   'Copy-ZipEntry -Archive $zip -EntryName "$($manifest.nodeEntry)"',
@@ -270,12 +292,13 @@ foreach ($requiredBuilderContract in @(
   "'scripts\apply-community-theme.ps1'",
   "'LICENSE.txt'",
   "'NOTICE.md'",
-  "Write-DreamSkinIcon -Path",
+  'Write-DreamSkinIcon',
+  '-SourcePath $iconSourcePath',
   '--self-contained true',
   'hostfxr.dll',
   'hostpolicy.dll',
   'coreclr.dll',
-  '"CodexDreamSkin-Setup-v$version.exe"'
+  '"$($product.packageStem)-Setup-v$version.exe"'
 )) {
   if (-not $builder.Contains($requiredBuilderContract)) {
     throw "Windows release builder is missing a required operation: $requiredBuilderContract"
@@ -285,10 +308,12 @@ foreach ($requiredBuilderContract in @(
 foreach ($requiredRepairContract in @(
   '[switch]$PrepareInstall',
   'if ($PrepareInstall)',
-  'An upgrade/reinstall only needs to release Dream Skin-owned files.',
+  'An upgrade/reinstall only needs to release Codex Skin-owned files.',
   '[switch]$Install',
   '$needsInstall = $Install',
   '$requiredEngineFiles',
+  'assets\product.json',
+  'assets\product.mjs',
   'assets\codex-dream-skin.ico',
   'assets\theme-package-validator.mjs',
   'assets\safe-css-policy.json',
@@ -311,7 +336,7 @@ foreach ($requiredRepairContract in @(
   '$missingEngineFiles.Count -eq 0',
   'Ensure-DreamSkinWebView2Runtime',
   'Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped',
-  'A newer Codex Dream Skin',
+  'A newer $($script:DreamSkinProductName)',
   'The installer payload is missing its bundled Node.js runtime',
   'Install-DreamSkinRuntimeEngine -SkillRoot $payloadRoot -StateRoot $stateRoot',
   'Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $stateRoot'
@@ -356,7 +381,7 @@ foreach ($requiredUninstallBinding in @(
 foreach ($requiredUninstallFallback in @(
   'if ($Uninstall -and',
   'installedScripts = Join-Path $stateRoot',
-  'The installed Dream Skin runtime is incomplete; reinstall the same or newer Setup.exe, then uninstall again.'
+  'The installed $($script:DreamSkinProductName) runtime is incomplete; reinstall the same or newer Setup.exe, then uninstall again.'
 )) {
   if (-not $bootstrap.Contains($requiredUninstallFallback)) {
     throw "Installer uninstall fallback is missing: $requiredUninstallFallback"
@@ -383,7 +408,7 @@ foreach ($requiredProcessStopContract in @(
   'Test-DreamSkinTrayActive'
 )) {
   if (-not $common.Contains($requiredProcessStopContract)) {
-    throw "Dream Skin-owned process cleanup is missing its permission-safe fallback: $requiredProcessStopContract"
+    throw "Codex Skin-owned process cleanup is missing its permission-safe fallback: $requiredProcessStopContract"
   }
 }
 $securityImportIndex = $common.IndexOf('Import-DreamSkinPowerShellSecurityModule', [System.StringComparison]::Ordinal)
@@ -397,7 +422,10 @@ $iconGenerator = $builderAst.Find({
   $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
     $node.Name -ceq 'Write-DreamSkinIcon'
 }, $true)
-if ($null -eq $iconGenerator) { throw 'Windows release builder has no deterministic icon generator.' }
+if ($null -eq $iconGenerator) { throw 'Windows release builder has no selected-source icon encoder.' }
+if (-not (Test-Path -LiteralPath $iconSourcePath -PathType Leaf)) {
+  throw "Selected icon source is missing from the repository: $iconSourcePath"
+}
 . ([scriptblock]::Create($iconGenerator.Extent.Text))
 $iconTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
   'codex-dream-skin-icon-test-' + [guid]::NewGuid().ToString('N')
@@ -406,8 +434,8 @@ New-Item -ItemType Directory -Path $iconTestRoot | Out-Null
 try {
   $firstIcon = Join-Path $iconTestRoot 'first.ico'
   $secondIcon = Join-Path $iconTestRoot 'second.ico'
-  Write-DreamSkinIcon -Path $firstIcon
-  Write-DreamSkinIcon -Path $secondIcon
+  Write-DreamSkinIcon -Path $firstIcon -SourcePath $iconSourcePath
+  Write-DreamSkinIcon -Path $secondIcon -SourcePath $iconSourcePath
   if ((Get-FileHash -LiteralPath $firstIcon -Algorithm SHA256).Hash -cne
     (Get-FileHash -LiteralPath $secondIcon -Algorithm SHA256).Hash) {
     throw 'Generated Windows icon is not deterministic.'
@@ -430,11 +458,16 @@ try {
       $icon[$entryOffset + 1] -ne $expectedDimensionByte -or
       [System.BitConverter]::ToUInt16($icon, $entryOffset + 4) -ne 1 -or
       [System.BitConverter]::ToUInt16($icon, $entryOffset + 6) -ne 32 -or
-      $imageLength -le 40 -or $imageOffset + $imageLength -gt $icon.Length -or
-      [System.BitConverter]::ToUInt32($icon, $imageOffset) -ne 40 -or
-      [System.BitConverter]::ToInt32($icon, $imageOffset + 4) -ne $sizes[$index] -or
-      [System.BitConverter]::ToInt32($icon, $imageOffset + 8) -ne (2 * $sizes[$index])) {
-      throw "Generated Windows icon contains an invalid $($sizes[$index])px image."
+      $imageLength -lt 24 -or $imageOffset + $imageLength -gt $icon.Length -or
+      $icon[$imageOffset] -ne 0x89 -or
+      $icon[$imageOffset + 1] -ne 0x50 -or
+      $icon[$imageOffset + 2] -ne 0x4e -or
+      $icon[$imageOffset + 3] -ne 0x47 -or
+      $icon[$imageOffset + 4] -ne 0x0d -or
+      $icon[$imageOffset + 5] -ne 0x0a -or
+      $icon[$imageOffset + 6] -ne 0x1a -or
+      $icon[$imageOffset + 7] -ne 0x0a) {
+      throw "Generated Windows icon contains an invalid PNG-backed $($sizes[$index])px image."
     }
   }
 } finally {

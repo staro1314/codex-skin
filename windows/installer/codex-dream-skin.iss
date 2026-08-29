@@ -7,9 +7,19 @@
 #ifndef OutputDir
   #error OutputDir must be supplied by build-release.ps1
 #endif
+#ifndef AppName
+  #error AppName must be supplied by build-release.ps1
+#endif
+#ifndef AppPublisher
+  #error AppPublisher must be supplied by build-release.ps1
+#endif
+#ifndef PackageStem
+  #error PackageStem must be supplied by build-release.ps1
+#endif
+#ifndef InstallDirectory
+  #error InstallDirectory must be supplied by build-release.ps1
+#endif
 
-#define AppName "Codex Dream Skin"
-#define AppPublisher "Codex Dream Skin contributors"
 #define AppUrl "https://dreamskin.cc"
 #define PowerShellPath "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"
 #define PersistentPowerShellPath "{win}\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -23,7 +33,7 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}
 AppUpdatesURL=https://github.com/staro1314/codex-skin/releases
-DefaultDirName={localappdata}\Programs\CodexDreamSkin
+DefaultDirName={localappdata}\Programs\{#InstallDirectory}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
@@ -34,7 +44,7 @@ WizardStyle=modern
 Compression=lzma2/ultra64
 SolidCompression=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=CodexDreamSkin-Setup-v{#AppVersion}
+OutputBaseFilename={#PackageStem}-Setup-v{#AppVersion}
 SetupIconFile={#StageRoot}\payload\assets\codex-dream-skin.ico
 UninstallDisplayIcon={app}\payload\assets\codex-dream-skin.ico
 UninstallDisplayName={#AppName}
@@ -57,11 +67,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "{#StageRoot}\languages\ChineseSimplified.isl"
 
 [Messages]
-english.ConfirmUninstall=Uninstall will stop Dream Skin's own runtime, restore its saved Codex configuration, remove the Dream Skin runtime, and keep saved themes and images. Codex does not need to be open.%n%nContinue?
-chinesesimplified.ConfirmUninstall=卸载将停止 Dream Skin 自身运行时、恢复已保存的 Codex 配置并移除 Dream Skin 运行时；Codex 无需打开，已保存主题和图片会保留。%n%n是否继续？
+english.ConfirmUninstall=Uninstall will stop {#AppName}'s own runtime, restore its saved Codex configuration, remove the {#AppName} runtime, and keep saved themes and images. Codex does not need to be open.%n%nContinue?
+chinesesimplified.ConfirmUninstall=卸载将停止 {#AppName} 自身运行时、恢复已保存的 Codex 配置并移除 {#AppName} 运行时；Codex 无需打开，已保存主题和图片会保留。%n%n是否继续？
 
 [Tasks]
-Name: "startup"; Description: "Start Codex Dream Skin when I sign in"; GroupDescription: "Additional options:"; Flags: unchecked
+Name: "startup"; Description: "Start {#AppName} when I sign in"; GroupDescription: "Additional options:"; Flags: unchecked
 
 [Files]
 ; Keep a second, temporary copy so initialization runs before Inno starts
@@ -81,9 +91,9 @@ Source: "{#StageRoot}\payload\*"; DestDir: "{app}\payload"; Flags: ignoreversion
 Type: filesandordirs; Name: "{app}\payload"
 
 [Icons]
-Name: "{group}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
-Name: "{userdesktop}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
-Name: "{userstartup}\Codex Dream Skin"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--background --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"; Tasks: startup
+Name: "{group}\{#AppName}"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
+Name: "{userdesktop}\{#AppName}"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--show --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"
+Name: "{userstartup}\{#AppName}"; Filename: "{localappdata}\CodexDreamSkin\engine\client\CodexDreamSkin.Client.exe"; Parameters: "--background --server-root ""{localappdata}\CodexDreamSkin\engine"" --runtime-root ""{localappdata}\CodexDreamSkin\engine"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; IconFilename: "{app}\payload\assets\codex-dream-skin.ico"; Tasks: startup
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\dreamskin"; ValueType: string; ValueName: ""; ValueData: "URL:DreamSkin Protocol"; Flags: uninsdeletekey
@@ -92,7 +102,7 @@ Root: HKCU; Subkey: "Software\Classes\dreamskin\DefaultIcon"; ValueType: string;
 Root: HKCU; Subkey: "Software\Classes\dreamskin\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{#PersistentPowerShellPath}"" -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\apply-community-theme.ps1"" ""%1"""
 
 [Run]
-Filename: "{#PowerShellPath}"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{app}\setup-bootstrap.ps1"" -LaunchTray"; WorkingDir: "{app}"; Description: "Launch Codex Dream Skin"; Flags: nowait postinstall skipifsilent
+Filename: "{#PowerShellPath}"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{app}\setup-bootstrap.ps1"" -LaunchTray"; WorkingDir: "{app}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 var
@@ -231,11 +241,11 @@ begin
   WizardForm.CancelButton.Enabled := False;
   ProgressPage := CreateOutputProgressPage(
     '正在准备安装',
-    '正在初始化 Codex Dream Skin，请稍候。'
+    '正在初始化 {#AppName}，请稍候。'
   );
   ProgressPage.Show;
   try
-    ProgressPage.SetText('正在初始化 Codex Dream Skin', '正在准备运行时和客户端文件。');
+    ProgressPage.SetText('正在初始化 {#AppName}', '正在准备运行时和客户端文件。');
     ProgressPosition := 0;
     while not FileExists(CompletionFile) do
     begin
@@ -271,7 +281,7 @@ end;
 
 function InstallInitializationFailureMessage(const ExitCode: Integer): String;
 begin
-  Result := 'Codex Dream Skin could not be initialized (exit code ' +
+  Result := '{#AppName} could not be initialized (exit code ' +
     IntToStr(ExitCode) + '). No installed application files were changed.';
 end;
 
@@ -291,18 +301,18 @@ begin
     exit;
 
   { The managed engine is outside the Inno application directory. Before
-    replacing an existing install, release only Dream Skin-owned processes;
+    replacing an existing install, release only {#AppName}-owned processes;
     do not invoke an uninstaller or restore/inspect Codex. }
   ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');
   ExtractTemporaryFiles('{tmp}\payload\*');
   TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
   if not RunBootstrap(TemporaryBootstrap, '-PrepareInstall', WizardSilent, ExitCode) then
   begin
-    Result := '无法准备旧版 Codex Dream Skin 运行时，安装过程未修改文件。';
+    Result := '无法准备旧版 {#AppName} 运行时，安装过程未修改文件。';
     exit;
   end;
   if ExitCode <> 0 then
-    Result := '无法准备旧版 Codex Dream Skin 运行时（退出码 ' +
+    Result := '无法准备旧版 {#AppName} 运行时（退出码 ' +
       IntToStr(ExitCode) + '），安装过程未修改文件。';
 end;
 
@@ -318,7 +328,7 @@ begin
   ExtractTemporaryFiles('{tmp}\payload\*');
   TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
   if not RunBootstrap(TemporaryBootstrap, '-Install', WizardSilent, ExitCode) then
-    RaiseException('Codex Dream Skin initialization could not be started.');
+    RaiseException('{#AppName} initialization could not be started.');
   if ExitCode <> 0 then
     RaiseException(InstallInitializationFailureMessage(ExitCode));
 end;
@@ -332,10 +342,10 @@ begin
 
   { The standard Inno confirmation has completed before usUninstall. }
   if not RunBootstrap(ExpandConstant('{app}\setup-bootstrap.ps1'), '-Uninstall', True, ExitCode) then
-    RaiseException('Codex Dream Skin restoration could not be started. No installed files were removed.');
+    RaiseException('{#AppName} restoration could not be started. No installed files were removed.');
   if ExitCode <> 0 then
     RaiseException(
-      'Codex Dream Skin could not restore Codex (exit code ' +
+      '{#AppName} could not restore Codex (exit code ' +
       IntToStr(ExitCode) + '). No installed files were removed.'
     );
 end;

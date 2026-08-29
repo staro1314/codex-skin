@@ -16,6 +16,37 @@ if (!versionPattern.test(canonicalVersion)) {
   throw new Error(`VERSION must contain a three-part semantic version: ${canonicalVersion}`);
 }
 const versionFile = `${canonicalVersion}\n`;
+const productPath = path.join(projectRoot, "PRODUCT.json");
+const productSourceText = await fs.readFile(productPath, "utf8");
+const product = JSON.parse(productSourceText);
+if (product.schema !== "codex-skin/product/1") {
+  throw new Error("PRODUCT.json has an unsupported schema");
+}
+for (const [key, maxLength] of [
+  ["displayName", 80],
+  ["studioName", 100],
+  ["packageStem", 64],
+  ["publisher", 100],
+]) {
+  if (typeof product[key] !== "string" || !product[key].trim() ||
+      product[key].length > maxLength || /[\u0000-\u001f\u007f]/u.test(product[key])) {
+    throw new Error(`PRODUCT.json has an invalid ${key}`);
+  }
+}
+if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(product.packageStem)) {
+  throw new Error("PRODUCT.json packageStem must be a safe package filename stem");
+}
+const productFile = `${JSON.stringify(product, null, 2)}\n`;
+const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+const productEnv = [
+  "# Generated from PRODUCT.json by tools/sync-runtime-assets.mjs.",
+  `PRODUCT_DISPLAY_NAME=${shellQuote(product.displayName)}`,
+  `PRODUCT_STUDIO_NAME=${shellQuote(product.studioName)}`,
+  `PRODUCT_PACKAGE_STEM=${shellQuote(product.packageStem)}`,
+  `PRODUCT_PUBLISHER=${shellQuote(product.publisher)}`,
+  "",
+].join("\n");
+const productModule = `import fs from "node:fs/promises";\n\nconst product = JSON.parse(\n  await fs.readFile(new URL("./product.json", import.meta.url), "utf8"),\n);\n\nexport const PRODUCT_NAME = product.displayName;\nexport const PRODUCT_STUDIO_NAME = product.studioName;\nexport const PRODUCT_PACKAGE_STEM = product.packageStem;\nexport const PRODUCT_PUBLISHER = product.publisher;\n`;
 
 const selectorSource = await fs.readFile(path.join(toolsRoot, "selectors.json"), "utf8");
 const contract = JSON.parse(selectorSource);
@@ -48,6 +79,11 @@ function compileRuntime(source) {
   if (occurrences !== 1) {
     throw new Error(`runtime/renderer-inject.js must contain exactly one ${token} token`);
   }
+  const productToken = "__DREAM_SKIN_PRODUCT_NAME__";
+  const productOccurrences = source.split(productToken).length - 1;
+  if (productOccurrences !== 1) {
+    throw new Error(`runtime/renderer-inject.js must contain exactly one ${productToken} token`);
+  }
   // The renderer needs only executable selector data. Keep the full
   // contract (including verification provenance and retired probes) in the
   // staged selectors.json, but do not ship documentation/fossil strings in
@@ -60,7 +96,9 @@ function compileRuntime(source) {
     })),
     stableTestids: Array.isArray(contract.stableTestids) ? [...contract.stableTestids] : [],
   };
-  return source.replace(token, JSON.stringify(runtimeContract));
+  return source
+    .replace(token, JSON.stringify(runtimeContract))
+    .replace(productToken, JSON.stringify(product.displayName));
 }
 
 function compileSafeCssFileValidator(source) {
@@ -163,6 +201,18 @@ const outputs = [
   {
     content: versionFile,
     paths: ["macos/VERSION", "windows/VERSION"],
+  },
+  {
+    content: productFile,
+    paths: ["runtime/product.json", "macos/assets/product.json", "windows/assets/product.json"],
+  },
+  {
+    content: productModule,
+    paths: ["runtime/product.mjs", "macos/assets/product.mjs", "windows/assets/product.mjs"],
+  },
+  {
+    content: productEnv,
+    paths: ["macos/assets/product.env"],
   },
   {
     content: packageFile,

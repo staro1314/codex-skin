@@ -15,6 +15,8 @@ Set-StrictMode -Version 2.0
 $installerRoot = $PSScriptRoot
 $windowsRoot = Split-Path -Parent $installerRoot
 $repositoryRoot = Split-Path -Parent $windowsRoot
+$productPath = Join-Path $repositoryRoot 'PRODUCT.json'
+$iconSourcePath = Join-Path $repositoryRoot 'assets\codex-skin-icon.png'
 $manifestPath = Join-Path $installerRoot 'node-runtime.json'
 $definitionPath = Join-Path $installerRoot 'codex-dream-skin.iss'
 $bootstrapPath = Join-Path $installerRoot 'setup-bootstrap.ps1'
@@ -31,14 +33,14 @@ $publicPresetRoot = Join-Path (Join-Path (Join-Path $repositoryRoot 'macos') 'pr
 $publicPresetImagePath = Join-Path $publicPresetRoot 'background.jpg'
 $publicPresetThemePath = Join-Path $publicPresetRoot 'theme.json'
 $publicPresetImageSha256 = 'b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42'
-$publicPresetThemeSha256 = 'aab3fa23ccd623b67a3e30af074098595d0e3683cf12ee31a011c050cc48a54c'
+$publicPresetThemeSha256 = 'b48964453e2d60673815461520a403a8209a5e2a50466a841046094297b41f2a'
 $videoFoxPresetRoot = Join-Path (Join-Path (Join-Path $repositoryRoot 'macos') 'presets') `
   'preset-video-fox-spirit'
 $videoFoxPresetThemePath = Join-Path $videoFoxPresetRoot 'theme.json'
 $videoFoxPresetImagePath = Join-Path $videoFoxPresetRoot 'background.png'
 $videoFoxPresetVideoPath = Join-Path $videoFoxPresetRoot 'background.mp4'
 $videoFoxPresetCssPath = Join-Path $videoFoxPresetRoot 'theme.css'
-$videoFoxPresetThemeSha256 = '6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411'
+$videoFoxPresetThemeSha256 = '602736bc5b0e7f14688bf30b1025be32d4753a2f96ba0e565c5c8fe65530db49'
 $videoFoxPresetImageSha256 = 'fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa'
 $videoFoxPresetVideoSha256 = '339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb'
 $videoFoxPresetCssSha256 = '46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9'
@@ -50,6 +52,20 @@ function Read-ReleaseTextFile {
     throw "Required release input does not exist: $Path"
   }
   return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Read-DreamSkinProductConfig {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  $product = (Read-ReleaseTextFile -Path $Path) | ConvertFrom-Json
+  if ("$($product.schema)" -cne 'codex-skin/product/1' -or
+    [string]::IsNullOrWhiteSpace("$($product.displayName)") -or
+    [string]::IsNullOrWhiteSpace("$($product.studioName)") -or
+    [string]::IsNullOrWhiteSpace("$($product.packageStem)") -or
+    [string]::IsNullOrWhiteSpace("$($product.publisher)") -or
+    "$($product.packageStem)" -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$') {
+    throw 'PRODUCT.json is missing a valid product schema, name, package stem, or publisher.'
+  }
+  return $product
 }
 
 function Resolve-ReleasePath {
@@ -167,141 +183,66 @@ function Copy-ZipEntry {
   }
 }
 
+
 function Write-DreamSkinIcon {
-  param([Parameter(Mandatory = $true)][string]$Path)
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter(Mandatory = $true)][string]$SourcePath
+  )
+  if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+    throw "Selected icon source does not exist: $SourcePath"
+  }
+
+  Add-Type -AssemblyName System.Drawing
   $sizes = @(16, 24, 32, 48, 64, 256)
   $images = New-Object System.Collections.Generic.List[byte[]]
-  $rotationCos = 0.974370
-  $rotationSin = 0.224951
-
-  foreach ($size in $sizes) {
-    $pixelBytes = $size * $size * 4
-    $maskStride = [int]([Math]::Ceiling($size / 32.0) * 4)
-    $stream = [System.IO.MemoryStream]::new()
-    $writer = [System.IO.BinaryWriter]::new($stream)
-    try {
-      $writer.Write([uint32]40)
-      $writer.Write([int32]$size)
-      $writer.Write([int32]($size * 2))
-      $writer.Write([uint16]1)
-      $writer.Write([uint16]32)
-      $writer.Write([uint32]0)
-      $writer.Write([uint32]$pixelBytes)
-      $writer.Write([int32]3780)
-      $writer.Write([int32]3780)
-      $writer.Write([uint32]0)
-      $writer.Write([uint32]0)
-
-      $alphaRows = New-Object 'byte[][]' $size
-      for ($row = $size - 1; $row -ge 0; $row--) {
-        $alphaRow = New-Object byte[] $size
-        for ($column = 0; $column -lt $size; $column++) {
-          $coverage = 0
-          $red = 0.0
-          $green = 0.0
-          $blue = 0.0
-          foreach ($sampleY in @(0.125, 0.375, 0.625, 0.875)) {
-            foreach ($sampleX in @(0.125, 0.375, 0.625, 0.875)) {
-              # Plum Glass：深色圆角底、莓紫玻璃面板、倾斜的主题纸张。
-              $x = ($column + $sampleX) / $size
-              $y = ($row + $sampleY) / $size
-
-              $outerDx = [Math]::Max([Math]::Abs($x - 0.5) - 0.32, 0.0)
-              $outerDy = [Math]::Max([Math]::Abs($y - 0.5) - 0.32, 0.0)
-              $outerDistance = [Math]::Sqrt($outerDx * $outerDx + $outerDy * $outerDy)
-              if ($outerDistance -le 0.10) {
-                $coverage++
-
-                $shade = [Math]::Max(0.0, [Math]::Min(1.0, $y))
-                $red = 11.0 + (10.0 * $shade)
-                $green = 16.0 + (7.0 * $shade)
-                $blue = 32.0 + (15.0 * $shade)
-
-                $glassDx = [Math]::Max([Math]::Abs($x - 0.5) - 0.21, 0.0)
-                $glassDy = [Math]::Max([Math]::Abs($y - 0.5) - 0.21, 0.0)
-                $glassDistance = [Math]::Sqrt($glassDx * $glassDx + $glassDy * $glassDy)
-                if ($glassDistance -le 0.09) {
-                  $glassT = [Math]::Max(0.0, [Math]::Min(1.0, (($x + $y) - 0.32) / 1.36))
-                  $red = 75.0 + ((33.0 - 75.0) * $glassT)
-                  $green = 45.0 + ((23.0 - 45.0) * $glassT)
-                  $blue = 88.0 + ((55.0 - 88.0) * $glassT)
-
-                  $glassMargin = 0.09 - $glassDistance
-                  $rimBlend = [Math]::Max(0.0, [Math]::Min(1.0, (0.035 - $glassMargin) / 0.035)) * 0.44
-                  $rimT = [Math]::Max(0.0, [Math]::Min(1.0, ($x + $y - 0.72) / 0.64))
-                  $rimRed = 235.0 + ((133.0 - 235.0) * $rimT)
-                  $rimGreen = 160.0 + ((226.0 - 160.0) * $rimT)
-                  $rimBlue = 158.0 + ((211.0 - 158.0) * $rimT)
-                  $red = ($red * (1.0 - $rimBlend)) + ($rimRed * $rimBlend)
-                  $green = ($green * (1.0 - $rimBlend)) + ($rimGreen * $rimBlend)
-                  $blue = ($blue * (1.0 - $rimBlend)) + ($rimBlue * $rimBlend)
-
-                  $globalX = $x - 0.5
-                  $globalY = $y - 0.5
-                  $localX = ($globalX * $rotationCos) + ($globalY * $rotationSin)
-                  $localY = (-$globalX * $rotationSin) + ($globalY * $rotationCos)
-                  $pageDx = [Math]::Max([Math]::Abs($localX) - 0.18, 0.0)
-                  $pageDy = [Math]::Max([Math]::Abs($localY) - 0.26, 0.0)
-                  $pageDistance = [Math]::Sqrt($pageDx * $pageDx + $pageDy * $pageDy)
-                  if ($pageDistance -le 0.04) {
-                    $pageT = [Math]::Max(0.0, [Math]::Min(1.0, (($localX + (0.75 * $localY)) + 0.45) / 0.90))
-                    $red = 244.0 + ((124.0 - 244.0) * $pageT)
-                    $green = 193.0 + ((103.0 - 193.0) * $pageT)
-                    $blue = 183.0 + ((207.0 - 183.0) * $pageT)
-
-                    $pageMargin = 0.04 - $pageDistance
-                    $paperEdgeBlend = [Math]::Max(0.0, [Math]::Min(1.0, (0.018 - $pageMargin) / 0.018)) * 0.55
-                    $red = ($red * (1.0 - $paperEdgeBlend)) + (247.0 * $paperEdgeBlend)
-                    $green = ($green * (1.0 - $paperEdgeBlend)) + (199.0 * $paperEdgeBlend)
-                    $blue = ($blue * (1.0 - $paperEdgeBlend)) + (193.0 * $paperEdgeBlend)
-
-                    $line = $false
-                    foreach ($lineY in @(-0.12, 0.0, 0.12)) {
-                      if (($localX -ge -0.14) -and ($localX -le 0.15) -and ([Math]::Abs($localY - $lineY) -le 0.018)) {
-                        $line = $true
-                      }
-                    }
-                    if ($line) {
-                      $red = 94.0
-                      $green = 62.0
-                      $blue = 109.0
-                    } elseif (($localX -gt 0.12) -and ($localY -gt 0.20) -and (($localX + $localY) -gt 0.32)) {
-                      $red = 169.0
-                      $green = 231.0
-                      $blue = 220.0
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          $alpha = [int][Math]::Round(255.0 * $coverage / 16.0)
-          $alphaRow[$column] = [byte]$alpha
-          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $blue))))
-          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $green))))
-          $writer.Write([byte][int][Math]::Round([Math]::Max(0.0, [Math]::Min(255.0, $red))))
-          $writer.Write([byte]$alpha)
-        }
-        $alphaRows[$row] = $alphaRow
-      }
-
-      for ($row = $size - 1; $row -ge 0; $row--) {
-        $maskRow = New-Object byte[] $maskStride
-        for ($column = 0; $column -lt $size; $column++) {
-          if ($alphaRows[$row][$column] -eq 0) {
-            $byteIndex = [int][Math]::Floor($column / 8.0)
-            $maskRow[$byteIndex] = $maskRow[$byteIndex] -bor (0x80 -shr ($column % 8))
-          }
-        }
-        $writer.Write($maskRow)
-      }
-      $writer.Flush()
-      $images.Add($stream.ToArray())
-    } finally {
-      $writer.Dispose()
-      $stream.Dispose()
+  $source = [System.Drawing.Image]::FromFile((Resolve-Path -LiteralPath $SourcePath).Path)
+  try {
+    if ($source.Width -le 0 -or $source.Height -le 0 -or $source.Width -ne $source.Height) {
+      throw "Selected icon source must be a non-empty square image: $SourcePath"
     }
+
+    foreach ($size in $sizes) {
+      $bitmap = [System.Drawing.Bitmap]::new(
+        $size,
+        $size,
+        [System.Drawing.Imaging.PixelFormat]::Format32bppArgb
+      )
+      try {
+        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        try {
+          $graphics.Clear([System.Drawing.Color]::Transparent)
+          $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
+          $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+          $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+          $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+          $graphics.DrawImage(
+            $source,
+            [System.Drawing.Rectangle]::new(0, 0, $size, $size),
+            0,
+            0,
+            $source.Width,
+            $source.Height,
+            [System.Drawing.GraphicsUnit]::Pixel
+          )
+        } finally {
+          $graphics.Dispose()
+        }
+
+        $stream = [System.IO.MemoryStream]::new()
+        try {
+          $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+          $images.Add($stream.ToArray())
+        } finally {
+          $stream.Dispose()
+        }
+      } finally {
+        $bitmap.Dispose()
+      }
+    }
+  } finally {
+    $source.Dispose()
   }
 
   $parent = Split-Path -Parent $Path
@@ -341,6 +282,7 @@ $version = (Read-ReleaseTextFile -Path $versionPath).Trim()
 if ($version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
   throw "VERSION must contain a three-part semantic version: $version"
 }
+$product = Read-DreamSkinProductConfig -Path $productPath
 
 $manifest = (Read-ReleaseTextFile -Path $manifestPath) | ConvertFrom-Json
 Assert-NodeRuntimeManifest -Manifest $manifest
@@ -404,6 +346,9 @@ if (-not (Test-Path -LiteralPath $clientProjectPath -PathType Leaf)) {
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repositoryRoot 'release' }
 $OutputDirectory = Resolve-ReleasePath -Path $OutputDirectory -BasePath $repositoryRoot
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+if (-not (Test-Path -LiteralPath $iconSourcePath -PathType Leaf)) {
+  throw "Selected icon source does not exist: $iconSourcePath"
+}
 
 if ($WorkingDirectory) {
   $WorkingDirectory = Resolve-ReleasePath -Path $WorkingDirectory -BasePath $repositoryRoot
@@ -507,7 +452,9 @@ try {
   } finally {
     $zip.Dispose()
   }
-  Write-DreamSkinIcon -Path (Join-Path (Join-Path $payloadRoot 'assets') 'codex-dream-skin.ico')
+  Write-DreamSkinIcon `
+    -Path (Join-Path (Join-Path $payloadRoot 'assets') 'codex-dream-skin.ico') `
+    -SourcePath $iconSourcePath
 
   $clientPublishRoot = Join-Path $WorkingDirectory 'client-publish'
   & $dotnet publish $clientProjectPath --configuration Release --runtime win-x64 `
@@ -526,6 +473,8 @@ try {
 
   $expectedPayloadFiles = @(
     'VERSION',
+    'assets\product.json',
+    'assets\product.mjs',
     'dependencies\MicrosoftEdgeWebView2Setup.exe',
     'assets\dream-reference.jpg',
     'assets\dream-skin.css',
@@ -568,6 +517,8 @@ try {
     'control-center\public\styles.css',
     'control-center\public\video-theme-cover.png',
     'runtime\image-metadata.mjs',
+    'runtime\product.json',
+    'runtime\product.mjs',
     'runtime\safe-css-validator.mjs',
     'runtime\theme-package-validator.mjs',
     'client\CodexDreamSkin.Client.exe',
@@ -614,17 +565,21 @@ try {
     throw 'Staged installer payload did not retain the bundled video fox theme contract.'
   }
 
-  $arguments = @(
+$arguments = @(
     "/DAppVersion=$version",
+    "/DAppName=$($product.displayName)",
+    "/DAppPublisher=$($product.publisher)",
+    "/DPackageStem=$($product.packageStem)",
+    "/DInstallDirectory=$($product.packageStem)",
     "/DStageRoot=$stageRoot",
     "/DOutputDir=$OutputDirectory",
     $definitionPath
   )
-  Write-Host "Building CodexDreamSkin-Setup-v$version.exe..."
+  Write-Host "Building $($product.packageStem)-Setup-v$version.exe..."
   & $compiler @arguments
   if ($LASTEXITCODE -ne 0) { throw "ISCC.exe failed with exit code $LASTEXITCODE." }
 
-  $artifactPath = Join-Path $OutputDirectory "CodexDreamSkin-Setup-v$version.exe"
+  $artifactPath = Join-Path $OutputDirectory "$($product.packageStem)-Setup-v$version.exe"
   if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
     throw "Inno Setup did not create the expected artifact: $artifactPath"
   }

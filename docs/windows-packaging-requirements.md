@@ -1,6 +1,6 @@
 # Windows 正式安装包打包要求
 
-本文是 Codex Dream Skin Windows 正式安装包的强制打包规范。以后生成可交给用户安装的
+本文是 Codex Skin Windows 正式安装包的强制打包规范。以后生成可交给用户安装的
 `Setup.exe`，必须按照本文执行并保留验证证据；浏览器测试入口、源码安装流程和 macOS
 菜单栏应用不适用本文的安装步骤。
 
@@ -184,7 +184,7 @@ SHA-256 不一致时必须重新下载正确版本，不得改 manifest 迎合�
 每次构建使用新的输出目录或确认旧目录中没有同名旧包。正式产物命名固定为：
 
 ```text
-release/CodexDreamSkin-Setup-vX.Y.Z.exe
+release/CodexSkin-Setup-vX.Y.Z.exe
 release/SHA256SUMS.txt
 ```
 

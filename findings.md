@@ -3,7 +3,7 @@
 ## 2026-08-11：仓库边界
 
 - 正确工作项目为 `D:\project\personal\codex-skin`。
-- 仓库包含 `windows/`、`macos/`、`runtime/`、`tools/`、`docs/`，是 Codex Dream Skin 的完整源码工程。
+- 仓库包含 `windows/`、`macos/`、`runtime/`、`tools/`、`docs/`，是 Codex Skin 的完整源码工程。
 - 当前 `master` 没有提交；源码、脚本、测试、文档和许可证全部处于未跟踪状态。
 - `.codegraph/` 是本地索引目录，不纳入首次源码提交。
 - `TASK_PROGRESS.md` 被 `.gitignore` 忽略，是本地连续进度记录，不作为源码发布文件。

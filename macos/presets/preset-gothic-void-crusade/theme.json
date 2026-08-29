@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "preset-gothic-void-crusade",
   "name": "Gothic Void Crusade",
-  "brandSubtitle": "CODEX DREAM SKIN",
+  "brandSubtitle": "CODEX SKIN",
   "tagline": "A solemn cathedral-world horizon for focused work.",
   "projectPrefix": "Select project · ",
   "projectLabel": "◉  Select project",
@@ -28,7 +28,7 @@
     "muted": "#b5a386",
     "line": "rgba(200, 165, 90, .28)"
   },
-  "promoTitle": "Codex Dream Skin",
+  "promoTitle": "Codex Skin",
   "promoSub": "Gothic Void Crusade",
   "promoUrl": "https://github.com/staro1314/codex-skin"
 }

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { PRODUCT_NAME } from "../assets/product.mjs";
 import { randomUUID } from "node:crypto";
 
 const [mode, configPath, backupPath, appearanceArg] = process.argv.slice(2);
@@ -248,7 +249,7 @@ async function acquireConfigLock() {
         }
       }
       if (Date.now() >= deadline) {
-        throw new Error("Another Dream Skin config operation is still running; try again shortly.");
+        throw new Error(`Another ${PRODUCT_NAME} config operation is still running; try again shortly.`);
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }

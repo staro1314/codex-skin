@@ -25,7 +25,7 @@ done
 if [ "$UNINSTALL" = "true" ] && [ ! -e "$STATE_PATH" ] &&
     [ ! -e "$OPERATION_STATE_PATH" ] && [ ! -e "$OPERATION_ACK_PATH" ]; then
   if [ ! -e "$THEME_BACKUP_PATH" ]; then
-    printf 'No active Dream Skin session or config backup was found; safe engine-only cleanup.\n'
+    printf 'No active %s session or config backup was found; safe engine-only cleanup.\n' "$PRODUCT_DISPLAY_NAME"
     exit 0
   fi
   backup_appearance="$(/usr/bin/plutil -extract values.appearanceTheme raw -o - "$THEME_BACKUP_PATH" 2>/dev/null || true)"
@@ -60,7 +60,7 @@ verified_cdp_endpoint "$PORT" && DEBUG_READY="true"
 
 if [ "$DEBUG_READY" = "true" ]; then
   BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
-    || fail "The live CDP browser identity does not match the saved Dream Skin session."
+    || fail "The live CDP browser identity does not match the saved $PRODUCT_DISPLAY_NAME session."
   "$NODE" "$INJECTOR" --remove --port "$PORT" --browser-id "$BROWSER_ID" --theme-dir "$THEME_DIR" --timeout-ms 8000 >/dev/null \
     || fail "The live skin could not be removed and verified; restore stopped safely."
 elif [ "$CODEX_RUNNING" = "true" ] && [ "$RESTART_CODEX" = "false" ]; then
@@ -87,6 +87,10 @@ clear_operation_state
 /bin/rm -f "$OPERATION_ACK_PATH"
 if [ "$UNINSTALL" = "true" ]; then
   for launcher in \
+    "$HOME/Desktop/$PRODUCT_DISPLAY_NAME.command" \
+    "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Customize.command" \
+    "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Verify.command" \
+    "$HOME/Desktop/$PRODUCT_DISPLAY_NAME - Restore.command" \
     "$HOME/Desktop/Codex Dream Skin.command" \
     "$HOME/Desktop/Codex Dream Skin - Customize.command" \
     "$HOME/Desktop/Codex Dream Skin - Verify.command" \
@@ -98,4 +102,4 @@ if [ "$UNINSTALL" = "true" ]; then
   done
 fi
 
-printf 'ChatGPT Dream Skin was removed and the requested macOS restore actions completed successfully.\n'
+printf '%s was removed and the requested macOS restore actions completed successfully.\n' "$PRODUCT_DISPLAY_NAME"

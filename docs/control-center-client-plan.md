@@ -1,4 +1,4 @@
-# Codex Dream Skin 控制中心客户端化方案
+# Codex Skin 控制中心客户端化方案
 
 日期：2026-08-18
 范围：Windows 控制中心客户端化；macOS 菜单栏应用暂不改造。项目入口分为三类并严格隔离：Windows 原生程序、macOS 原生程序、浏览器测试入口。
@@ -43,7 +43,7 @@ CodexDreamSkin.Client.exe
 - 退出时只关闭客户端服务和托盘，不改变当前 Codex 皮肤；“完全恢复 Codex”仍是独立的明确操作。
 - 使用单实例 Mutex，避免多个客户端和多个控制中心服务同时运行。
 
-客户端使用系统安装的 WebView2 Evergreen Runtime；Setup 只携带 Microsoft WebView2 Evergreen Bootstrapper，在运行时缺少依赖时按用户权限补装。这样不会把整套固定版浏览器运行时复制进 Dream Skin 安装包，也不会打开外部浏览器。
+客户端使用系统安装的 WebView2 Evergreen Runtime；Setup 只携带 Microsoft WebView2 Evergreen Bootstrapper，在运行时缺少依赖时按用户权限补装。这样不会把整套固定版浏览器运行时复制进 Codex Skin 安装包，也不会打开外部浏览器。
 
 ## 控制中心改造
 
@@ -84,7 +84,7 @@ Codex 退出。用户在客户端中点击启动皮肤后，才由客户端动�
 安装包继续使用现有 Inno Setup：
 
 ```text
-CodexDreamSkin-Setup-vX.Y.Z.exe
+CodexSkin-Setup-vX.Y.Z.exe
 ```
 
 安装后的目录增加：
@@ -102,7 +102,7 @@ engine/
 
 安装器快捷方式统一指向客户端：
 
-- “Codex Dream Skin”：打开客户端窗口。
+- “Codex Skin”：打开客户端窗口。
 - 登录启动：以后台托盘模式启动，不自动显示窗口。
 - 安装完成后：启动客户端窗口。
 

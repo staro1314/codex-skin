@@ -32,7 +32,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const shellResponse = await fetch(`${center.origin}/?token=${encodeURIComponent(center.token)}`);
     assert.equal(shellResponse.status, 200);
     const shellHtml = await shellResponse.text();
-    assert.match(shellHtml, /DREAM SKIN/);
+    assert.match(shellHtml, /CODEX SKIN/);
     const cookie = shellResponse.headers.get("set-cookie");
     assert.match(cookie ?? "", /dream_skin_control_token=/);
     const cookieBootstrapResponse = await fetch(`${center.origin}/api/bootstrap`, {
@@ -657,7 +657,7 @@ test("control center launchers keep the double-click and RemoteSigned contract",
   assert.match(ps, /Unblock-File -LiteralPath \$managedScript\.FullName/);
   assert.match(ps, /control-center\.json/i);
   assert.match(ps, /Stop-ControlCenterState/);
-  assert.match(ps, /Existing Control Center detected/);
+  assert.match(ps, /Existing .* Control Center detected/);
   assert.match(ps, /Stop-Process -Id \$processId/);
   assert.doesNotMatch(ps, /Start-Process -FilePath "\$\(\$existing\.url\)"/);
   assert.match(action, /Use-DreamSkinSavedTheme/);

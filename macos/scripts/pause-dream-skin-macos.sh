@@ -115,7 +115,7 @@ fi
 
 if [ "$DEBUG_READY" = "true" ]; then
   BROWSER_ID="$(leased_cdp_browser_id "$PORT")" \
-    || fail "The live CDP browser identity does not match the saved Dream Skin session."
+    || fail "The live CDP browser identity does not match the saved $PRODUCT_DISPLAY_NAME session."
   begin_client_operation "$PORT" pause 3000 "$OPERATION_TOKEN" >/dev/null 2>&1 || true
 fi
 
@@ -200,10 +200,11 @@ write_operation_state paused "皮肤已暂停" "$OPERATION_TOKEN" \
 trap - EXIT
 
 if [ "$REMOVED" = "true" ]; then
-  printf 'ChatGPT Dream Skin paused (skin removed; control connection %s). Port %s may still be in debug mode.\n' \
+  printf '%s paused (skin removed; control connection %s). Port %s may still be in debug mode.\n' \
+    "$PRODUCT_DISPLAY_NAME" \
     "$([ "$KEEP_CONTROL_WATCHER" = "true" ] && printf retained || printf unavailable)" "$PORT"
 elif codex_is_running; then
-  printf 'ChatGPT Dream Skin paused (injector stopped). Live remove skipped: CDP on port %s not verified.\n' "$PORT"
+  printf '%s paused (injector stopped). Live remove skipped: CDP on port %s not verified.\n' "$PRODUCT_DISPLAY_NAME" "$PORT"
 else
-  printf 'ChatGPT Dream Skin paused (ChatGPT is not running).\n'
+  printf '%s paused (ChatGPT is not running).\n' "$PRODUCT_DISPLAY_NAME"
 fi

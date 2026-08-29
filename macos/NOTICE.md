@@ -1,6 +1,6 @@
 # Notices
 
-Codex Dream Skin Studio is an **unofficial** customization project and is **not affiliated with, endorsed by, or sponsored by OpenAI**.
+Codex Skin Studio is an **unofficial** customization project and is **not affiliated with, endorsed by, or sponsored by OpenAI**.
 
 ## Software license
 

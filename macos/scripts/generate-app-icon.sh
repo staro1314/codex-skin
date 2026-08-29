@@ -2,6 +2,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
+REPOSITORY_ROOT="$(cd "$ROOT/.." && pwd -P)"
 OUTPUT="${1:-$ROOT/menubar-app/Resources/DreamSkin.icns}"
 TMP="$(/usr/bin/mktemp -d /tmp/codex-dream-skin-icon.XXXXXX)"
 # Preserve the real exit status: with a plain cleanup trap, bash 3.2 reports
@@ -10,22 +11,21 @@ TMP="$(/usr/bin/mktemp -d /tmp/codex-dream-skin-icon.XXXXXX)"
 trap 'status=$?; /bin/rm -rf "$TMP"; exit "$status"' EXIT
 
 ICONSET="$TMP/DreamSkin.iconset"
-SOURCE="$TMP/icon-1024.png"
+SOURCE="$REPOSITORY_ROOT/assets/codex-skin-icon.png"
+NORMALIZED_SOURCE="$TMP/icon-1024.png"
 /bin/mkdir -p "$ICONSET" "$(dirname "$OUTPUT")"
-# No array here: expanding an empty array under `set -u` is fatal on the
-# /bin/bash 3.2 this shebang resolves to.
-if [ -n "${DREAMSKIN_SDK:-}" ]; then
-  /usr/bin/xcrun swift -sdk "$DREAMSKIN_SDK" \
-    "$ROOT/menubar-app/Tools/generate-icon.swift" "$SOURCE"
-else
-  /usr/bin/xcrun swift \
-    "$ROOT/menubar-app/Tools/generate-icon.swift" "$SOURCE"
-fi
+[ -s "$SOURCE" ] \
+  || { printf 'Selected icon source is missing: %s\n' "$SOURCE" >&2; exit 1; }
+# The selected generated artwork is the only visual source. `sips` only
+# normalizes its size and PNG encoding for the platform icon containers.
+/usr/bin/sips -s format png -z 1024 1024 "$SOURCE" --out "$NORMALIZED_SOURCE" >/dev/null
+[ -s "$NORMALIZED_SOURCE" ] \
+  || { printf 'Selected icon source could not be normalized: %s\n' "$SOURCE" >&2; exit 1; }
 
 make_icon() {
   local pixels="$1"
   local name="$2"
-  /usr/bin/sips -z "$pixels" "$pixels" "$SOURCE" --out "$ICONSET/$name" >/dev/null
+  /usr/bin/sips -z "$pixels" "$pixels" "$NORMALIZED_SOURCE" --out "$ICONSET/$name" >/dev/null
 }
 
 make_icon 16 icon_16x16.png
@@ -37,7 +37,7 @@ make_icon 256 icon_128x128@2x.png
 make_icon 256 icon_256x256.png
 make_icon 512 icon_256x256@2x.png
 make_icon 512 icon_512x512.png
-/bin/cp "$SOURCE" "$ICONSET/icon_512x512@2x.png"
+/bin/cp "$NORMALIZED_SOURCE" "$ICONSET/icon_512x512@2x.png"
 /usr/bin/iconutil --convert icns --output "$OUTPUT" "$ICONSET"
 [ -s "$OUTPUT" ] \
   || { printf 'Icon generation produced no output: %s\n' "$OUTPUT" >&2; exit 1; }

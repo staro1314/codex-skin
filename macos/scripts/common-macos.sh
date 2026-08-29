@@ -5,13 +5,16 @@ set -euo pipefail
 if [ -z "${HOME:-}" ]; then
   CURRENT_USER="$(/usr/bin/id -un)"
   HOME="$(/usr/bin/dscl . -read "/Users/$CURRENT_USER" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')"
-  [ -n "$HOME" ] || { printf 'ChatGPT Dream Skin: could not resolve the current macOS home directory.\n' >&2; exit 1; }
+  [ -n "$HOME" ] || { printf '%s: could not resolve the current macOS home directory.\n' "${PRODUCT_DISPLAY_NAME:-Codex}" >&2; exit 1; }
   export HOME
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 INJECTOR="$SCRIPT_DIR/injector.mjs"
+PRODUCT_ENV="$PROJECT_ROOT/assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
 INSTALL_ROOT="$HOME/.codex/codex-dream-skin-studio"
 STATE_ROOT="$HOME/Library/Application Support/CodexDreamSkinStudio"
 STATE_PATH="$STATE_ROOT/state.json"
@@ -41,24 +44,24 @@ fail() {
     /bin/mkdir -p "$STATE_ROOT" 2>/dev/null || true
     printf '%s %s\n' "$(/bin/date -u '+%Y-%m-%dT%H:%M:%SZ')" "$message" >> "$START_ERROR_LOG" 2>/dev/null || true
   fi
-  printf 'ChatGPT Dream Skin: %s\n' "$message" >&2
+  printf '%s: %s\n' "$PRODUCT_DISPLAY_NAME" "$message" >&2
   exit 1
 }
 
 notify_user() {
   local message="$*"
-  /usr/bin/osascript - "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
+  /usr/bin/osascript - "$message" "$PRODUCT_DISPLAY_NAME" <<'APPLESCRIPT' >/dev/null 2>&1 || true
 on run argv
-  display notification (item 1 of argv) with title "ChatGPT Dream Skin"
+  display notification (item 1 of argv) with title (item 2 of argv)
 end run
 APPLESCRIPT
 }
 
 alert_user() {
   local message="$*"
-  /usr/bin/osascript - "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
+  /usr/bin/osascript - "$message" "$PRODUCT_DISPLAY_NAME" <<'APPLESCRIPT' >/dev/null 2>&1 || true
 on run argv
-  display alert "ChatGPT Dream Skin" message (item 1 of argv)
+  display alert (item 2 of argv) message (item 1 of argv)
 end run
 APPLESCRIPT
 }
@@ -689,7 +692,7 @@ stop_recorded_injector() {
   local saved_injector
   local saved_browser_id
   if ! pid="$(state_field injectorPid 2>/dev/null)" || [ -z "${pid:-}" ]; then
-    printf 'Dream Skin state is damaged or missing its injector PID; state was preserved.\n' >&2
+    printf '%s state is damaged or missing its injector PID; state was preserved.\n' "$PRODUCT_DISPLAY_NAME" >&2
     return 1
   fi
   # Already paused / no daemon
@@ -699,7 +702,7 @@ stop_recorded_injector() {
   fi
   case "$pid" in
     *[!0-9]*|??????????*)
-      printf 'Recorded Dream Skin injector PID is invalid; state was preserved.\n' >&2
+    printf 'Recorded %s injector PID is invalid; state was preserved.\n' "$PRODUCT_DISPLAY_NAME" >&2
       return 1
       ;;
   esac
@@ -720,16 +723,16 @@ stop_recorded_injector() {
   saved_browser_id="$(state_field browserId 2>/dev/null || true)"
   case "$saved_port" in
     ''|*[!0-9]*)
-      printf 'Recorded Dream Skin injector port is missing or invalid; state was preserved.\n' >&2
+    printf 'Recorded %s injector port is missing or invalid; state was preserved.\n' "$PRODUCT_DISPLAY_NAME" >&2
       return 1
       ;;
   esac
   [ "$saved_port" -ge 1024 ] && [ "$saved_port" -le 65535 ] || {
-    printf 'Recorded Dream Skin injector port is out of range; state was preserved.\n' >&2
+    printf 'Recorded %s injector port is out of range; state was preserved.\n' "$PRODUCT_DISPLAY_NAME" >&2
     return 1
   }
   if [ -z "$saved_start" ] || [ -z "$saved_node" ] || [ -z "$saved_injector" ]; then
-    printf 'Recorded Dream Skin injector identity is incomplete; state was preserved.\n' >&2
+    printf 'Recorded %s injector identity is incomplete; state was preserved.\n' "$PRODUCT_DISPLAY_NAME" >&2
     return 1
   fi
   /bin/kill -0 "$pid" 2>/dev/null || {
@@ -763,7 +766,7 @@ stop_recorded_injector() {
     /bin/sleep 0.1
   done
   if recorded_injector_process_matches "$pid" "$saved_start" "$saved_node" "$saved_injector" "$saved_port" "$saved_browser_id"; then
-    printf 'Could not stop the recorded Dream Skin injector (PID %s).\n' "$pid" >&2
+    printf 'Could not stop the recorded %s injector (PID %s).\n' "$PRODUCT_DISPLAY_NAME" "$pid" >&2
     return 1
   fi
   return 0

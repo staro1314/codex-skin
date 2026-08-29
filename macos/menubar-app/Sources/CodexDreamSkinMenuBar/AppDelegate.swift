@@ -110,6 +110,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
   }
 
+  private var productName: String {
+    guard let value = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
+          !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return "Codex"
+    }
+    return value
+  }
+
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.accessory)
     configureStatusItem()
@@ -182,39 +190,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     menu.autoenablesItems = false
     statusItem.menu = menu
     guard let button = statusItem.button else { return }
-    // 菜单栏模板剪影：Plum Glass 的玻璃框 + 倾斜主题面板。
+    // 菜单栏模板剪影：D 方案的双交叠丝带。
     // 菜单栏图标必须使用黑色模板图，彩色应用图标由 App/安装包使用。
     let mark = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
       let inset = rect.insetBy(dx: 1, dy: 1)
       let rounded = NSBezierPath(roundedRect: inset, xRadius: 5.2, yRadius: 5.2)
       NSColor.black.setStroke()
-      rounded.lineWidth = 1.2
+      rounded.lineWidth = 1.0
       rounded.stroke()
       NSGraphicsContext.current?.saveGraphicsState()
       rounded.addClip()
-      let sheet = NSBezierPath()
-      sheet.move(to: NSPoint(x: 5.2, y: 4.0))
-      sheet.line(to: NSPoint(x: 13.9, y: 5.6))
-      sheet.line(to: NSPoint(x: 12.4, y: 14.1))
-      sheet.line(to: NSPoint(x: 3.7, y: 12.4))
-      sheet.close()
-      NSColor.black.setFill()
-      sheet.fill()
-      let line = NSBezierPath()
-      line.move(to: NSPoint(x: 5.6, y: 7.1))
-      line.line(to: NSPoint(x: 11.5, y: 8.2))
-      line.move(to: NSPoint(x: 5.2, y: 9.6))
-      line.line(to: NSPoint(x: 10.9, y: 10.7))
-      line.lineWidth = 0.8
-      NSColor.white.setStroke()
-      line.stroke()
+      let violetRibbon = NSBezierPath()
+      violetRibbon.move(to: NSPoint(x: 13.0, y: 5.0))
+      violetRibbon.curve(
+        to: NSPoint(x: 5.0, y: 12.7),
+        controlPoint1: NSPoint(x: 11.2, y: 3.2),
+        controlPoint2: NSPoint(x: 3.8, y: 6.7)
+      )
+      violetRibbon.curve(
+        to: NSPoint(x: 12.9, y: 7.0),
+        controlPoint1: NSPoint(x: 6.2, y: 15.2),
+        controlPoint2: NSPoint(x: 14.0, y: 13.8)
+      )
+      violetRibbon.lineWidth = 2.3
+      violetRibbon.lineCapStyle = .round
+      NSColor.black.setStroke()
+      violetRibbon.stroke()
+
+      let coralRibbon = NSBezierPath()
+      coralRibbon.move(to: NSPoint(x: 5.0, y: 5.2))
+      coralRibbon.curve(
+        to: NSPoint(x: 13.0, y: 12.9),
+        controlPoint1: NSPoint(x: 7.0, y: 3.2),
+        controlPoint2: NSPoint(x: 14.2, y: 6.2)
+      )
+      coralRibbon.curve(
+        to: NSPoint(x: 5.1, y: 7.0),
+        controlPoint1: NSPoint(x: 12.2, y: 15.2),
+        controlPoint2: NSPoint(x: 4.0, y: 13.8)
+      )
+      coralRibbon.lineWidth = 2.3
+      coralRibbon.lineCapStyle = .round
+      NSColor.black.setStroke()
+      coralRibbon.stroke()
+
+      let crossing = NSBezierPath()
+      crossing.move(to: NSPoint(x: 7.0, y: 8.9))
+      crossing.line(to: NSPoint(x: 11.0, y: 9.1))
+      crossing.lineWidth = 1.4
+      crossing.lineCapStyle = .round
+      NSColor.black.setStroke()
+      crossing.stroke()
       NSGraphicsContext.current?.restoreGraphicsState()
       return true
     }
     mark.isTemplate = true
-    mark.accessibilityDescription = "Codex Dream Skin"
+    mark.accessibilityDescription = productName
     button.image = mark
-    button.toolTip = "Codex Dream Skin"
+    button.toolTip = productName
     rebuildMenu()
   }
 
@@ -525,7 +558,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       if result.succeeded,
          let parsed = StatusSnapshot(jsonData: Data(result.output.utf8)) {
         self.snapshot = parsed
-        self.statusItem.button?.toolTip = "Codex Dream Skin · \(parsed.title)"
+        self.statusItem.button?.toolTip = "\(self.productName) · \(parsed.title)"
         self.statusItem.button?.appearsDisabled = parsed.session == "unknown" || parsed.session == "stale"
         self.rebuildMenu()
       }
@@ -547,7 +580,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
   @objc private func chooseBackgroundImage() {
     let panel = NSOpenPanel()
-    panel.title = "选择 Dream Skin 背景图"
+    panel.title = "选择 \(productName) 背景图"
     panel.prompt = "选择"
     panel.canChooseDirectories = false
     panel.canChooseFiles = true
@@ -564,7 +597,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
   @objc private func chooseThemeArchive() {
     let panel = NSOpenPanel()
-    panel.title = "选择 Dream Skin 主题 ZIP"
+    panel.title = "选择 \(productName) 主题 ZIP"
     panel.prompt = "导入"
     panel.canChooseDirectories = false
     panel.canChooseFiles = true
@@ -577,7 +610,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
   private func beginCommunityThemeApply(versionID: String) {
     guard !operationInFlight, !snapshot.busy else {
-      showError(title: "暂时无法换肤", message: "Dream Skin 正在执行其他操作，请稍后再点一次。")
+      showError(title: "暂时无法换肤", message: "\(productName) 正在执行其他操作，请稍后再点一次。")
       return
     }
     if engineInstallInFlight {
@@ -948,7 +981,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
           details += "\n\n客户端无法把快照提升到 recovery 目录，但已停止清理原事务目录，并检测到快照仍位于：\n\(snapshotURL.path)\n该快照尚未通过恢复验证，请不要继续切换主题。"
         case .unavailable:
           title = "主题已导入，但应用状态未确认"
-          details += "\n\n客户端没有确认到可保留的换肤前快照，不能承诺可自动恢复。请不要继续切换主题，并查看 Dream Skin 日志。"
+          details += "\n\n客户端没有确认到可保留的换肤前快照，不能承诺可自动恢复。请不要继续切换主题，并查看 \(productName) 日志。"
         }
         self.showError(
           title: title,
@@ -1151,7 +1184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
 
   private func postUpdateAvailableNotification(version: String, releaseURL: String) {
     let content = UNMutableNotificationContent()
-    content.title = "Codex Dream Skin 有新版本"
+    content.title = "\(productName) 有新版本"
     content.body = "\(version) 已发布，点按前往下载页面。"
     content.sound = .default
     content.userInfo = ["releaseURL": releaseURL]
@@ -1200,7 +1233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       if SMAppService.mainApp.status == .requiresApproval {
         showInfo(
           title: "需要系统确认",
-          message: "请在“系统设置 → 通用 → 登录项”中允许 Codex Dream Skin。"
+          message: "请在“系统设置 → 通用 → 登录项”中允许 \(productName)。"
         )
       }
     } catch {
@@ -1218,7 +1251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
   @objc private func restoreAndUninstall() {
     let alert = NSAlert()
     alert.alertStyle = .warning
-    alert.messageText = "恢复原状并卸载 Dream Skin？"
+    alert.messageText = "恢复原状并卸载 \(productName)？"
     alert.informativeText = "将停止皮肤、恢复 ChatGPT 外观、删除本地引擎并关闭本应用。你的图片和已保存主题会保留。"
     alert.addButton(withTitle: "恢复并卸载")
     alert.addButton(withTitle: "取消")
@@ -1264,7 +1297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
       }
       self.showInfo(
         title: "恢复完成",
-        message: "本地引擎和登录启动已移除。最后请把“Codex Dream Skin.app”移到废纸篓。"
+        message: "本地引擎和登录启动已移除。最后请把“\(productName).app”移到废纸篓。"
       )
       NSApp.terminate(nil)
     }
@@ -1333,7 +1366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     }
     guard let script = bundledScript(named: "install-dream-skin-macos.sh") else {
       pendingCommunityVersionID = nil
-      showError(title: "安装资源损坏", message: "App 内没有找到 Dream Skin 引擎。请重新下载。")
+      showError(title: "安装资源损坏", message: "App 内没有找到 \(productName) 引擎。请重新下载。")
       return
     }
     engineInstallInFlight = true
@@ -1361,7 +1394,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
           title: "引擎安装未完成",
           message: self.conciseOutput(
             result.output,
-            fallback: "安装脚本返回了错误，请重试；如果问题持续，请查看 Dream Skin 日志。"
+            fallback: "安装脚本返回了错误，请重试；如果问题持续，请查看 \(productName) 日志。"
           )
         )
       }
@@ -1483,7 +1516,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUser
     if confirmFirst {
       let alert = NSAlert()
       alert.messageText = "停用旧 SwiftBar 菜单？"
-      alert.informativeText = "已检测到旧版 Dream Skin SwiftBar 插件。停用后可避免菜单栏出现两个图标；插件会改名保留，不会直接删除。"
+      alert.informativeText = "已检测到旧版 \(productName) SwiftBar 插件。停用后可避免菜单栏出现两个图标；插件会改名保留，不会直接删除。"
       alert.addButton(withTitle: "停用旧插件")
       alert.addButton(withTitle: "稍后")
       activateForUserInteraction()

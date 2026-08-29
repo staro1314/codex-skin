@@ -263,7 +263,7 @@ foreach ($requiredSafety in @(
   'Get-DreamSkinThemeRuntimeContentFingerprint',
   'Invoke-DreamSkinCommunityStartAndVerify',
   'WaitForExit($OperationLockTimeoutMilliseconds)',
-  'Dream Skin start verification did not finish within',
+  '$($script:DreamSkinProductName) start verification did not finish within',
   'Move-DreamSkinCommunityRollbackSnapshot',
   "['DreamSkinRecovery']",
   "Join-Path `$PSScriptRoot 'start-dream-skin.ps1'",

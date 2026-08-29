@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
+import { PRODUCT_NAME } from "../assets/product.mjs";
 import { decodeAndValidateSafeCss } from "../assets/safe-css-validator.mjs";
 import { detectedVideoMedia, normalizeThemeVideo } from "../assets/theme-package-validator.mjs";
 import { runtimeThemeContentFingerprint } from "./theme-content-fingerprint.mjs";
@@ -227,7 +228,7 @@ function safeBaseId(value, fingerprint) {
 
 function displayName(theme) {
   const value = typeof theme.name === "string" ? theme.name.trim() : "";
-  return Array.from(value || "Codex Dream Skin").slice(0, 120).join("");
+  return Array.from(value || PRODUCT_NAME).slice(0, 120).join("");
 }
 
 async function readStoredTheme(directory) {

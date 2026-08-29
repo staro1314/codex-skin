@@ -5,6 +5,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'common-windows.ps1')
 $engineRoot = Split-Path -Parent $PSScriptRoot
 $versionPath = Join-Path $engineRoot 'VERSION'
 $repository = 'staro1314/codex-skin'
@@ -31,8 +32,8 @@ function Show-DreamSkinUpdateResult {
   Add-Type -AssemblyName System.Windows.Forms
   if ($Result.updateAvailable) {
     $choice = [System.Windows.Forms.MessageBox]::Show(
-      "Codex Dream Skin $($Result.latestVersion) is available.`r`n`r`nOpen the GitHub download page?",
-      'Codex Dream Skin Update',
+      "$($script:DreamSkinProductName) $($Result.latestVersion) is available.`r`n`r`nOpen the GitHub download page?",
+      "$($script:DreamSkinProductName) Update",
       [System.Windows.Forms.MessageBoxButtons]::YesNo,
       [System.Windows.Forms.MessageBoxIcon]::Information
     )
@@ -42,8 +43,8 @@ function Show-DreamSkinUpdateResult {
     return
   }
   [void][System.Windows.Forms.MessageBox]::Show(
-    "Codex Dream Skin $($Result.currentVersion) is up to date.",
-    'Codex Dream Skin Update',
+    "$($script:DreamSkinProductName) $($Result.currentVersion) is up to date.",
+    "$($script:DreamSkinProductName) Update",
     [System.Windows.Forms.MessageBoxButtons]::OK,
     [System.Windows.Forms.MessageBoxIcon]::Information
   )
@@ -85,7 +86,7 @@ try {
     Add-Type -AssemblyName System.Windows.Forms
     [void][System.Windows.Forms.MessageBox]::Show(
       "Could not check for updates.`r`n`r`n$($_.Exception.Message)",
-      'Codex Dream Skin Update',
+      "$($script:DreamSkinProductName) Update",
       [System.Windows.Forms.MessageBoxButtons]::OK,
       [System.Windows.Forms.MessageBoxIcon]::Warning
     )

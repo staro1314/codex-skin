@@ -6,6 +6,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Script } from "node:vm";
+import { PRODUCT_NAME } from "../assets/product.mjs";
 import { readImageMetadata } from "./image-metadata.mjs";
 import {
   detectedVideoMedia,
@@ -859,12 +860,12 @@ export async function loadTheme(themeDir) {
   const theme = {
     schemaVersion: 1,
     id: normalizeThemeText(raw.id, "custom", 80, "id", configPath),
-    name: normalizeThemeText(raw.name, "Codex Dream Skin", 80, "name", configPath),
-    brandSubtitle: normalizeThemeText(raw.brandSubtitle, "CODEX DREAM SKIN", 120, "brandSubtitle", configPath),
+    name: normalizeThemeText(raw.name, PRODUCT_NAME, 80, "name", configPath),
+    brandSubtitle: normalizeThemeText(raw.brandSubtitle, "CODEX SKIN", 120, "brandSubtitle", configPath),
     tagline: normalizeThemeText(raw.tagline, "Make something wonderful.", 120, "tagline", configPath),
     projectPrefix: normalizeThemeText(raw.projectPrefix, "选择项目 · ", 120, "projectPrefix", configPath),
     projectLabel: normalizeThemeText(raw.projectLabel, "◉  选择项目", 120, "projectLabel", configPath),
-    statusText: normalizeThemeText(raw.statusText, "DREAM SKIN ONLINE", 120, "statusText", configPath),
+    statusText: normalizeThemeText(raw.statusText, "CODEX SKIN ONLINE", 120, "statusText", configPath),
     quote: normalizeThemeText(raw.quote, "MAKE SOMETHING WONDERFUL", 120, "quote", configPath),
     image: raw.image,
     colorMode: rawColors ? "explicit" : "auto",

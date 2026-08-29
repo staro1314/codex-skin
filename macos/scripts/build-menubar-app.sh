@@ -5,7 +5,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 PACKAGE_ROOT="$ROOT/menubar-app"
 REPOSITORY_ROOT="$(cd "$ROOT/.." && pwd -P)"
 VERSION="$(/usr/bin/tr -d '[:space:]' < "$REPOSITORY_ROOT/VERSION")"
-OUTPUT_APP="$ROOT/release/Codex Dream Skin.app"
+PRODUCT_ENV="$ROOT/assets/product.env"
+[ -f "$PRODUCT_ENV" ] || { printf 'Generated product configuration is missing: %s\n' "$PRODUCT_ENV" >&2; exit 1; }
+. "$PRODUCT_ENV"
+OUTPUT_APP="$ROOT/release/$PRODUCT_DISPLAY_NAME.app"
 SKIP_TESTS="false"
 
 while [ "$#" -gt 0 ]; do
@@ -68,7 +71,7 @@ for arch in "${ARCHS[@]}"; do
   BINARIES+=("$TMP/CodexDreamSkinMenuBar-$arch")
 done
 
-APP="$TMP/Codex Dream Skin.app"
+APP="$TMP/$PRODUCT_DISPLAY_NAME.app"
 CONTENTS="$APP/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
@@ -82,7 +85,7 @@ else
 fi
 /bin/chmod 755 "$MACOS_DIR/CodexDreamSkinMenuBar"
 
-/usr/bin/sed "s/__VERSION__/$VERSION/g" \
+/usr/bin/sed "s/__VERSION__/$VERSION/g; s/__PRODUCT_DISPLAY_NAME__/$PRODUCT_DISPLAY_NAME/g" \
   "$PACKAGE_ROOT/Resources/Info.plist.template" > "$CONTENTS/Info.plist"
 /usr/bin/plutil -lint "$CONTENTS/Info.plist" >/dev/null
 
@@ -126,7 +129,7 @@ done
 /usr/bin/rsync -a "$ROOT/assets/" "$ENGINE/assets/"
 PUBLIC_PRESET="preset-gothic-void-crusade"
 PUBLIC_PRESET_SHA256="b76a7cbe2ff9d923846e931984d243a7ba1f25de8d190b5c6412c809c41aee42"
-PUBLIC_PRESET_THEME_SHA256="8316c6ad29e3b84806358ab4a730c7e063b261e379179b9608cf751c282d66a7"
+PUBLIC_PRESET_THEME_SHA256="b48964453e2d60673815461520a403a8209a5e2a50466a841046094297b41f2a"
 [ -d "$ROOT/presets/$PUBLIC_PRESET" ] \
   || { printf 'Public release preset missing: %s\n' "$PUBLIC_PRESET" >&2; exit 1; }
 actual_public_preset_sha256="$(LC_ALL=C /usr/bin/shasum -a 256 \
@@ -142,7 +145,7 @@ actual_public_preset_theme_sha256="$(LC_ALL=C /usr/bin/shasum -a 256 \
 VIDEO_FOX_PRESET="preset-video-fox-spirit"
 VIDEO_FOX_PRESET_IMAGE_SHA256="fc60a66e55b9f8242e6b7aee75216d005878830b960f079c798835fbac7294fa"
 VIDEO_FOX_PRESET_VIDEO_SHA256="339a85205ddb9c66aad4b4613b8a37c30b50e4af90ead6dd7138790e789424cb"
-VIDEO_FOX_PRESET_THEME_SHA256="6a47efa61b74e8ee4a5445ed551d510d432a276d2bd8392766151093f9287411"
+VIDEO_FOX_PRESET_THEME_SHA256="602736bc5b0e7f14688bf30b1025be32d4753a2f96ba0e565c5c8fe65530db49"
 VIDEO_FOX_PRESET_CSS_SHA256="46875378bc07abba28283fdf19cf168b93220e88660808d0ca9cb9a960bac1c9"
 [ -d "$ROOT/presets/$VIDEO_FOX_PRESET" ] \
   || { printf 'Bundled video fox preset missing: %s\n' "$VIDEO_FOX_PRESET" >&2; exit 1; }
