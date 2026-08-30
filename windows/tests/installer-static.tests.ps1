@@ -130,7 +130,7 @@ foreach ($requiredDefinition in @(
   'ewNoWait',
   'CompletionFile',
   'procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);',
-  "RaiseException('{#AppName} initialization could not be started.');",
+  "RaiseException('{#AppName} initialization could not be started (PowerShell error '",
   'procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);',
   'if CurUninstallStep <> usUninstall then',
   "RunBootstrap(ExpandConstant('{app}\setup-bootstrap.ps1'), '-Uninstall', True, ExitCode)",

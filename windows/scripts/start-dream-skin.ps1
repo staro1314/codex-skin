@@ -139,7 +139,17 @@ try {
         if ($PortExplicit) { throw "Port $Port is already occupied by an unverified listener. Choose another port." }
         $Port = Select-DreamSkinPort -PreferredPort $Port
       }
-      $arguments = @('--remote-debugging-address=127.0.0.1', "--remote-debugging-port=$Port")
+      # Chromium 151 disables Windows delegated compositing by default. A
+      # fullscreen video theme then damages and presents the alpha root swap
+      # chain every frame, coupling video refresh to Codex UI responsiveness.
+      # Full delegation gives the Codex surface and video separate DComp planes;
+      # keep the video source, resolution and frame rate unchanged.
+      $arguments = @(
+        '--remote-debugging-address=127.0.0.1',
+        "--remote-debugging-port=$Port",
+        '--enable-features=DelegatedCompositing',
+        '--disable-features=DelegatedCompositingLimitToUi'
+      )
       if ($ProfilePath) {
         New-Item -ItemType Directory -Force -Path $ProfilePath | Out-Null
         $arguments += "--user-data-dir=$ProfilePath"

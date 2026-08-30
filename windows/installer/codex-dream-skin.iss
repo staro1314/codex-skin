@@ -21,7 +21,7 @@
 #endif
 
 #define AppUrl "https://dreamskin.cc"
-#define PowerShellPath "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"
+#define PowerShellPath "{sys}\WindowsPowerShell\v1.0\powershell.exe"
 #define PersistentPowerShellPath "{win}\System32\WindowsPowerShell\v1.0\powershell.exe"
 
 [Setup]
@@ -195,6 +195,16 @@ begin
     Result := Result + ' -Silent';
 end;
 
+function GetBootstrapPowerShellPath(): String;
+begin
+  { Prefer the native PowerShell path for the 32-bit Inno Setup build. On
+    systems/installers where the Sysnative alias is unavailable, use the
+    redirected system directory that contains the 32-bit Windows PowerShell. }
+  Result := ExpandConstant('{sysnative}\WindowsPowerShell\v1.0\powershell.exe');
+  if not FileExists(Result) then
+    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+end;
+
 function RunBootstrap(
   const ScriptPath: String;
   const ActionArguments: String;
@@ -207,11 +217,13 @@ var
   CompletionData: AnsiString;
   ProgressPage: TOutputProgressWizardPage;
   ProgressPosition: Integer;
+  PowerShellPath: String;
 begin
+  PowerShellPath := GetBootstrapPowerShellPath();
   if IsUninstaller or Silent then
   begin
     Result := Exec(
-      ExpandConstant('{#PowerShellPath}'),
+      PowerShellPath,
       PowerShellArguments(ScriptPath, ActionArguments, '', Silent),
       ExtractFileDir(ScriptPath),
       SW_HIDE,
@@ -224,7 +236,7 @@ begin
   CompletionFile := ExpandConstant('{tmp}\codex-dream-skin-bootstrap.complete');
   DeleteFile(CompletionFile);
   if not Exec(
-    ExpandConstant('{#PowerShellPath}'),
+    PowerShellPath,
     PowerShellArguments(ScriptPath, ActionArguments, CompletionFile, False),
     ExtractFileDir(ScriptPath),
     SW_HIDE,
@@ -328,7 +340,8 @@ begin
   ExtractTemporaryFiles('{tmp}\payload\*');
   TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
   if not RunBootstrap(TemporaryBootstrap, '-Install', WizardSilent, ExitCode) then
-    RaiseException('{#AppName} initialization could not be started.');
+    RaiseException('{#AppName} initialization could not be started (PowerShell error ' +
+      IntToStr(ExitCode) + ': ' + SysErrorMessage(ExitCode) + ').');
   if ExitCode <> 0 then
     RaiseException(InstallInitializationFailureMessage(ExitCode));
 end;

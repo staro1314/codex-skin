@@ -1353,6 +1353,10 @@ try {
     -not $startSource.Contains('Start-DreamSkinCodexForDebugging -Codex $codex')) {
     throw 'Start bypasses the guarded package-activation and Store-executable launch strategy.'
   }
+  if (-not $startSource.Contains("'--enable-features=DelegatedCompositing'") -or
+    -not $startSource.Contains("'--disable-features=DelegatedCompositingLimitToUi'")) {
+    throw 'Windows startup no longer separates fullscreen video and Codex UI into full DComp delegation planes.'
+  }
   $stateReadIndex = $startSource.IndexOf('$previousState = Read-DreamSkinState', [System.StringComparison]::Ordinal)
   $restartPromptIndex = $startSource.IndexOf('$restartAuthorized = Confirm-DreamSkinRestart', [System.StringComparison]::Ordinal)
   $recordedStopIndex = $startSource.IndexOf('$recordedInjectorStopped = Stop-DreamSkinRecordedInjector', [System.StringComparison]::Ordinal)

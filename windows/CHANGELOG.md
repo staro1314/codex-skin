@@ -4,6 +4,7 @@
 
 ### 修复
 
+- 修复近期 Codex/WebView2 更新后视频皮肤会拖慢整个客户端的问题。Windows 启动器现在开启完整 delegated compositing，使全屏视频与 Codex UI 使用独立的 DirectComposition plane，避免视频每帧把带 alpha 的根交换链整窗标记为损伤；保留原视频分辨率、帧率、编码和皮肤视觉，不以降规格掩盖合成回归。
 - Windows 路径穿越校验此前会把合法的、以 `.` 开头的主题文件名也当作可疑路径拒绝；现在能正确区分它们与真正的 `..` 路径穿越（#296）。
 - Windows 运行时加载主题前强制校验 `schemaVersion` 必须是数字 `1`，拒绝缺失或未来版本的 schema（#299）。
 - 主题包 manifest 时间戳校验拒绝不合法的 RFC 3339 值（#297），双平台共享。
