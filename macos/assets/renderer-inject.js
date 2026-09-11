@@ -956,9 +956,11 @@
   const browserContentNodes = () => selectorNodes("browser-sidebar-webview")
     .filter((node) => {
       const style = globalThis.getComputedStyle?.(node);
-      const rect = node.getBoundingClientRect?.();
+      const width = node.offsetWidth ?? node.clientWidth;
+      const height = node.offsetHeight ?? node.clientHeight;
       return style?.visibility !== "hidden" && style?.display !== "none" &&
-        style?.pointerEvents !== "none" && rect?.width > 0 && rect?.height > 0;
+        style?.pointerEvents !== "none" &&
+        (width === undefined || width > 0) && (height === undefined || height > 0);
     });
   const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
     ? selectorNodes("bottom-panel") : [];

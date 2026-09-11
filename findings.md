@@ -34,6 +34,13 @@
 - 动态媒体在真实 Codex 窗口上的 GPU、内存、耗电和最小化行为。
 - 发布包中动态媒体资源的大小、版权和升级保留策略。
 
+## 2026-09-11：窗口透明度视觉验收重启
+
+- [corrected] 之前把变量注入、marker 命中和代码测试当成了生效证据；本轮降级该结论，不再以此宣称完成。
+- [evidence] 当前 CDP `app://` renderer 与控制中心页面是不同 target；取第一个 target 会误连控制中心页面。
+- [evidence] 真实 Codex 已观测到 composer 变量 `.04` 但实际背景仍为 `.86`，存在 CSS specificity 覆盖；浏览器 selector 同时包含隐藏历史宿主和一个可见宿主。
+- [planned] 重新按窗口外壳、内容宿主、原生 guest、工具栏、内部卡片拆分透明度合同，按优先级记录并以真实截图前后对照验收。
+
 ## 2026-08-30：控制中心窗口级透明度调节计划
 
 - [verified] 当前控制中心只有全局 `controls.surfaceOpacity`，控制中心预览和 `runtime/renderer-inject.js` 都按单一 `--ds-theme-surface-opacity` 消费；直接复用会再次串改多个界面。

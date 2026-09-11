@@ -62,6 +62,13 @@
 - The focused export/control/runtime suite passes 16/16, including video byte preservation, internal-field exclusion, duplicate-version rejection, temporary cleanup, traversal/tamper rejection, and native Windows `ZipArchive` compatibility.
 - Final portable regression contains 109 tests: 101 passed, 2 platform-skipped, and the same 6 Windows-host macOS/Unix environment failures remain (`release.yml`, Unix `/tmp`, and native macOS window prerequisites). All new control-center and export tests passed.
 
+## 2026-09-11：窗口透明度视觉验收重启
+
+- 用户明确要求重新按真实窗口及窗口部位划分透明度，处理多层背景和 CSS 优先级，并以真实 Codex 视觉前后对照作为完成条件。
+- 已建立 Phase 7 计划；之前仅代码级通过的结论降级为历史证据，不作为完成证明。
+- 已确认现场事实：Codex `app://` renderer 与控制中心 target 必须分开选择；composer 存在 specificity 覆盖，browser selector 存在隐藏历史宿主重叠。
+- 下一步必须先获取每个真实窗口打开状态的截图及 computed style，再调整配置合同；未重新打包、未完成实机视觉验收。
+
 ## Errors Encountered
 
 ## 2026-08-13 final continuation checkpoint

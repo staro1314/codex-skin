@@ -141,6 +141,24 @@
 - **回滚**：删除/忽略 `windowOpacity` 时运行时回退到当前固定 CSS；若实现引入回归，回滚共享 runtime 源并重新执行同步，不直接修改生成副本。
 - **停止条件**：任何一个目标 marker 的 matchCount 不为预期、普通输入框 computed style 变化、双端 payload 不一致、审批/底部渐变重新出现，均停止继续扩大修改范围，先补证据。
 
-## 7. 本次不执行内容
+## 7. Phase 7 真实窗口部位设计（2026-09-11）
 
-本轮只保存本计划，不执行上述阶段，不改 CSS/JS/schema，不生成安装包，不修改用户主题，不提交 Git，也不推送远程。开始实现前应先确认阶段 A 的 live 基线和上面列出的配置合同冻结项。
+本节替代前面的扁平 12 项合同设计。以下划分来自当前真实 Codex `app://` renderer 的 DOM 与 computed style 基线；`browser.guestPage` 明确为宿主外部不可控项，不得伪装成可用滑块。
+
+```text
+main.shell / main.surface / main.cards
+sidebar.shell / sidebar.toolbar / sidebar.accountMenu
+composer.shell / composer.editor / composer.toolbar / composer.approvalCard
+utility.shell / utility.toolbar / utility.content / utility.cards
+browser.shell / browser.toolbar / browser.webviewHost / browser.guestPage(unsupported)
+summary.backdrop / summary.shell / summary.content
+environment.backdrop / environment.shell / environment.header / environment.content
+terminal.shell / terminal.toolbar / terminal.content / terminal.cards
+settings.shell / settings.content / settings.cards / settings.popovers
+```
+
+优先级约定：P1 为窗口外壳，P2 为主体/工具栏，P3 为编辑区/内部卡片，P4 为浮层/backdrop。同一节点存在多条背景规则时必须记录 specificity、来源和最终胜出规则；backdrop 默认透明，避免多层黑底叠加。
+
+当前现场证据：`main._MainContentSurface_*` 为 `.10`；`._ComposerLayoutRoot_*` 为 `.10` 而 `._ComposerLayoutInput_*` 为 `.86`；环境浮窗外壳和直接 `header` 都为 `.56`；浏览器宿主由多个历史/当前 fixed WebView 节点组成，原生 `webview` 自身为页面层，不能由主 renderer CSS 直接改写。
+
+视觉验收要求：每个可控部位都必须在真实 Codex 保持打开时依次设为 `0.00`、`1.00`、`0.37`，保存截图前后对照，同时记录主题 JSON、marker、computed `backgroundColor`、最终 CSS 规则和相邻部位不变证据。控制中心预览、变量注入和单元测试只能作为辅助证据；未完成截图对照不得标记完成。

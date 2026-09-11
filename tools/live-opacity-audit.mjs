@@ -38,6 +38,11 @@ const expression = `(() => {
     browserHosts: [...document.querySelectorAll("[data-browser-sidebar-webview]")].map((element) => ({ ...read(element), outerHTML: element.outerHTML.slice(0, 500), parentChain: (() => { const chain = []; for (let current = element.parentElement, depth = 0; current && depth < 5; current = current.parentElement, depth += 1) chain.push({ tag: current.tagName, className: String(current.className).slice(0, 120), rect: (() => { const r = current.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })() }); return chain; })() })),
     utilityRoots: [...document.querySelectorAll("[data-app-shell-tabs=\\"true\\"]")].map(read),
     nativeWebviews: [...document.querySelectorAll("webview")].map(read),
+    visibleSurfaces: [...document.querySelectorAll("div,aside,section,main,header,form")].map((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return { tag: element.tagName, className: String(element.className).slice(0, 180), role: element.getAttribute("role"), testid: element.getAttribute("data-testid"), rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, backgroundColor: style.backgroundColor, backgroundImage: style.backgroundImage, boxShadow: style.boxShadow, backdropFilter: style.backdropFilter, text: (element.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 80) };
+    }).filter((item) => item.rect.width > 80 && item.rect.height > 24 && item.backgroundColor !== "rgba(0, 0, 0, 0)" && item.backgroundColor !== "transparent"),
   };
 })()`;
 const result = await send("Runtime.evaluate", { expression, returnByValue: true });
