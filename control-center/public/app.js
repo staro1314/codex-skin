@@ -409,21 +409,22 @@ function syncWindowOpacityPreviewLinks() {
   }
   for (const sample of document.querySelectorAll(".window-opacity-sample[data-window-control]")) {
     const key = sample.dataset.windowControl;
-    const value = values[key];
+    const value = values[key] ?? (key === "composer" ? values.composerShell : undefined);
     const output = sample.querySelector("[data-window-preview-value]");
     if (output) output.textContent = typeof value === "number" ? value.toFixed(2) : "—";
     const selected = state.windowOpacityFocused === key;
     sample.classList.toggle("selected", selected);
     sample.setAttribute("aria-pressed", selected ? "true" : "false");
     const rangeField = document.querySelector(
-      `.window-opacity-grid [data-window-control="${key}"]`,
+      `.window-groups [data-window-control="${key}"]`,
     );
     rangeField?.classList.toggle("is-linked", selected);
   }
 }
 
 function focusWindowOpacityControl(key) {
-  const input = document.querySelector(`[data-path="controls.windowOpacity.${key}"]`);
+  const input = document.querySelector(`[data-path="controls.windowOpacity.${key}"]`)
+    ?? (key === "composer" ? document.querySelector('[data-path="controls.windowOpacity.composerShell"]') : null);
   if (!input) return;
   state.windowOpacityFocused = key;
   setEditorTab("windows");
