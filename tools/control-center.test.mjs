@@ -62,11 +62,11 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The window editor must expose the bottom composer separately from the terminal panel.");
     assert.match(windowsSectionHtml, /底部终端面板[\s\S]*data-path="controls\.windowOpacity\.bottomPanel"/,
       "The existing bottom-panel control must be labelled as the terminal panel.");
-    assert.match(windowsSectionHtml, /右侧摘要底层面板[\s\S]*data-path="controls\.windowOpacity\.summaryPanel"/,
+    assert.match(windowsSectionHtml, /摘要浮层[\s\S]*data-path="controls\.windowOpacity\.summaryPanel"/,
       "The summary control must describe the actual right-side PIP backing surface.");
-    assert.match(windowsSectionHtml, /右侧工具面板顶部栏[\s\S]*data-path="controls\.windowOpacity\.utilityToolbar"/,
+    assert.match(windowsSectionHtml, /右侧工具面板[\s\S]*data-path="controls\.windowOpacity\.utilityToolbar"/,
       "The utility-toolbar control must identify its parent panel and top-bar position.");
-    assert.match(windowsSectionHtml, /右侧浏览器网页内容[\s\S]*data-path="controls\.windowOpacity\.browserContent"/,
+    assert.match(windowsSectionHtml, /浏览器面板[\s\S]*data-path="controls\.windowOpacity\.browserContent"/,
       "The browser-content control must be separate from the utility-panel shell.");
     assert.match(windowsSectionHtml, /设置页右侧内容面板[\s\S]*data-path="controls\.windowOpacity\.settingsPage"/,
       "The settings control must identify the Windows content panel rather than the whole shell.");
