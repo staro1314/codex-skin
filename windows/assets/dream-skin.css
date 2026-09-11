@@ -161,6 +161,16 @@ html[data-dream-skin="active"] [data-ds-part="environment-info-popover"] [class~
 }
 
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
+  > header[class~="bg-surface-elevated-secondary"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-header)) !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="main"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
+  background-image: none !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
   header[class~="bg-surface-elevated-secondary"]::before {
   background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-info-popover)) !important;
 }
@@ -1784,8 +1794,12 @@ html[data-dream-skin="active"][data-dream-controls="custom"] [data-ds-part="dial
    bottom panel. Keep its alpha independently adjustable while retaining the
    existing border, radius, highlight, and approval-state isolation. */
 html[data-dream-skin="active"]
-  :is(.composer-surface-chrome, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"], [class*="_ComposerLayoutInput_"]) {
-  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+  :is(.composer-surface-chrome, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
+}
+
+html[data-dream-skin="active"] [class*="_ComposerLayoutInput_"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
 }
 
 /* The generic Electron surface rule above carries higher class specificity
@@ -1794,13 +1808,18 @@ html[data-dream-skin="active"]
    inner editor controls. */
 html[data-dream-skin="active"]
   [class~="app-theme"][class~="electron-dark"]
-  :is(.composer-surface-chrome, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"], [class*="_ComposerLayoutInput_"]) {
-  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+  :is(.composer-surface-chrome, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
+}
+
+html[data-dream-skin="active"]
+  [class~="app-theme"][class~="electron-dark"] [class*="_ComposerLayoutInput_"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
 }
 
 html[data-dream-skin="active"]
   [class~="app-theme"][class~="electron-dark"][data-ds-part="composer"] {
-  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
 }
 
 /* Codex 26.810 renders approval requests as a native Card rather than a

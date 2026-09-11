@@ -111,6 +111,7 @@ const THEME_CONTROL_KEYS = [
   "windowOpacity",
 ];
 const WINDOW_OPACITY_KEYS = [
+  "mainSurface",
   "sidebar",
   "profileMenu",
   "summaryPanel",
@@ -119,6 +120,9 @@ const WINDOW_OPACITY_KEYS = [
   "utilityToolbar",
   "browserContent",
   "composer",
+  "composerShell",
+  "composerEditor",
+  "environmentHeader",
   "bottomPanel",
   "bottomToolbar",
   "approvalSurface",

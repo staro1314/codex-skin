@@ -74,11 +74,12 @@
     "--ds-theme-image-dim", "--ds-theme-image-task-intensity",
     "--ds-theme-density-scale", "--ds-theme-motion-level",
     "--ds-art-size", "--ds-theme-image-veil",
-    "--ds-window-opacity-sidebar", "--ds-window-opacity-profile-menu",
+    "--ds-window-opacity-main-surface", "--ds-window-opacity-sidebar", "--ds-window-opacity-profile-menu",
     "--ds-window-opacity-summary-panel", "--ds-window-opacity-environment-info-popover",
     "--ds-window-opacity-utility-side-panel", "--ds-window-opacity-utility-toolbar",
     "--ds-window-opacity-browser-content",
-    "--ds-window-opacity-composer",
+    "--ds-window-opacity-composer", "--ds-window-opacity-composer-shell",
+    "--ds-window-opacity-composer-editor", "--ds-window-opacity-environment-header",
     "--ds-window-opacity-bottom-panel", "--ds-window-opacity-bottom-toolbar",
     "--ds-window-opacity-approval-surface", "--ds-window-opacity-settings-page",
     "--dream-state-color", "--dream-state-overlay-opacity",
@@ -295,6 +296,7 @@
       ? value : fallback;
 
   const WINDOW_OPACITY_DEFAULTS = Object.freeze({
+    mainSurface: 0.10,
     sidebar: 0.10,
     profileMenu: 0.62,
     summaryPanel: 0.72,
@@ -303,6 +305,9 @@
     utilityToolbar: 0.62,
     browserContent: 0.52,
     composer: 0.10,
+    composerShell: 0.10,
+    composerEditor: 0.10,
+    environmentHeader: 0.56,
     bottomPanel: 0,
     bottomToolbar: 0,
     approvalSurface: 0.56,
@@ -310,10 +315,16 @@
   });
   const rawWindowOpacity = RAW_CONTROLS.windowOpacity && typeof RAW_CONTROLS.windowOpacity === "object"
     && !Array.isArray(RAW_CONTROLS.windowOpacity) ? RAW_CONTROLS.windowOpacity : {};
+  const compatibleWindowOpacity = {
+    ...rawWindowOpacity,
+    composerShell: rawWindowOpacity.composerShell ?? rawWindowOpacity.composer,
+    composerEditor: rawWindowOpacity.composerEditor ?? rawWindowOpacity.composer,
+    environmentHeader: rawWindowOpacity.environmentHeader ?? rawWindowOpacity.environmentInfoPopover,
+  };
   const WINDOW_OPACITY = Object.freeze(Object.fromEntries(
     Object.entries(WINDOW_OPACITY_DEFAULTS).map(([key, fallback]) => [
       key,
-      boundedEffectNumber(rawWindowOpacity[key], fallback, 0, 1),
+      boundedEffectNumber(compatibleWindowOpacity[key], fallback, 0, 1),
     ]),
   ));
   const GLOBAL_CONTROL_KEYS = [

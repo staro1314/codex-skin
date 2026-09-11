@@ -396,6 +396,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .range-field input::-moz-range-thumb { width: 9px; height: 9px; border: 2px solid var(--accent-ink); border-radius: 50%; background: var(--accent); }
 .subsection-label { padding-top: 4px; color: var(--text-dim); font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
 .window-opacity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 10px; }
+.window-groups { display: grid; gap: 10px; }
+.window-group { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.025); }
+.window-group header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.window-group header b { color: var(--text); font-size: 12px; letter-spacing: .02em; }
+.window-group header span { color: var(--accent); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.window-group .range-field { min-width: 0; }
+.unsupported-part { margin: 0; color: var(--text-dim); font-size: 10px; line-height: 1.5; }
 .window-opacity-grid .range-field { min-width: 0; }
 .window-opacity-preview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 7px; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(135deg, rgba(15, 42, 35, .92), rgba(6, 13, 16, .94)); }
 .window-opacity-sample { display: grid; gap: 3px; min-height: 52px; align-content: center; padding: 6px 5px; border: 1px solid rgba(198, 255, 97, .22); border-radius: 5px; background: linear-gradient(135deg, rgb(77 213 153 / var(--window-preview-opacity)), rgb(8 20 27 / var(--window-preview-opacity))); color: inherit; cursor: pointer; font: inherit; text-align: left; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }

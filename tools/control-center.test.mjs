@@ -58,9 +58,9 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The surface editor must not contain window-opacity controls.");
     assert.match(windowsSectionHtml, /data-path="controls\.windowOpacity\.sidebar"/,
       "The window editor must expose a dedicated sidebar window-opacity control.");
-    assert.match(windowsSectionHtml, /底部会话输入区域[\s\S]*data-path="controls\.windowOpacity\.composer"/,
+    assert.match(windowsSectionHtml, /会话输入框[\s\S]*data-path="controls\.windowOpacity\.composerShell"/,
       "The window editor must expose the bottom composer separately from the terminal panel.");
-    assert.match(windowsSectionHtml, /底部终端面板外壳[\s\S]*data-path="controls\.windowOpacity\.bottomPanel"/,
+    assert.match(windowsSectionHtml, /底部终端面板[\s\S]*data-path="controls\.windowOpacity\.bottomPanel"/,
       "The existing bottom-panel control must be labelled as the terminal panel.");
     assert.match(windowsSectionHtml, /右侧摘要底层面板[\s\S]*data-path="controls\.windowOpacity\.summaryPanel"/,
       "The summary control must describe the actual right-side PIP backing surface.");

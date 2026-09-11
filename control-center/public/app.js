@@ -22,6 +22,7 @@ const FALLBACK_CONTROLS = {
   motionLevel: "standard",
 };
 const FALLBACK_WINDOW_OPACITY = {
+  mainSurface: 0.10,
   sidebar: 0.10,
   profileMenu: 0.62,
   summaryPanel: 0.72,
@@ -30,6 +31,9 @@ const FALLBACK_WINDOW_OPACITY = {
   utilityToolbar: 0.62,
   browserContent: 0.52,
   composer: 0.10,
+  composerShell: 0.10,
+  composerEditor: 0.10,
+  environmentHeader: 0.56,
   bottomPanel: 0,
   bottomToolbar: 0,
   approvalSurface: 0.56,
