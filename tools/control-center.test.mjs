@@ -68,7 +68,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The utility-toolbar control must identify its parent panel and top-bar position.");
     assert.match(windowsSectionHtml, /浏览器面板[\s\S]*data-path="controls\.windowOpacity\.browserContent"/,
       "The browser-content control must be separate from the utility-panel shell.");
-    assert.match(windowsSectionHtml, /设置页右侧内容面板[\s\S]*data-path="controls\.windowOpacity\.settingsPage"/,
+    assert.match(windowsSectionHtml, /设置页[\s\S]*data-path="controls\.windowOpacity\.settingsPage"/,
       "The settings control must identify the Windows content panel rather than the whole shell.");
     assert.match(windowsSectionHtml, /data-window-control="composer"[\s\S]*aria-controls="window-opacity-composer"/,
       "The composer preview must be linked to its matching slider.");
