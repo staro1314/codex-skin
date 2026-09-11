@@ -108,3 +108,18 @@
 | PowerShell AST 检查第二种引号组合仍被宿主命令解析器剥离 | 2 | 放弃该辅助检查，不修改脚本；以 Node、同步、聚焦测试和差异检查作为当前验证证据 |
 | WindowsApps `bash.exe -n` 启动 WSL 时返回 `E_ACCESSDENIED` | 1 | macOS shell 语法无法在本机执行；保留 Node shell 约束测试和 macOS/CI 验证缺口 |
 | Windows 安装器静态测试补丁构造时混入未引用的 patch 行 | 1 | 测试文件未修改；暂不扩大该辅助断言范围 |
+
+## 2026-08-30：窗口级透明度调节计划（暂停在实现前）
+
+- [completed] 按路由规则使用 `easy-skill-router`，并按用户明确要求使用 `planning-with-files` 管理本地计划。
+- [completed] 读取透明度记录、共享 runtime、selector 合同、控制中心现有表单/预览及当前分支状态；确认现有字段是全局 surface 控制，不能直接改作窗口级字段。
+- [completed] 保存详细计划：`code-help/WINDOW_LEVEL_TRANSPARENCY_CONTROL_PLAN.md`。
+- [preserved] 本轮没有修改 `runtime/`、`control-center/`、`windows/assets/` 或 `macos/assets/`，没有打包、提交或推送。
+- [pending] 等待用户确认配置合同和阶段 A live 基线后再进入实现。
+
+## 2026-09-01：Windows-only 发布
+
+- [completed] 读取当前项目记忆、发布历史、项目指南和技能路由规则；确认 macOS 本轮不构建、不上传、不发布。
+- [completed] 恢复现有文件化计划；本次发布阶段写入 `task_plan.md`、`findings.md`、`progress.md` 和 `TASK_PROGRESS.md`。
+- [in_progress] 核对当前工作区、版本、远端、发布脚本、Windows 工具链和既有用户改动。
+- [pending] 当前包、提交、tag、远端 Release 和公开可下载资产均未在本轮重新确认，不得沿用历史结论。

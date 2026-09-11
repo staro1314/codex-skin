@@ -12,6 +12,7 @@ $builderPath = Join-Path $installerRoot 'build-release.ps1'
 $bootstrapPath = Join-Path $installerRoot 'setup-bootstrap.ps1'
 $communityApplyPath = Join-Path $windowsRoot 'scripts\apply-community-theme.ps1'
 $commonPath = Join-Path $windowsRoot 'scripts\common-windows.ps1'
+$themePath = Join-Path $windowsRoot 'scripts\theme-windows.ps1'
 $clientPath = Join-Path $windowsRoot 'client\RuntimeSupervisor.cs'
 $actionPath = Join-Path $windowsRoot 'scripts\control-center-action.ps1'
 $importPath = Join-Path $windowsRoot 'scripts\control-center-import.ps1'
@@ -30,7 +31,7 @@ if ("$($product.schema)" -cne 'codex-skin/product/1' -or
 $appName = "$($product.displayName)"
 $packageStem = "$($product.packageStem)"
 
-foreach ($scriptPath in @($builderPath, $bootstrapPath, $communityApplyPath, $commonPath, $actionPath, $importPath)) {
+foreach ($scriptPath in @($builderPath, $bootstrapPath, $communityApplyPath, $commonPath, $themePath, $actionPath, $importPath)) {
   if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
     throw "Required installer PowerShell does not exist: $scriptPath"
   }
@@ -62,9 +63,40 @@ $definition = [System.IO.File]::ReadAllText($definitionPath)
 $builder = [System.IO.File]::ReadAllText($builderPath)
 $bootstrap = [System.IO.File]::ReadAllText($bootstrapPath)
 $common = [System.IO.File]::ReadAllText($commonPath)
+$themeRuntime = [System.IO.File]::ReadAllText($themePath)
+$communityApply = [System.IO.File]::ReadAllText($communityApplyPath)
+$requiredBootstrapDiagnostics = @(
+  'installer-bootstrap-error.log',
+  'function Write-DreamSkinBootstrapFailureLog',
+  'ConvertTo-DreamSkinRedactedDiagnostic',
+  'Write-DreamSkinBootstrapFailureLog -Failure $_'
+)
+foreach ($requiredDiagnostic in $requiredBootstrapDiagnostics) {
+  if (-not $bootstrap.Contains($requiredDiagnostic)) {
+    throw "Installer bootstrap no longer preserves a redacted failure diagnostic: $requiredDiagnostic"
+  }
+}
+
+$requiredRuntimeHashing = @(
+  'function Get-DreamSkinFileSha256',
+  '[System.Security.Cryptography.SHA256]::Create()',
+  '[System.IO.FileShare]::Read',
+  'Get-DreamSkinFileSha256 -Path $sourceFile.FullName',
+  'Get-DreamSkinFileSha256 -Path $stagedFile'
+)
+foreach ($requiredHashing in $requiredRuntimeHashing) {
+  if (-not $common.Contains($requiredHashing)) {
+    throw "Windows runtime no longer provides host-independent SHA-256 hashing: $requiredHashing"
+  }
+}
 $client = [System.IO.File]::ReadAllText($clientPath)
 $action = [System.IO.File]::ReadAllText($actionPath)
 $importAdapter = [System.IO.File]::ReadAllText($importPath)
+foreach ($runtimeHashConsumer in @($common, $themeRuntime, $communityApply, $action, $importAdapter)) {
+  if ($runtimeHashConsumer.Contains('Get-FileHash')) {
+    throw 'Packaged Windows runtime must not depend on host-provided Get-FileHash.'
+  }
+}
 foreach ($requiredImportContract in @(
   'Import-DreamSkinThemeZip',
   '-ExpectedArchiveBytes $archive.Length',
@@ -139,7 +171,7 @@ foreach ($requiredDefinition in @(
   'function PrepareToInstall(var NeedsRestart: Boolean): String;',
   'GetPreviousUninstaller',
   "'UninstallString'",
-  "RunBootstrap(TemporaryBootstrap, '-PrepareInstall', WizardSilent, ExitCode)",
+  "'-PrepareInstall -InstalledAppRoot ' + AddQuotes(PreviousInstallDir)",
   'do not invoke an uninstaller or restore/inspect Codex.',
   '[InstallDelete]',
   'Type: filesandordirs; Name: "{app}\payload"',
@@ -307,8 +339,12 @@ foreach ($requiredBuilderContract in @(
 
 foreach ($requiredRepairContract in @(
   '[switch]$PrepareInstall',
+  '[string]$InstalledAppRoot',
   'if ($PrepareInstall)',
   'An upgrade/reinstall only needs to release Codex Skin-owned files.',
+  "Join-Path `$InstalledAppRoot 'payload\client\CodexDreamSkin.Client.exe'",
+  "Join-Path `$InstalledAppRoot 'payload\scripts\tray-dream-skin.ps1'",
+  "Join-Path `$InstalledAppRoot 'payload\runtime\node\node.exe'",
   '[switch]$Install',
   '$needsInstall = $Install',
   '$requiredEngineFiles',

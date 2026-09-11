@@ -195,14 +195,15 @@ function sourceIdFallbackFingerprint(theme, imageBytes, cssBytes = null, license
   const semanticTheme = { ...theme };
   delete semanticTheme.id;
   const hashBytes = (bytes) => createHash("sha256").update(bytes).digest("hex");
-  const identity = [
+  const identityParts = [
     "dreamskin-source-theme-fallback/1",
     "theme.json", canonicalJsonFingerprint(semanticTheme),
     "image", hashBytes(imageBytes),
     "theme.css", cssBytes ? hashBytes(cssBytes) : "absent",
-    "video", videoBytes ? hashBytes(videoBytes) : "absent",
-    "LICENSE.txt", licenseBytes ? hashBytes(licenseBytes) : "absent",
-  ].join("\0");
+  ];
+  if (videoBytes) identityParts.push("video", hashBytes(videoBytes));
+  identityParts.push("LICENSE.txt", licenseBytes ? hashBytes(licenseBytes) : "absent");
+  const identity = identityParts.join("\0");
   return createHash("sha256").update(identity, "utf8").digest("hex");
 }
 

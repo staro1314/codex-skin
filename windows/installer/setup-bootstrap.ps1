@@ -5,6 +5,7 @@ param(
   [switch]$LaunchTray,
   [switch]$Uninstall,
   [switch]$Silent,
+  [string]$InstalledAppRoot,
   [string]$CompletionFile
 )
 
@@ -14,6 +15,35 @@ $payloadScripts = Join-Path $payloadRoot 'scripts'
 $commonPath = Join-Path $payloadScripts 'common-windows.ps1'
 $themePath = Join-Path $payloadScripts 'theme-windows.ps1'
 $stateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+$bootstrapFailureLog = Join-Path $stateRoot 'installer-bootstrap-error.log'
+
+function ConvertTo-DreamSkinRedactedDiagnostic {
+  param([string]$Message)
+  if ([string]::IsNullOrWhiteSpace($Message)) { return 'Unknown installer bootstrap failure.' }
+  $redacted = $Message
+  foreach ($privateRoot in @($env:USERPROFILE, $env:LOCALAPPDATA, $env:TEMP)) {
+    if ([string]::IsNullOrWhiteSpace($privateRoot)) { continue }
+    $redacted = $redacted.Replace($privateRoot, '%USERPROFILE%')
+  }
+  return $redacted
+}
+
+function Write-DreamSkinBootstrapFailureLog {
+  param([Parameter(Mandatory = $true)][System.Management.Automation.ErrorRecord]$Failure)
+  try {
+    [System.IO.Directory]::CreateDirectory($stateRoot) | Out-Null
+    $action = if ($PrepareInstall) { 'prepare-install' } elseif ($Install) { 'install' } `
+      elseif ($LaunchTray) { 'launch-client' } elseif ($Uninstall) { 'uninstall' } else { 'unknown' }
+    $message = ConvertTo-DreamSkinRedactedDiagnostic -Message $Failure.Exception.Message
+    [System.IO.File]::WriteAllText(
+      $bootstrapFailureLog,
+      "timestamp=$([DateTimeOffset]::UtcNow.ToString('o'))`r`naction=$action`r`nmessage=$message`r`n",
+      [System.Text.UTF8Encoding]::new($false)
+    )
+  } catch {
+    # Diagnostic logging must not replace the original installer failure.
+  }
+}
 
 function Show-DreamSkinBootstrapMessage {
   param(
@@ -107,6 +137,18 @@ try {
     # must not restore Codex or inspect a Codex process; the new payload is
     # deployed below and the client owns any later apply/restart action.
     Stop-DreamSkinClientProcess -ClientPath $engine.Client -RequireStopped
+    # The normal shortcut launches the managed engine copy, but diagnostics or
+    # an earlier installer can also launch the client directly from the Inno
+    # application payload. That process locks framework DLLs under {app} and
+    # must be released before [InstallDelete] replaces the payload directory.
+    if (-not [string]::IsNullOrWhiteSpace($InstalledAppRoot)) {
+      $installedPayloadClient = Join-Path $InstalledAppRoot 'payload\client\CodexDreamSkin.Client.exe'
+      $installedPayloadTray = Join-Path $InstalledAppRoot 'payload\scripts\tray-dream-skin.ps1'
+      $installedPayloadNode = Join-Path $InstalledAppRoot 'payload\runtime\node\node.exe'
+      Stop-DreamSkinClientProcess -ClientPath $installedPayloadClient -RequireStopped
+      Stop-DreamSkinTrayProcess -ScriptPaths @($installedPayloadTray) -RequireStopped
+      Stop-DreamSkinRuntimeNodeProcess -NodePath $installedPayloadNode -RequireStopped
+    }
     Stop-DreamSkinTrayProcess -ScriptPaths @($engine.Tray) -RequireStopped
     Stop-DreamSkinRuntimeNodeProcess -NodePath $engine.Node -RequireStopped
     Write-DreamSkinBootstrapCompletion -ExitCode 0
@@ -262,9 +304,11 @@ try {
     Start-Process -FilePath $powershell -ArgumentList $argumentLine -WindowStyle Hidden | Out-Null
   }
 } catch {
+  Write-DreamSkinBootstrapFailureLog -Failure $_
   Show-DreamSkinBootstrapMessage -Message $_.Exception.Message -Kind Error
   Write-DreamSkinBootstrapCompletion -ExitCode 1
   Write-Error $_ -ErrorAction Continue
   exit 1
 }
+Remove-Item -LiteralPath $bootstrapFailureLog -Force -ErrorAction SilentlyContinue
 Write-DreamSkinBootstrapCompletion -ExitCode 0

@@ -192,7 +192,7 @@ function Save-DreamSkinCommunityDownload {
   if ($written -ne $Metadata.PackageBytes) {
     throw 'DreamSkin.cc theme download byte count does not match approved metadata.'
   }
-  $actualHash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $actualHash = Get-DreamSkinFileSha256 -Path $ArchivePath
   if ($actualHash -cne $Metadata.PackageSha256) {
     throw 'DreamSkin.cc theme download SHA-256 does not match approved metadata.'
   }

@@ -318,7 +318,12 @@ begin
   ExtractTemporaryFiles('{tmp}\setup-bootstrap.ps1');
   ExtractTemporaryFiles('{tmp}\payload\*');
   TemporaryBootstrap := ExpandConstant('{tmp}\setup-bootstrap.ps1');
-  if not RunBootstrap(TemporaryBootstrap, '-PrepareInstall', WizardSilent, ExitCode) then
+  if not RunBootstrap(
+    TemporaryBootstrap,
+    '-PrepareInstall -InstalledAppRoot ' + AddQuotes(PreviousInstallDir),
+    WizardSilent,
+    ExitCode
+  ) then
   begin
     Result := '无法准备旧版 {#AppName} 运行时，安装过程未修改文件。';
     exit;

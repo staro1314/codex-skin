@@ -134,6 +134,24 @@ function normalizeOptionalFields(value) {
   return value;
 }
 
+function mergeWindowOpacity(value, fallback) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const current = value.windowOpacity;
+  const fallbackWindow = fallback && typeof fallback === "object" && !Array.isArray(fallback)
+    ? fallback.windowOpacity : undefined;
+  if (current === undefined && fallbackWindow === undefined) return value;
+  if (current !== undefined && (!current || typeof current !== "object" || Array.isArray(current))) {
+    return value;
+  }
+  if (!fallbackWindow || typeof fallbackWindow !== "object" || Array.isArray(fallbackWindow)) {
+    return value;
+  }
+  return {
+    ...value,
+    windowOpacity: { ...fallbackWindow, ...(current ?? {}) },
+  };
+}
+
 function normalizedDraft(value, fallbackTheme, preserveOptionalFields) {
   if (!value || typeof value !== "object" || Array.isArray(value)) fail("Theme draft must be an object");
   const optionalFields = normalizeOptionalFields(preserveOptionalFields);
@@ -159,9 +177,10 @@ function normalizedDraft(value, fallbackTheme, preserveOptionalFields) {
     muted: color(values.muted, fallbackColors.muted ?? "#9ebdb3", "colors.muted"),
     line: color(values.line, fallbackColors.line ?? "rgba(124, 255, 70, .28)", "colors.line"),
   };
+  const controlsValue = value.controls ?? fallbackTheme.controls ?? {};
   const controls = optionalFields.controls && value.controls === undefined
     ? undefined
-    : normalizeThemeControls(value.controls ?? fallbackTheme.controls ?? {});
+    : normalizeThemeControls(mergeWindowOpacity(controlsValue, fallbackTheme.controls));
   return {
     name,
     appearance,

@@ -94,7 +94,9 @@ SmartScreen 的决定针对下载到本机的具体文件。你对某个安装�
 ### 安装后仍提示找不到 Node.js
 
 确认使用的是 Release Setup.exe，而不是仓库脚本安装方式。Release 安装器会带上固定的 Node 运行时；
-若问题持续，请保留安装日志并报告版本，不要随意从第三方网站下载 `node.exe` 覆盖安装目录。
+若问题持续，请保留安装器日志以及
+`%LOCALAPPDATA%\CodexDreamSkin\installer-bootstrap-error.log`（若存在）并报告版本；不要随意从第三方网站下载
+`node.exe` 覆盖安装目录。失败日志会隐藏用户目录，下一次成功安装后自动清除。
 
 ### Codex 更新后主题失效
 

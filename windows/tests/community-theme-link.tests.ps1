@@ -253,7 +253,7 @@ foreach ($requiredSafety in @(
   'Local\CodexDreamSkin.$sid.CommunityApply',
   "('.community-apply-' + [guid]::NewGuid().ToString('N'))",
   '$written -gt $Metadata.PackageBytes',
-  'Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256',
+  'Get-DreamSkinFileSha256 -Path $ArchivePath',
   'Import-DreamSkinThemeZip -ArchivePath $archivePath',
   '-ExpectedArchiveBytes $metadata.PackageBytes',
   '-ExpectedArchiveSha256 $metadata.PackageSha256',

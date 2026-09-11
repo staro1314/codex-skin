@@ -98,6 +98,14 @@ test("theme controls normalize the bounded control-center contract", () => {
     imageZoom: 1.08,
     imageDim: 0.22,
     motionLevel: "expressive",
+    windowOpacity: {
+      sidebar: 0.10,
+      profileMenu: 0.62,
+      browserContent: 0.52,
+      composer: 0.10,
+      bottomPanel: 0,
+      settingsPage: 0.75,
+    },
   }), {
     surfaceOpacity: 0.78,
     surfaceBlur: 18,
@@ -105,12 +113,23 @@ test("theme controls normalize the bounded control-center contract", () => {
     imageZoom: 1.08,
     imageDim: 0.22,
     motionLevel: "expressive",
+    windowOpacity: {
+      sidebar: 0.10,
+      profileMenu: 0.62,
+      browserContent: 0.52,
+      composer: 0.10,
+      bottomPanel: 0,
+      settingsPage: 0.75,
+    },
   });
   assert.equal(normalizeThemeControls(undefined), null);
   assert.throws(() => normalizeThemeControls({ surfaceOpacity: 0.2 }), /between 0\.55 and 1/);
   assert.throws(() => normalizeThemeControls({ surfaceBlur: 48 }), /between 0 and 32/);
   assert.throws(() => normalizeThemeControls({ imageZoom: 2 }), /between 1 and 1\.2/);
+  assert.throws(() => normalizeThemeControls({ windowOpacity: { sidebar: 1.01 } }), /between 0 and 1/);
+  assert.throws(() => normalizeThemeControls({ windowOpacity: { sidebar: 0.123 } }), /0\.01 increments/);
   assert.throws(() => normalizeThemeControls({ motionLevel: "script" }), /unsupported/);
+  assert.throws(() => normalizeThemeControls({ windowOpacity: { unknownWindow: 0.5 } }), /unsupported field/);
   assert.throws(() => normalizeThemeControls({ remoteCss: "https://example.invalid" }), /unsupported field/);
 });
 

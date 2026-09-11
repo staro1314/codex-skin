@@ -33,3 +33,18 @@
 - DOM/路由观察能覆盖哪些 Codex 工作状态，哪些状态需要更结构化的事件来源。
 - 动态媒体在真实 Codex 窗口上的 GPU、内存、耗电和最小化行为。
 - 发布包中动态媒体资源的大小、版权和升级保留策略。
+
+## 2026-08-30：控制中心窗口级透明度调节计划
+
+- [verified] 当前控制中心只有全局 `controls.surfaceOpacity`，控制中心预览和 `runtime/renderer-inject.js` 都按单一 `--ds-theme-surface-opacity` 消费；直接复用会再次串改多个界面。
+- [verified] 现有透明度记录已为侧栏、用户名菜单、摘要浮层、环境浮窗、右侧工具面板、底部面板、审批卡、设置外壳和输入框定义了精确 marker/selector 及非目标边界。
+- [diagnosed] 底部工具栏的历史验收值与当前共享 CSS 不一致；默认值不能从旧记录猜测，必须在实现前用当前 live computed style 复核。
+- [planned] 采用新增的嵌套窗口透明度合同、显式 marker 映射、旧主题回退和双端同步；详细范围、风险、回滚和验收矩阵见 `code-help/WINDOW_LEVEL_TRANSPARENCY_CONTROL_PLAN.md`。
+- [scope] 本次只保存计划和连续性记录，没有修改代码、生成资产或改变运行中的 Codex。
+
+## 2026-09-01：Windows-only 发布任务初始记录
+
+- [request] 用户要求制作 Windows 版发布；因 macOS 暂无打包工具，本次明确不发布 macOS。
+- [route] `easy-skill-router` 判定为本地构建/发布的普通工程流程；当前会话没有暴露可调用的 `github:yeet`，因此 GitHub 发布阶段需使用常规 Git/远端工具并如实记录能力边界。
+- [memory] 历史记录显示上次 Windows 包已构建并验证，但未提交、推送、打 tag 或创建公开 GitHub Release；本次必须以当前工作区重新核对。
+- [planning] `task_plan.md`、`progress.md`、`findings.md` 和 `TASK_PROGRESS.md` 已作为本次连续性文件继续使用。

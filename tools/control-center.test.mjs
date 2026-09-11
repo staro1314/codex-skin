@@ -43,6 +43,58 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="export-button"/);
     assert.match(shellHtml, /id="theme-search"/);
     assert.match(shellHtml, /data-editor-tab="surface"/);
+    assert.match(shellHtml, /data-editor-tab="windows"/,
+      "Window opacity controls must have a sibling editor tab instead of living under surfaces.");
+    const surfaceSectionStart = shellHtml.indexOf('data-section="surface"');
+    const windowsSectionStart = shellHtml.indexOf('data-section="windows"');
+    const effectsSectionStart = shellHtml.indexOf('data-section="effects"');
+    assert.ok(surfaceSectionStart >= 0 && windowsSectionStart > surfaceSectionStart,
+      "The window editor section must follow the surface editor section.");
+    assert.ok(effectsSectionStart > windowsSectionStart,
+      "The window editor section must remain separate from the effects editor section.");
+    const surfaceSectionHtml = shellHtml.slice(surfaceSectionStart, windowsSectionStart);
+    const windowsSectionHtml = shellHtml.slice(windowsSectionStart, effectsSectionStart);
+    assert.doesNotMatch(surfaceSectionHtml, /controls\.windowOpacity\./,
+      "The surface editor must not contain window-opacity controls.");
+    assert.match(windowsSectionHtml, /data-path="controls\.windowOpacity\.sidebar"/,
+      "The window editor must expose a dedicated sidebar window-opacity control.");
+    assert.match(windowsSectionHtml, /底部会话输入区域[\s\S]*data-path="controls\.windowOpacity\.composer"/,
+      "The window editor must expose the bottom composer separately from the terminal panel.");
+    assert.match(windowsSectionHtml, /底部终端面板外壳[\s\S]*data-path="controls\.windowOpacity\.bottomPanel"/,
+      "The existing bottom-panel control must be labelled as the terminal panel.");
+    assert.match(windowsSectionHtml, /右侧摘要底层面板[\s\S]*data-path="controls\.windowOpacity\.summaryPanel"/,
+      "The summary control must describe the actual right-side PIP backing surface.");
+    assert.match(windowsSectionHtml, /右侧工具面板顶部栏[\s\S]*data-path="controls\.windowOpacity\.utilityToolbar"/,
+      "The utility-toolbar control must identify its parent panel and top-bar position.");
+    assert.match(windowsSectionHtml, /右侧浏览器网页内容[\s\S]*data-path="controls\.windowOpacity\.browserContent"/,
+      "The browser-content control must be separate from the utility-panel shell.");
+    assert.match(windowsSectionHtml, /设置页右侧内容面板[\s\S]*data-path="controls\.windowOpacity\.settingsPage"/,
+      "The settings control must identify the Windows content panel rather than the whole shell.");
+    assert.match(windowsSectionHtml, /data-window-control="composer"[\s\S]*aria-controls="window-opacity-composer"/,
+      "The composer preview must be linked to its matching slider.");
+    assert.match(windowsSectionHtml, /data-window-control="bottomPanel"[\s\S]*aria-controls="window-opacity-bottom-panel"/,
+      "The terminal-panel preview must be linked to its matching slider.");
+    assert.match(windowsSectionHtml, /点击预览卡可定位对应滑块/,
+      "The window preview must explain its click-to-focus behavior.");
+    assert.match(shellHtml, /data-window-preview-target="sidebar"/,
+      "The central preview must expose the sidebar target.");
+    assert.match(shellHtml, /mock-summary-backdrop[\s\S]*data-window-preview-target="summaryPanel"/,
+      "The central preview must represent the PIP backing surface, not a response card.");
+    assert.match(shellHtml, /mock-utility-panel[\s\S]*mock-environment-popover[\s\S]*data-window-preview-target="environmentInfoPopover"/,
+      "The environment-information preview must be nested in the right utility panel.");
+    assert.match(shellHtml, /mock-utility-panel[\s\S]*mock-browser-content[\s\S]*data-window-preview-target="browserContent"/,
+      "The browser-content preview must be nested in the right utility panel.");
+    assert.match(shellHtml, /data-window-preview-target="composer"/,
+      "The central preview must expose the composer target.");
+    assert.match(shellHtml, /id="window-focus-label"/,
+      "The central preview must expose a live focus readout.");
+    assert.match(shellHtml, /窗口级透明度/,
+      "The window editor must explain the independent window-opacity contract.");
+    assert.doesNotMatch(shellHtml, /data-window-preview="/,
+      "The preview cards must use the current data-window-control binding, not the removed attribute.");
+    const stylesCss = await fs.readFile(path.join(projectRoot, "control-center", "public", "styles.css"), "utf8");
+    assert.match(stylesCss, /\.mock-bottom-panel\s*\{[^}]*left:\s*192px/,
+      "The bottom-panel preview must begin after the left navigation panel.");
     assert.match(shellHtml, /id="reset-button"/);
     assert.match(shellHtml, /id="new-theme-button"/);
     assert.match(shellHtml, /id="import-theme-button"[^>]+hidden/);
@@ -71,6 +123,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const clientJs = await clientResponse.text();
     assert.match(clientJs, /\/api\/export/);
     assert.match(clientJs, /\/api\/import/);
+    assert.match(clientJs, /async function applySelectedTheme\(\)[\s\S]*if \(state\.dirty\)[\s\S]*saveTheme\(true, elements\.applyButton\)[\s\S]*action\("apply"\)/,
+      "Applying a dirty saved theme must persist the edited window opacity before the native apply action.");
+    assert.match(clientJs, /elements\.applyButton\.addEventListener\("click", applySelectedTheme\)/,
+      "The primary apply button must use the draft-aware apply path.");
     assert.match(clientJs, /kind === "active" \? "当前"/);
     assert.match(clientJs, /activeSaved\?\.id \?\? state\.themes\[0\]\?\.id/,
       "The active user theme must select its saved library entry so saved-theme actions remain available.");
@@ -105,7 +161,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
       /function optionalFieldsForTheme\(theme\)[\s\S]*?theme\?\.colorMode !== "explicit"[\s\S]*?!theme\?\.controls/,
       "Optional parameter inheritance must follow the source theme declaration state, not runtime fallback values.");
     assert.match(clientJs,
-      /function persistenceDraft\(draft, optionalFields = \{\}\)[\s\S]*?delete payload\.colors[\s\S]*?delete payload\.controls/,
+      /function persistenceDraft\(draft, optionalFields = \{\}[^)]*\)[\s\S]*?delete payload\.colors[\s\S]*?delete payload\.controls/,
       "The editor must omit untouched optional parameters when persisting a new theme.");
     assert.match(clientJs, /preserveOptionalFields: state\.optionalFields/,
       "Theme saves must tell the server which optional parameter groups remain inherited.");
@@ -177,6 +233,7 @@ test("control center serves an authenticated theme editor and saves immutable dr
       controls: {
         surfaceOpacity: 0.8, surfaceBlur: 22, surfaceRadius: 19,
         imageZoom: 1.08, imageDim: 0.28, motionLevel: "reduced",
+        windowOpacity: { sidebar: 0.14, utilityToolbar: 0.66 },
       },
       stateEffects: {
         thinking: {
@@ -220,6 +277,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.ok(saved.theme.imageMediaId, "Video themes must persist the shared cover image");
     assert.ok(saved.theme.videoMediaId, "Video themes must persist the video upload");
     assert.equal(saved.theme.theme.controls.surfaceBlur, 22);
+    assert.equal(saved.theme.theme.controls.windowOpacity.sidebar, 0.14);
+    assert.equal(saved.theme.theme.controls.windowOpacity.utilityToolbar, 0.66);
     assert.equal(saved.theme.theme.stateEffects.thinking.motion, "pulse");
 
     const directory = path.join(stateRoot, "themes", saved.theme.id);
@@ -337,6 +396,25 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.deepEqual(exportedFiles.get("background.mp4"), tinyMp4);
     assert.deepEqual(exportedFiles.get("background.png"), universalCoverBytes);
     assert.equal(Object.hasOwn(exportedTheme, "artMetadata"), false);
+    const partialWindowUpdateResponse = await fetch(
+      `${center.origin}/api/themes/${encodeURIComponent(saved.theme.id)}`,
+      {
+        method: "PUT",
+        headers: { ...headers, Origin: center.origin, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draft: { name: "Partial Window Update", controls: { windowOpacity: { bottomPanel: 0.38 } } },
+          inheritVideo: true,
+          mediaMode: "video",
+        }),
+      },
+    );
+    const partialWindowUpdate = await partialWindowUpdateResponse.json();
+    assert.equal(partialWindowUpdateResponse.status, 200, JSON.stringify(partialWindowUpdate));
+    assert.deepEqual(partialWindowUpdate.theme.theme.controls.windowOpacity, {
+      sidebar: 0.14,
+      utilityToolbar: 0.66,
+      bottomPanel: 0.38,
+    }, "Partial window opacity edits must merge missing keys from the source theme.");
 
     const duplicateResponse = await fetch(`${center.origin}/api/export`, {
       method: "POST",

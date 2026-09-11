@@ -63,6 +63,13 @@ test("Windows runtime preserves validated state effects in the renderer theme", 
     imageZoom: 1.06,
     imageDim: 0.18,
     motionLevel: "standard",
+    windowOpacity: {
+      sidebar: 0.12,
+      composer: 0.10,
+      bottomToolbar: 0,
+      browserContent: 0.52,
+      settingsPage: 0.74,
+    },
   };
   await withTheme(1, true, async (root) => {
     const loaded = await loadTheme(root);

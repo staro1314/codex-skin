@@ -567,3 +567,74 @@ settings scope.baseState = settings
 - 2026-08-20 曾出现底部面板 CSS 已写入但不生效：打开按钮的 `aria-pressed` 未进入 observer 的 `attributeFilter`，导致 marker 没刷新。
 - 2026-08-21 现场验证设置页时发现，仓库一次性注入会被仍在运行的旧 `%LOCALAPPDATA%\\CodexDreamSkin\\engine` watcher 在路由变化后覆盖；表现为新 revision 注入成功但设置页随后回到旧 revision。验证时必须核对 `state.json` 的 `injectorPath`，确保常驻 watcher 指向工作区版本。
 - 这些问题的处理顺序固定为：先核对运行时路径和 revision，再核对选择器 matchCount/marker，最后读取 computed style；不要直接猜 CSS 没命中。
+
+## 6. 窗口级透明度控制落地记录（2026-08-30）
+
+### 6.1 实时基线事实
+
+- 当前本机正式 Codex 为 `26.825.5331.0`，CDP 端口为 `9335`；运行中的 injector 仍来自旧安装副本 `C:\Users\fuyou\AppData\Local\CodexDreamSkin\engine\scripts\injector.mjs`。编辑前已核对该副本与工作区共享 renderer/CSS/validator 的哈希一致；本次源码修改不会自动改变已运行安装态。
+- 实时任务页的 sidebar 计算背景为 `rgba(21, 22, 23, 0.10)`；个人资料菜单打开后 marker 为 `profile-menu`，计算背景为 `rgba(21, 22, 23, 0.62)`；环境信息 popover 为 `rgba(21, 22, 23, 0.56)`，其配套 backdrop 为透明。
+- 实时底部面板打开后 outer 与工具栏均为透明；这覆盖了历史记录中“底部工具栏 .62”的冲突，当前实现默认保持 `bottomPanel = 0`、`bottomToolbar = 0`。
+- 实时右侧 utility 面板打开后 outer 使用 `bg-[var(--app-shell-panel-background,var(--color-surface))]`，原 `bg-surface` selector 命中数为 `0`，因此没有得到 marker，计算背景仍为不透明 `rgb(17, 17, 17)`。这不是 CSS alpha 值问题，而是 selector 漂移；selector 已在共享 `tools/selectors.json` 中兼容旧 `bg-surface` 与当前精确 class，并继续保留 tabs、定位、边框和 bottom 排除条件。
+
+### 6.2 已实现的单一窗口控制合同
+
+- `theme.controls.windowOpacity` 允许且只允许以下 12 个键：`sidebar`、`profileMenu`、`summaryPanel`、`environmentInfoPopover`、`utilitySidePanel`、`utilityToolbar`、`browserContent`、`composer`、`bottomPanel`、`bottomToolbar`、`approvalSurface`、`settingsPage`。
+- 每个值必须是有限数字，范围 `0..1`，步进 `0.01`；缺失对象保持当前 CSS 行为，部分对象逐键回退，未知键 fail closed。
+- 共享 renderer 通过 `--ds-window-opacity-*` 注入这些值，CSS 只在对应 runtime marker 上消费。浏览器 WebView 宿主现在由 `browserContent` 控制；输入框、审批卡后方渐变、environment backdrop、terminal 内层内容和 settings 内部卡片仍保持隔离。
+- 控制中心在与“表面”同级的“窗口”页签中提供 12 个独立滑块和逐窗口预览；旧主题如果没有主动编辑窗口滑块，保存时不会无意增加 `windowOpacity` 字段；主动编辑后才写入完整窗口控制对象。
+
+### 6.3 本次代码与验证边界
+
+- 共享源：`runtime/theme-package-validator.mjs`、`runtime/renderer-inject.js`、`runtime/dream-skin.css`、`control-center/theme-store.mjs`、`control-center/public/`；selector 只改 `tools/selectors.json`，双端副本由同步脚本生成。
+- 已通过：Node/renderer 语法、共享 renderer runtime、控制中心核心测试、selector Doctor、runtime Doctor、Safe CSS validator、Windows schema contract、video runtime contract、双端资源同步检查。
+- 当前仍有两个环境/基线缺口：依赖子进程的 Windows Node 测试在沙箱中返回 `spawn EPERM`；`macos/tests/runtime-css-nested-has.test.mjs` 的“wide task workspace”用例要求的历史注释/渐变文本在当前 HEAD 源文件本来就不存在，三份 CSS 均因此同样失败，未将其改成绿色。
+- 已通过项目启动器重启并完成安装态 post-change computed-style 验收：`state.json.injectorPath` 已指向 `D:\project\personal\codex-skin\windows\scripts\injector.mjs`，端口仍为 `9335`，Codex 版本为 `26.825.5331.0`。未直接覆盖官方 Codex 安装目录。
+
+### 6.4 2026-08-30 post-change live 验收
+
+- 初始任务页：sidebar `rgba(21, 22, 23, 0.10)`；环境信息 popover `rgba(21, 22, 23, 0.56)`；environment backdrop `rgba(0, 0, 0, 0)`；输入框 footer marker 仍为透明。
+- 打开个人资料菜单：`data-ds-part="profile-menu"` 命中 `1`，背景 `rgba(21, 22, 23, 0.62)`。
+- 同时打开底部与右侧 utility：新版 utility selector 命中 `1`、bottom selector 命中 `1`；utility outer/toolbar 分别为 `rgba(21, 22, 23, 0.56)`、`rgba(21, 22, 23, 0.62)`；bottom outer/toolbar 分别为 `rgba(21, 22, 23, 0)`、`rgba(21, 22, 23, 0)`；terminal 内层为透明。关闭后两个 marker 都清理，未遗留 DOM marker。
+- 设置页：`settings-page` marker 命中 `1`，根容器背景为 `rgba(21, 22, 23, 0)`，`background-image` 为 `none`，`box-shadow` 与 `backdrop-filter` 均为 `none`；设置内部卡片未被该根规则覆盖。
+- 运行时保留了 PIP summary 与 environment popover 的结构关系：本次 live 页面观察到的是 environment-info marker，未把它错误描述为独立 summary marker；独立 summary selector 仍保留在合同中，只有实际出现并通过结构校验时才会被标记。
+
+### 6.5 2026-08-31 控制中心“应用所选主题”链路修复
+
+- 故障不在 `windowOpacity` schema、renderer 变量或窗口 CSS：当前活动主题的 10 个 `--ds-window-opacity-*` 均已注入，侧栏实测变量为 `0.1`、计算背景为 `rgba(11, 26, 32, 0.1)`，右侧工具面板变量为 `0.56`、计算背景为 `rgba(11, 26, 32, 0.56)`。
+- 确认的断点位于控制中心按钮语义：滑块只更新浏览器内存中的 dirty draft，而“应用所选主题”原先直接执行原生 `apply`，没有先保存 draft；因此它会重新应用磁盘上的旧主题，用户刚调的逐窗口值不会进入 `active-theme/theme.json`。
+- 修复后，“应用所选主题”在当前已保存主题存在 dirty draft 时先 PUT 更新该主题，再执行原生 apply；没有改动时仍只重新应用。独立的“保存为新主题”和“保存并应用”能力保持不变。
+- 2026-08-31 已构建并覆盖安装本地包；工作区、安装 payload 和本机 engine 的 `control-center/public/app.js` SHA-256 一致。桌面实机继续操作时检测到用户正在输入，已停止自动点击，未覆盖用户当前滑块值。
+
+### 6.6 2026-08-31 底部输入框目标纠正
+
+- 用户截图明确标注的目标是任务页底部 `_ComposerLayoutRoot_` 输入框，而控制中心原“底部面板”实际对应由“切换底部面板显示”打开的 terminal 面板。两者是不同 DOM、不同 marker 和不同 CSS 合同；此前验证 terminal 面板不能证明输入框会变化。
+- 原实现还把输入框列为 `windowOpacity` 的保护项，因此 `bottomPanel = 0` 正常保存和应用后，红框输入区仍保持现有 `.10` alpha 是代码预期，不是安装失败。本次将这一目标误判纠正为合同缺项。
+- 新增 `windowOpacity.composer` 和 `--ds-window-opacity-composer`，默认 `0.10`；CSS 只作用于 `.composer-surface-chrome`、`data-ds-part="composer"` 和 `_ComposerLayoutRoot_` 三个既有精确边界。审批态后方渐变、终端面板、环境 backdrop 和设置内部卡片继续隔离。
+- 控制中心新增“底部输入框”，原“底部面板/底部工具栏”改名为“底部终端面板/终端面板工具栏”。用户将底部输入框调为 `0` 后，目标输入框背景 alpha 才应为 `0`。
+- 2026-08-31 新包已覆盖安装；源码、安装 payload 与本地 engine 的 `app.js`、`dream-skin.css`、`renderer-inject.js`、`theme-package-validator.mjs` 摘要一致。此证据只证明新合同已落盘，实际计算样式仍须在用户应用“底部输入框 = 0”后核对。
+- 控制中心窗口项现按界面位置和语义命名：左侧导航栏、左下角个人资料菜单、对话摘要面板、右侧环境信息浮层、右侧工具侧栏/工具栏、底部会话输入框、底部终端面板/工具栏、命令审批卡片、设置页内容框架。每张预览卡通过 `data-window-control` 和 `aria-controls` 绑定对应滑块；点击预览会定位并高亮该滑块，数值同步显示在卡片上。
+- 三层联动现已闭合：窗口滑块写入 `preview-stage` 的 `--window-opacity-*`，中间模拟 Codex 预览的对应 `data-window-preview-target` 实时消费这些变量；选中滑块或预览卡后，中间预览只显示并高亮当前区域，右上角 `WINDOW LINK` 读数同步当前对象。中间预览的额外区域（环境浮层、工具侧栏、底部终端面板、审批卡片、设置页框架）默认隐藏，选中后显示，避免同时堆叠造成误读。
+
+### 6.7 2026-09-01 窗口名称与中间预览映射复核
+
+- [verified] 当前运行中的 Codex `26.825` CDP 实测：左侧 `aside.app-shell-left-panel` 是导航面板；右侧 utility 根节点为 `absolute top-0 bottom-0 left-0 ... border-l`，其顶部栏是内部 `h-toolbar`；环境信息浮窗是该 utility 根内的 `rounded-3xl bg-surface-elevated-secondary` 节点。
+- [verified] 当前运行中的 `[data-pip-home-surface="thread-summary-panel"]` 与环境信息浮窗同区域、同尺寸，实际是 PIP 底层节点，不是中间消息回复卡片；环境浮窗打开时运行时会把它标记为 `environment-info-backdrop` 并清除其背景，防止双层变暗。因此控制中心将该项改名为“右侧摘要底层面板”，并在说明中明确这一动态边界。
+- [verified] 打开底部面板后，真实根节点为 `x=275` 的主内容区外壳，包含 `data-app-shell-tab-panel-controller="bottom"`；其直接 `h-toolbar-pane` 子节点才是终端顶部栏。设置页的 Windows 目标是保留 shell 后的右侧内容面板，不是整窗覆盖层；会话审批节点属于底部 composer 内部。
+- [implemented] 控制中心中间预览已按上述真实父子关系重排：环境信息浮窗和摘要底层均位于右侧工具面板内，审批卡片位于会话输入区域内，底部终端面板和设置页从左侧导航之后开始，左侧图标轨道与导航面板共同响应 sidebar 选中态。
+- [implemented] 清理预览卡遗留的 `data-window-preview` 样式选择器，统一改为当前 `data-window-control`；新增控制中心结构断言，防止摘要再次绑定到中间回复卡片。
+- [verified] `node --check control-center/public/app.js`、`node --check tools/control-center.test.mjs`、控制中心测试 13/13、renderer runtime 测试和 `git diff --check` 均通过。源码修正后旧安装包不包含本轮映射，未重新打包。
+
+### 6.8 2026-09-02 浏览器网页内容透明度控制
+
+- [root-cause] `utilitySidePanel = 0.56` 只作用于右侧工具面板外层；动态浏览器/终端 surface 另有固定 `.52` 的 `.app-theme.electron-dark` 规则，因此调节外层滑块不会改变浏览器网页区域的可见背景。
+- [implemented] 新增可选的 `windowOpacity.browserContent`，默认值保持现有 `.52`；`tools/selectors.json` 以 `[data-browser-sidebar-webview]` 登记浏览器宿主边界，运行时标记为 `data-ds-part="browser-content"`，共享 CSS 改为消费 `--ds-window-opacity-browser-content`。
+- [implemented] 控制中心新增“右侧浏览器网页内容”滑块、预览卡和中间预览区域，保存、导入导出和部分字段回退沿用现有 `windowOpacity` 合同；`utilitySidePanel` 与 `utilityToolbar` 的职责不变。
+- [boundary] 只调整浏览器宿主背景 alpha；嵌套原生 `webview` 仍不改几何、页面自有样式或交互，其他动态 terminal 继续使用原有全局 `.52` 规则。
+
+### 6.9 2026-09-11 真实 Codex 逐项复核
+
+- [evidence] CDP 返回的第一个页面是控制中心 `http://localhost:8090/general-agent`，不能用于 Codex 窗口验收；改为选择 `app://-/index.html` 后，真实 renderer 的活动主题变量已读到 12 项。
+- [evidence] 真实当前状态中 sidebar `.10`、utility 外壳 `.56`、browser host `.52` 的计算背景均符合活动主题；composer marker 的变量为 `.04`，但实际背景仍为 `.86`，原因为通用 `.app-theme.electron-dark` 规则的 class specificity 高于 marker-only composer 规则。
+- [implemented] composer 增加限定在 `.app-theme.electron-dark` 宿主下的高 specificity 规则，并兼容当前 `_ComposerLayoutInput_` CSS-module class；浏览器宿主 marker 只保留可见、可交互、非零尺寸节点，隐藏历史 WebView 不再参与当前透明度消费。
+- [pending] 本轮源码与双端资产已通过 renderer 回归和同步检查，但安装态仍运行修复前资产；重新打包/安装后必须重新读取每个打开窗口的 computed style，未将未安装源码修复宣称为 live 验收完成。

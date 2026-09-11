@@ -133,7 +133,7 @@ html[data-dream-skin="active"] [class~="bg-token-dropdown-background"] {
    bottom panel, browser sidebar, menus, or dialogs. */
 html[data-dream-skin="active"] [data-pip-home-surface="thread-summary-panel"] {
   color: var(--ds-text) !important;
-  background: rgb(var(--ds-panel-rgb) / .72) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-summary-panel)) !important;
   background-image: none !important;
   border-color: var(--ds-line) !important;
   box-shadow:
@@ -152,7 +152,7 @@ html[data-dream-skin="active"] [data-pip-home-surface="thread-summary-panel"] {
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"],
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"] [class~="bg-surface-elevated-secondary"] {
   color: var(--ds-text) !important;
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-info-popover)) !important;
   background-image: none !important;
   box-shadow:
     0 0 0 .5px var(--ds-line),
@@ -162,7 +162,7 @@ html[data-dream-skin="active"] [data-ds-part="environment-info-popover"] [class~
 
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
   header[class~="bg-surface-elevated-secondary"]::before {
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-info-popover)) !important;
 }
 
 /* The environment surface is wrapped by a same-sized native PIP backdrop.
@@ -181,7 +181,7 @@ html[data-dream-skin="active"] [data-ds-part="environment-info-backdrop"] {
    native interaction surface. */
 html[data-dream-skin="active"] [data-ds-part="profile-menu"] {
   color: var(--ds-text) !important;
-  background: rgb(var(--ds-panel-rgb) / .62) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-profile-menu)) !important;
   background-image: none !important;
   box-shadow:
     0 0 0 .5px var(--ds-line),
@@ -346,9 +346,9 @@ html[data-dream-skin="active"]:has(:is([role="dialog"], [aria-modal="true"], [da
   opacity: 0 !important;
 }
 
-/* The browser workbench is a native Electron webview. Keep the skin from
-   painting its host surface or changing the geometry used by Codex's native
-   browser/comment layers; the embedded page owns its own document and CSS. */
+/* The browser workbench contains a native Electron webview. Keep the skin
+   from changing the geometry or page-owned rendering of the native guest;
+   the host container receives its controlled background alpha below. */
 html[data-dream-skin="active"] [data-browser-sidebar-webview],
 html[data-dream-skin="active"] [data-browser-sidebar-webview] > webview {
   border: 0 !important;
@@ -761,6 +761,28 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
   backdrop-filter: blur(12px) saturate(106%) !important;
 }
 
+/* The browser sidebar has a native webview guest, but its visible glass
+   background belongs to the registered host container. Give that host its
+   own alpha so browser content can be tuned without changing the utility
+   panel shell or the shared .52 fallback used by other dynamic terminals. If
+   a build nests an app-theme surface inside the host, clear that nested fill
+   so the controlled host remains the single painted glass layer. */
+html[data-dream-skin="active"] [data-ds-part="browser-content"] {
+  color: var(--ds-text) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-browser-content)) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+html[data-dream-skin="active"] [data-ds-part="browser-content"]
+  > [class~="app-theme"][class~="electron-dark"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
 /* The right utility sidebar is a separate surface tree.  Live Codex builds
    currently paint its outer wrapper, tabs root, and scroll body with the same
    opaque bg-surface token.  The runtime marks only the wrapper associated
@@ -768,7 +790,7 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
    painted once, while keeping the 46px tab toolbar readable. */
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"] {
   color: var(--ds-text) !important;
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-utility-side-panel)) !important;
   background-image: none !important;
   border-left-color: var(--ds-line) !important;
   box-shadow: 0 0 0 .5px var(--ds-line), -12px 0 30px rgb(var(--ds-bg-rgb) / .16) !important;
@@ -778,7 +800,7 @@ html[data-dream-skin="active"] [data-ds-part="utility-side-panel"] {
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
   [data-app-shell-tabs="true"],
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
-  [data-app-shell-tabs="true"] [class~="bg-surface"] {
+  [data-app-shell-tabs="true"] :is([class~="bg-surface"], [class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"]) {
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -787,7 +809,7 @@ html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
 
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
   [data-app-shell-tabs="true"] [class~="h-toolbar"] {
-  background: rgb(var(--ds-panel-rgb) / .62) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-utility-toolbar)) !important;
   border-bottom: 1px solid var(--ds-line) !important;
   backdrop-filter: blur(12px) saturate(106%) !important;
 }
@@ -797,7 +819,7 @@ html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
    terminal sits directly on the theme artwork without a second dark layer. */
 html[data-dream-skin="active"] [data-ds-part="bottom-panel"] {
   color: var(--ds-text) !important;
-  background: transparent !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-bottom-panel)) !important;
   background-image: none !important;
   border-top-color: var(--ds-line) !important;
   box-shadow: none !important;
@@ -822,7 +844,7 @@ html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
 
 html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
   [class~="h-toolbar-pane"][class] {
-  background: transparent !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-bottom-toolbar)) !important;
   background-image: none !important;
   border-bottom: 1px solid var(--ds-line) !important;
   backdrop-filter: none !important;
@@ -869,7 +891,7 @@ html[data-dream-skin="active"] [data-ds-part="main"] {
    clear so the parent main tint is painted once; settings cards and controls
    inside it retain their native surfaces and readability. */
 html[data-dream-skin="active"] [data-ds-part="settings-page"] {
-  background: transparent !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-settings-page)) !important;
   background-image: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -1758,6 +1780,29 @@ html[data-dream-skin="active"][data-dream-controls="custom"] [data-ds-part="dial
   border-radius: var(--ds-theme-surface-radius) !important;
 }
 
+/* The composer is a user-facing bottom input surface, not the terminal-style
+   bottom panel. Keep its alpha independently adjustable while retaining the
+   existing border, radius, highlight, and approval-state isolation. */
+html[data-dream-skin="active"]
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"], [class*="_ComposerLayoutInput_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+}
+
+/* The generic Electron surface rule above carries higher class specificity
+   than the marker-only rule on newer composer nodes. Keep the saved alpha in
+   force when the composer lives inside that surface, without changing the
+   inner editor controls. */
+html[data-dream-skin="active"]
+  [class~="app-theme"][class~="electron-dark"]
+  :is(__DREAM_SELECTOR_COMPOSER_CHROME__, [data-ds-part="composer"], [class*="_ComposerLayoutRoot_"], [class*="_ComposerLayoutInput_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+}
+
+html[data-dream-skin="active"]
+  [class~="app-theme"][class~="electron-dark"][data-ds-part="composer"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer)) !important;
+}
+
 /* Codex 26.810 renders approval requests as a native Card rather than a
    role=dialog. Its exact native marker is stable, while the Card carries
    bg-primary-soft and electron:elevation-prominent. Those native tokens
@@ -1765,7 +1810,7 @@ html[data-dream-skin="active"][data-dream-controls="custom"] [data-ds-part="dial
    Keep this override marker-scoped so normal dialogs and the idle composer
    retain their existing contracts. */
 html[data-dream-skin="active"] [data-codex-approval-surface] {
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-approval-surface)) !important;
   background-image: none !important;
   border: 1px solid var(--ds-immersive-line) !important;
   box-shadow:
@@ -1896,7 +1941,7 @@ html[data-dream-skin="active"] [data-ds-part="message"] { border-radius: 16px; }
    reopens it from the title-bar toggle. Match the main surface's restrained
    tint; the navigation must not add a second background blur over the artwork. */
 html[data-dream-skin="active"] [data-ds-part="sidebar"] {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-sidebar)) !important;
   background-image: none !important;
   backdrop-filter: none !important;
 }
@@ -1906,7 +1951,7 @@ html[data-dream-skin="active"] [data-ds-part="sidebar"] {
    append the marker so only the validated sidebar receives the glass alpha. */
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__):not(:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__))
   __DREAM_SELECTOR_LEFT_PANEL__[data-ds-part="sidebar"] {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-sidebar)) !important;
   background-image: none !important;
   backdrop-filter: none !important;
 }
@@ -1915,7 +1960,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
    Keep the override limited to the validated sidebar marker there too. */
 html[data-dream-skin="active"][data-dream-art-wide="true"]:has(__DREAM_SELECTOR_SHELL_MAIN__ __DREAM_SELECTOR_HOME_ROUTE_CSS__)
   __DREAM_SELECTOR_LEFT_PANEL__[data-ds-part="sidebar"] {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-sidebar)) !important;
   background-image: none !important;
   backdrop-filter: none !important;
 }

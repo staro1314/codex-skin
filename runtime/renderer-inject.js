@@ -74,6 +74,13 @@
     "--ds-theme-image-dim", "--ds-theme-image-task-intensity",
     "--ds-theme-density-scale", "--ds-theme-motion-level",
     "--ds-art-size", "--ds-theme-image-veil",
+    "--ds-window-opacity-sidebar", "--ds-window-opacity-profile-menu",
+    "--ds-window-opacity-summary-panel", "--ds-window-opacity-environment-info-popover",
+    "--ds-window-opacity-utility-side-panel", "--ds-window-opacity-utility-toolbar",
+    "--ds-window-opacity-browser-content",
+    "--ds-window-opacity-composer",
+    "--ds-window-opacity-bottom-panel", "--ds-window-opacity-bottom-toolbar",
+    "--ds-window-opacity-approval-surface", "--ds-window-opacity-settings-page",
     "--dream-state-color", "--dream-state-overlay-opacity",
     "--dream-state-media-opacity", "--dream-state-brightness",
     "--dream-state-saturation", "--dream-state-contrast", "--dream-state-hue",
@@ -287,7 +294,32 @@
     typeof value === "number" && Number.isFinite(value) && value >= min && value <= max
       ? value : fallback;
 
-  const controlsCustomized = Object.keys(RAW_CONTROLS).length > 0;
+  const WINDOW_OPACITY_DEFAULTS = Object.freeze({
+    sidebar: 0.10,
+    profileMenu: 0.62,
+    summaryPanel: 0.72,
+    environmentInfoPopover: 0.56,
+    utilitySidePanel: 0.56,
+    utilityToolbar: 0.62,
+    browserContent: 0.52,
+    composer: 0.10,
+    bottomPanel: 0,
+    bottomToolbar: 0,
+    approvalSurface: 0.56,
+    settingsPage: 0,
+  });
+  const rawWindowOpacity = RAW_CONTROLS.windowOpacity && typeof RAW_CONTROLS.windowOpacity === "object"
+    && !Array.isArray(RAW_CONTROLS.windowOpacity) ? RAW_CONTROLS.windowOpacity : {};
+  const WINDOW_OPACITY = Object.freeze(Object.fromEntries(
+    Object.entries(WINDOW_OPACITY_DEFAULTS).map(([key, fallback]) => [
+      key,
+      boundedEffectNumber(rawWindowOpacity[key], fallback, 0, 1),
+    ]),
+  ));
+  const GLOBAL_CONTROL_KEYS = [
+    "surfaceOpacity", "surfaceBlur", "surfaceRadius", "imageZoom", "imageDim", "motionLevel",
+  ];
+  const controlsCustomized = GLOBAL_CONTROL_KEYS.some((key) => Object.hasOwn(RAW_CONTROLS, key));
   const CONTROLS = Object.freeze({
     surfaceOpacity: boundedEffectNumber(RAW_CONTROLS.surfaceOpacity, 1, 0.55, 1),
     surfaceBlur: boundedEffectNumber(RAW_CONTROLS.surfaceBlur, 0, 0, 32),
@@ -527,6 +559,9 @@
     setStyleProperty(root, "--ds-theme-image-task-intensity", "0.35");
     setStyleProperty(root, "--ds-theme-density-scale", "standard");
     setStyleProperty(root, "--ds-theme-motion-level", CONTROLS.motionLevel);
+    for (const [key, value] of Object.entries(WINDOW_OPACITY)) {
+      setStyleProperty(root, `--ds-window-opacity-${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}`, String(value));
+    }
     setStyleProperty(root, "--ds-art-size", CONTROLS.imageZoom === 1
       ? "cover" : `${Number((CONTROLS.imageZoom * 100).toFixed(2))}% auto`);
     setStyleProperty(root, "--ds-theme-image-veil", `linear-gradient(rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}), rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}))`);
@@ -918,6 +953,13 @@
     "显示/隐藏侧边面板",
   )
     ? selectorNodes("utility-side-panel") : [];
+  const browserContentNodes = () => selectorNodes("browser-sidebar-webview")
+    .filter((node) => {
+      const style = globalThis.getComputedStyle?.(node);
+      const rect = node.getBoundingClientRect?.();
+      return style?.visibility !== "hidden" && style?.display !== "none" &&
+        style?.pointerEvents !== "none" && rect?.width > 0 && rect?.height > 0;
+    });
   const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
     ? selectorNodes("bottom-panel") : [];
   const environmentInfoPopoverNodes = () => selectorNodes("environment-info-popover")
@@ -970,6 +1012,7 @@
     addPart(desired, "dialog", selectorNodes("overlay-dialog"));
     addPart(desired, "profile-menu", profileMenuNodes());
     addPart(desired, "utility-side-panel", utilitySidePanelNodes());
+    addPart(desired, "browser-content", browserContentNodes());
     addPart(desired, "bottom-panel", bottomPanelNodes());
     addPart(desired, "environment-info-popover", environmentInfoPopoverNodes());
     addPart(desired, "environment-info-backdrop", environmentInfoBackdropNodes());

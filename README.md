@@ -251,6 +251,8 @@ manifest.sig                # 预留字段
 
 其中表面透明度限制为 `0.55..1`，模糊限制为 `0..32`，圆角限制为 `8..28`，背景缩放限制为 `1..1.2`，压暗限制为 `0..0.65`，动态级别只接受 `reduced`、`standard`、`expressive`。旧主题省略 `controls` 时继续使用原有渲染效果，不需要迁移。
 
+窗口级透明度保存在可选的 `controls.windowOpacity` 对象中。`browserContent` 只控制右侧浏览器 WebView 宿主的背景 alpha；`utilitySidePanel` 仍只控制右侧工具面板外壳，嵌套原生 `webview` 的页面几何和页面自有样式保持隔离。各项取值均为 `0..1`，步长为 `0.01`。
+
 受信任的页面内适配层或调试工具可以发送显式状态覆盖：
 
 ```js

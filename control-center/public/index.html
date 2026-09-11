@@ -91,8 +91,8 @@
         <div class="preview-veil"></div>
         <div class="state-aura"></div>
         <div class="mock-app">
-          <nav class="mock-rail" aria-hidden="true"><b>⌁</b><span></span><span></span><span></span><i></i><span></span></nav>
-          <aside class="mock-sidebar glass-surface">
+          <nav class="mock-rail" data-window-preview-target="sidebar" aria-hidden="true"><b>⌁</b><span></span><span></span><span></span><i></i><span></span></nav>
+          <aside class="mock-sidebar glass-surface" data-window-preview-target="sidebar">
             <div class="mock-wordmark">CODEX <i></i></div>
             <button class="mock-new-task">＋ <span>新对话</span></button>
             <small>项目</small>
@@ -101,6 +101,9 @@
             <div class="mock-project"><i></i><span>voice-interface</span></div>
             <div class="mock-spacer"></div>
             <div class="mock-profile"><span>FY</span><div><b>Local workspace</b><small>Theme engine ready</small></div></div>
+            <div class="mock-profile-menu mock-window-target" data-window-preview-target="profileMenu" aria-hidden="true">
+              <b>账户菜单</b><span>账户与工作区</span><span>偏好设置</span>
+            </div>
           </aside>
           <section class="mock-main">
             <div class="mock-windowbar"><span>任务 / codex-skin</span><div><i></i><i></i><i></i></div></div>
@@ -110,11 +113,28 @@
               <p>背景、玻璃表面和状态光效在这里同步调校。</p>
               <div class="mock-response glass-surface"><span class="response-line long"></span><span class="response-line"></span><span class="response-line short"></span></div>
             </div>
-            <div class="mock-composer glass-surface"><span>准备接收新任务</span><button>↑</button></div>
+            <div class="mock-composer glass-surface" data-window-preview-target="composer"><span>准备接收新任务</span><button>↑</button>
+              <div class="mock-approval mock-window-target" data-window-preview-target="approvalSurface" aria-hidden="true"><b>需要批准此命令</b><span>运行主题应用操作</span></div>
+            </div>
           </section>
+          <aside class="mock-utility-panel mock-window-target" data-window-preview-target="utilitySidePanel" aria-hidden="true">
+            <div class="mock-utility-toolbar" data-window-preview-target="utilityToolbar"><b>工具栏</b><i></i><i></i></div>
+            <div class="mock-browser-content mock-window-target" data-window-preview-target="browserContent" aria-hidden="true"><b>浏览器网页内容</b><span>页面数据与滚动区域</span></div>
+            <div class="mock-summary-backdrop mock-window-target" data-window-preview-target="summaryPanel" aria-hidden="true"><b>摘要底层面板</b><span>环境信息浮窗的底层</span></div>
+            <div class="mock-environment-popover mock-window-target" data-window-preview-target="environmentInfoPopover" aria-hidden="true">
+              <b>环境信息浮窗</b><span>本地运行时</span><span>主题引擎已连接</span>
+            </div>
+            <strong>工具面板</strong><span></span><span></span><span></span>
+          </aside>
+          <aside class="mock-bottom-panel mock-window-target" data-window-preview-target="bottomPanel" aria-hidden="true">
+            <div class="mock-bottom-toolbar" data-window-preview-target="bottomToolbar"><b>终端面板顶部栏</b><i></i><i></i></div>
+            <code>ready · theme runtime</code>
+          </aside>
+          <div class="mock-settings mock-window-target" data-window-preview-target="settingsPage" aria-hidden="true"><b>设置</b><span>常规</span><span>外观</span><span>快捷键</span></div>
         </div>
         <div class="scan-line" aria-hidden="true"></div>
         <div class="stage-corner top-left">PREVIEW / 1440 × 900</div>
+        <div class="window-focus-readout" aria-live="polite"><span>WINDOW LINK</span><b id="window-focus-label">选择窗口项查看对应区域</b></div>
         <div class="stage-corner bottom-right">RENDER SAFE</div>
       </div>
 
@@ -140,6 +160,7 @@
       <nav class="editor-tabs" aria-label="编辑分组">
         <button class="editor-tab active" type="button" data-editor-tab="media">构图</button>
         <button class="editor-tab" type="button" data-editor-tab="surface">表面</button>
+        <button class="editor-tab" type="button" data-editor-tab="windows">窗口</button>
         <button class="editor-tab" type="button" data-editor-tab="effects">状态</button>
         <button class="editor-tab" type="button" data-editor-tab="export">分享</button>
       </nav>
@@ -189,8 +210,45 @@
           </div>
         </section>
 
+        <section class="control-section" data-section="windows">
+          <button class="section-title" type="button"><span>03 / 窗口级透明度</span><i>+</i></button>
+          <div class="section-body">
+            <div class="control-intro"><strong>分别控制各类窗口</strong><span>每项设置只作用于对应窗口，不跟随玻璃表面的整体透明度。</span></div>
+            <div class="control-intro compact"><span>0 = 完全透明，1 = 完全不透明。只改变指定窗口的背景 alpha，不改变模糊、圆角、字体或背景图。</span></div>
+            <div class="window-opacity-grid">
+              <label class="range-field" data-window-control="sidebar"><span>左侧导航面板 <output data-output="controls.windowOpacity.sidebar"></output></span><input id="window-opacity-sidebar" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.sidebar"></label>
+              <label class="range-field" data-window-control="profileMenu"><span>左下角账户菜单 <output data-output="controls.windowOpacity.profileMenu"></output></span><input id="window-opacity-profile-menu" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.profileMenu"></label>
+              <label class="range-field" data-window-control="summaryPanel"><span>右侧摘要底层面板 <output data-output="controls.windowOpacity.summaryPanel"></output></span><input id="window-opacity-summary-panel" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.summaryPanel"></label>
+              <label class="range-field" data-window-control="environmentInfoPopover"><span>右侧环境信息浮窗 <output data-output="controls.windowOpacity.environmentInfoPopover"></output></span><input id="window-opacity-environment-info" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.environmentInfoPopover"></label>
+              <label class="range-field" data-window-control="utilitySidePanel"><span>右侧工具面板 <output data-output="controls.windowOpacity.utilitySidePanel"></output></span><input id="window-opacity-utility-side-panel" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.utilitySidePanel"></label>
+              <label class="range-field" data-window-control="utilityToolbar"><span>右侧工具面板顶部栏 <output data-output="controls.windowOpacity.utilityToolbar"></output></span><input id="window-opacity-utility-toolbar" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.utilityToolbar"></label>
+              <label class="range-field" data-window-control="browserContent"><span>右侧浏览器网页内容 <output data-output="controls.windowOpacity.browserContent"></output></span><input id="window-opacity-browser-content" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.browserContent"></label>
+              <label class="range-field" data-window-control="composer"><span>底部会话输入区域 <output data-output="controls.windowOpacity.composer"></output></span><input id="window-opacity-composer" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.composer"></label>
+              <label class="range-field" data-window-control="bottomPanel"><span>底部终端面板外壳 <output data-output="controls.windowOpacity.bottomPanel"></output></span><input id="window-opacity-bottom-panel" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.bottomPanel"></label>
+              <label class="range-field" data-window-control="bottomToolbar"><span>底部终端面板顶部栏 <output data-output="controls.windowOpacity.bottomToolbar"></output></span><input id="window-opacity-bottom-toolbar" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.bottomToolbar"></label>
+              <label class="range-field" data-window-control="approvalSurface"><span>底部会话内命令审批卡片 <output data-output="controls.windowOpacity.approvalSurface"></output></span><input id="window-opacity-approval-surface" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.approvalSurface"></label>
+              <label class="range-field" data-window-control="settingsPage"><span>设置页右侧内容面板 <output data-output="controls.windowOpacity.settingsPage"></output></span><input id="window-opacity-settings-page" type="range" min="0" max="1" step="0.01" data-path="controls.windowOpacity.settingsPage"></label>
+            </div>
+            <div class="window-opacity-preview" aria-label="窗口透明度预览；点击任意预览可定位对应滑块">
+              <button class="window-opacity-sample" type="button" data-window-control="sidebar" aria-controls="window-opacity-sidebar" aria-pressed="false" title="定位：左侧导航面板"><b>左侧导航</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="profileMenu" aria-controls="window-opacity-profile-menu" aria-pressed="false" title="定位：左下角账户菜单"><b>账户菜单</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="summaryPanel" aria-controls="window-opacity-summary-panel" aria-pressed="false" title="定位：右侧摘要底层面板"><b>摘要底层</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="environmentInfoPopover" aria-controls="window-opacity-environment-info" aria-pressed="false" title="定位：右侧环境信息浮窗"><b>环境信息浮窗</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="utilitySidePanel" aria-controls="window-opacity-utility-side-panel" aria-pressed="false" title="定位：右侧工具面板"><b>工具面板</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="utilityToolbar" aria-controls="window-opacity-utility-toolbar" aria-pressed="false" title="定位：右侧工具面板顶部栏"><b>工具面板顶部栏</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="browserContent" aria-controls="window-opacity-browser-content" aria-pressed="false" title="定位：右侧浏览器网页内容"><b>浏览器网页内容</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="composer" aria-controls="window-opacity-composer" aria-pressed="false" title="定位：底部会话输入区域"><b>会话输入区域</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="bottomPanel" aria-controls="window-opacity-bottom-panel" aria-pressed="false" title="定位：底部终端面板外壳"><b>终端面板外壳</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="bottomToolbar" aria-controls="window-opacity-bottom-toolbar" aria-pressed="false" title="定位：底部终端面板顶部栏"><b>终端面板顶部栏</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="approvalSurface" aria-controls="window-opacity-approval-surface" aria-pressed="false" title="定位：底部会话内命令审批卡片"><b>命令审批卡片</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+              <button class="window-opacity-sample" type="button" data-window-control="settingsPage" aria-controls="window-opacity-settings-page" aria-pressed="false" title="定位：设置页右侧内容面板"><b>设置页内容</b><small data-window-preview-value></small><span aria-hidden="true"></span></button>
+            </div>
+            <p class="control-note">点击预览卡可定位对应滑块；摘要底层在环境信息浮窗打开时会自动清除，避免两层背景叠加；审批卡片背后的渐变、终端内部内容层和设置页内部卡片保持独立。</p>
+          </div>
+        </section>
+
         <section class="control-section" data-section="effects">
-          <button class="section-title" type="button"><span>03 / 当前状态特效</span><i>+</i></button>
+          <button class="section-title" type="button"><span>04 / 当前状态特效</span><i>+</i></button>
           <div class="section-body">
             <div class="selected-state"><span>正在调校</span><b id="effect-state-label">IDLE</b></div>
             <label class="color-line"><span>状态光色</span><input id="effect-color" type="color"></label>
@@ -204,7 +262,7 @@
         </section>
 
         <section class="control-section export-section" data-section="export">
-          <button class="section-title" type="button"><span>04 / 版本与分享包</span><i>+</i></button>
+          <button class="section-title" type="button"><span>05 / 版本与分享包</span><i>+</i></button>
           <div class="section-body">
             <div class="export-readiness"><span>PACKAGE</span><b>WINDOWS + MACOS</b></div>
             <label class="text-field"><span>语义版本</span><input id="export-version" value="1.0.0" maxlength="32" autocomplete="off" inputmode="decimal"></label>

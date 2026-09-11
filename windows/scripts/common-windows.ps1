@@ -16,6 +16,25 @@ $script:DreamSkinProductName = "$($product.displayName)"
 $script:DreamSkinProductStudioName = "$($product.studioName)"
 $script:DreamSkinProductPackageStem = "$($product.packageStem)"
 
+function Get-DreamSkinFileSha256 {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $stream = [System.IO.File]::Open(
+    $fullPath,
+    [System.IO.FileMode]::Open,
+    [System.IO.FileAccess]::Read,
+    [System.IO.FileShare]::Read
+  )
+  $hasher = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $digest = $hasher.ComputeHash($stream)
+    return ([System.BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+  } finally {
+    $hasher.Dispose()
+    $stream.Dispose()
+  }
+}
+
 function Get-DreamSkinProductName {
   return $script:DreamSkinProductName
 }
@@ -150,7 +169,10 @@ function Stop-DreamSkinClientProcess {
     # same-user client. Fall back to the process API, then keep the exact
     # executable-path check before stopping anything.
     try {
-      $processes = @(Get-Process -Name 'CodexDreamSkin.Client' -ErrorAction Stop | Where-Object {
+      # No matching client is the normal closed-application state, not a
+      # cleanup failure. SilentlyContinue still lets an actual matching
+      # process be filtered by its exact executable path.
+      $processes = @(Get-Process -Name 'CodexDreamSkin.Client' -ErrorAction SilentlyContinue | Where-Object {
         try {
           $_.Path -and [System.IO.Path]::GetFullPath($_.Path).Equals(
             $normalized, [System.StringComparison]::OrdinalIgnoreCase)
@@ -436,8 +458,8 @@ function Install-DreamSkinRuntimeEngine {
       $relative = $sourceFile.FullName.Substring($sourcePrefix.Length)
       $stagedFile = Join-Path $stagingRoot $relative
       if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf) -or
-        (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceFile.FullName).Hash -cne
-        (Get-FileHash -Algorithm SHA256 -LiteralPath $stagedFile).Hash) {
+        (Get-DreamSkinFileSha256 -Path $sourceFile.FullName) -cne
+        (Get-DreamSkinFileSha256 -Path $stagedFile)) {
         throw "Staged $($script:DreamSkinProductName) runtime failed hash verification: $relative"
       }
     }

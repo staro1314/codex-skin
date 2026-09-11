@@ -108,6 +108,21 @@ const THEME_CONTROL_KEYS = [
   "imageZoom",
   "imageDim",
   "motionLevel",
+  "windowOpacity",
+];
+const WINDOW_OPACITY_KEYS = [
+  "sidebar",
+  "profileMenu",
+  "summaryPanel",
+  "environmentInfoPopover",
+  "utilitySidePanel",
+  "utilityToolbar",
+  "browserContent",
+  "composer",
+  "bottomPanel",
+  "bottomToolbar",
+  "approvalSurface",
+  "settingsPage",
 ];
 const SEMVER_PATTERN = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
 const THEME_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -356,6 +371,14 @@ function normalizeBoundedNumber(value, fallback, min, max, label) {
   return value;
 }
 
+function normalizeWindowOpacity(value, label) {
+  const normalized = normalizeBoundedNumber(value, undefined, 0, 1, label);
+  if (normalized !== undefined && Math.abs((normalized * 100) - Math.round(normalized * 100)) > 1e-9) {
+    fail(`${label} must use 0.01 increments`);
+  }
+  return normalized;
+}
+
 export function normalizeThemeStateEffects(value, label = "theme.stateEffects") {
   if (value === undefined) return null;
   const effects = assertObject(value, label);
@@ -423,6 +446,16 @@ export function normalizeThemeControls(value, label = "theme.controls") {
     !new Set(["reduced", "standard", "expressive"]).has(controls.motionLevel)) {
     fail(`${label}.motionLevel is unsupported`);
   }
+  const windowOpacity = controls.windowOpacity === undefined ? undefined : (() => {
+    const opacity = assertObject(controls.windowOpacity, `${label}.windowOpacity`);
+    assertExactKeys(opacity, [], WINDOW_OPACITY_KEYS, `${label}.windowOpacity`);
+    return Object.fromEntries(WINDOW_OPACITY_KEYS
+      .filter((key) => opacity[key] !== undefined)
+      .map((key) => [
+        key,
+        normalizeWindowOpacity(opacity[key], `${label}.windowOpacity.${key}`),
+      ]));
+  })();
   return {
     ...(controls.surfaceOpacity !== undefined ? {
       surfaceOpacity: normalizeBoundedNumber(
@@ -450,6 +483,7 @@ export function normalizeThemeControls(value, label = "theme.controls") {
       ),
     } : {}),
     ...(controls.motionLevel !== undefined ? { motionLevel: controls.motionLevel } : {}),
+    ...(windowOpacity !== undefined ? { windowOpacity } : {}),
   };
 }
 

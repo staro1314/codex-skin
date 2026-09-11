@@ -832,10 +832,10 @@ function Get-DreamSkinThemeSemanticFingerprint {
   } finally {
     $themeHasher.Dispose()
   }
-  $imageHash = (Get-FileHash -LiteralPath $loaded.ImagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $imageHash = Get-DreamSkinFileSha256 -Path $loaded.ImagePath
   $combined = $themeHash + "`0" + $imageHash
   if ($loaded.VideoPath) {
-    $combined += "`0video`0" + (Get-FileHash -LiteralPath $loaded.VideoPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $combined += "`0video`0" + (Get-DreamSkinFileSha256 -Path $loaded.VideoPath)
   }
   $cssPath = Join-Path $loaded.Directory 'theme.css'
   if (Test-Path -LiteralPath $cssPath -PathType Leaf) {
@@ -843,7 +843,7 @@ function Get-DreamSkinThemeSemanticFingerprint {
     if ((Get-Item -LiteralPath $cssPath -Force).Length -gt 256KB) {
       throw 'Saved theme CSS exceeds the 256 KB limit.'
     }
-    $combined += "`0theme.css`0" + (Get-FileHash -LiteralPath $cssPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $combined += "`0theme.css`0" + (Get-DreamSkinFileSha256 -Path $cssPath)
   }
   $licensePath = Join-Path $loaded.Directory 'LICENSE.txt'
   if (Test-Path -LiteralPath $licensePath -PathType Leaf) {
@@ -851,7 +851,7 @@ function Get-DreamSkinThemeSemanticFingerprint {
     if ((Get-Item -LiteralPath $licensePath -Force).Length -gt 64KB) {
       throw 'Saved theme license exceeds the 64 KB limit.'
     }
-    $combined += "`0LICENSE.txt`0" + (Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $combined += "`0LICENSE.txt`0" + (Get-DreamSkinFileSha256 -Path $licensePath)
   }
   $combinedBytes = [System.Text.Encoding]::UTF8.GetBytes($combined)
   $combinedHasher = [System.Security.Cryptography.SHA256]::Create()
@@ -1029,25 +1029,29 @@ function Get-DreamSkinSourceThemeIdentity {
   }
   $sourceTheme.PSObject.Properties.Remove('id')
   $themeHash = Get-DreamSkinCanonicalJsonFingerprint -Value $sourceTheme
-  $imageHash = (Get-FileHash -LiteralPath $LoadedTheme.ImagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $imageHash = Get-DreamSkinFileSha256 -Path $LoadedTheme.ImagePath
   $videoIdentity = 'absent'
   if ($LoadedTheme.VideoPath) {
-    $videoIdentity = (Get-FileHash -LiteralPath $LoadedTheme.VideoPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $videoIdentity = Get-DreamSkinFileSha256 -Path $LoadedTheme.VideoPath
   }
   $cssPath = Join-Path $LoadedTheme.Directory 'theme.css'
   $cssIdentity = 'absent'
   if (Test-Path -LiteralPath $cssPath -PathType Leaf) {
     Assert-DreamSkinNoReparseComponents -Path $cssPath
-    $cssIdentity = (Get-FileHash -LiteralPath $cssPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $cssIdentity = Get-DreamSkinFileSha256 -Path $cssPath
   }
   $licensePath = Join-Path $LoadedTheme.Directory 'LICENSE.txt'
   $licenseIdentity = 'absent'
   if (Test-Path -LiteralPath $licensePath -PathType Leaf) {
     Assert-DreamSkinNoReparseComponents -Path $licensePath
-    $licenseIdentity = (Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $licenseIdentity = Get-DreamSkinFileSha256 -Path $licensePath
   }
   $identity = "dreamskin-source-theme-fallback/1`0theme.json`0$themeHash" +
-    "`0image`0$imageHash`0video`0$videoIdentity`0theme.css`0$cssIdentity`0LICENSE.txt`0$licenseIdentity"
+    "`0image`0$imageHash`0theme.css`0$cssIdentity"
+  if ($LoadedTheme.VideoPath) {
+    $identity += "`0video`0$videoIdentity"
+  }
+  $identity += "`0LICENSE.txt`0$licenseIdentity"
   $identityBytes = [System.Text.Encoding]::UTF8.GetBytes($identity)
   $identityHasher = [System.Security.Cryptography.SHA256]::Create()
   try {
@@ -1083,10 +1087,10 @@ function Get-DreamSkinThemeRuntimeContentFingerprint {
   } finally {
     $hasher.Dispose()
   }
-  $imageHash = (Get-FileHash -LiteralPath $loaded.ImagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $imageHash = Get-DreamSkinFileSha256 -Path $loaded.ImagePath
   $videoIdentity = 'absent'
   if ($loaded.VideoPath) {
-    $videoIdentity = (Get-FileHash -LiteralPath $loaded.VideoPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $videoIdentity = Get-DreamSkinFileSha256 -Path $loaded.VideoPath
   }
   $cssPath = Join-Path $loaded.Directory 'theme.css'
   $cssIdentity = 'absent'
@@ -1095,7 +1099,7 @@ function Get-DreamSkinThemeRuntimeContentFingerprint {
     if ((Get-Item -LiteralPath $cssPath -Force).Length -gt 256KB) {
       throw 'Theme CSS exceeds the 256 KB limit.'
     }
-    $cssIdentity = (Get-FileHash -LiteralPath $cssPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $cssIdentity = Get-DreamSkinFileSha256 -Path $cssPath
   }
   $identity = "dreamskin-runtime-theme/1`0theme.json`0$themeHash`0image`0$imageHash`0video`0$videoIdentity`0theme.css`0$cssIdentity"
   $identityBytes = [System.Text.Encoding]::UTF8.GetBytes($identity)

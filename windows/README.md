@@ -161,6 +161,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\restore-
 | 注入器日志 | `%LOCALAPPDATA%\CodexDreamSkin\injector.log` |
 | 注入器错误日志 | `%LOCALAPPDATA%\CodexDreamSkin\injector-error.log` |
 | 验证日志 | `%LOCALAPPDATA%\CodexDreamSkin\verify.log` |
+| 最近一次安装初始化失败 | `%LOCALAPPDATA%\CodexDreamSkin\installer-bootstrap-error.log`（成功安装后自动清除） |
 | Codex 配置 | `%USERPROFILE%\.codex\config.toml` |
 
 更完整的平台路径说明见 [`../docs/platforms.md`](../docs/platforms.md)。

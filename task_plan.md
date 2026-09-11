@@ -116,3 +116,30 @@
 ## 完成定义
 
 每个阶段完成前必须具备：实现、正向验证、失败路径验证、文档更新、测试记录和可恢复路径。`TASK_PROGRESS.md` 记录跨会话事实，`progress.md` 记录本次工作流，避免用“已完成”替代具体证据。
+
+## Phase 7：控制中心窗口级透明度调节（仅计划，2026-08-30）
+
+- `planned` 新增独立的 `theme.controls.windowOpacity` 合同，按已确认 marker 分别控制侧栏、菜单、浮窗、右侧面板、底部面板、审批卡和设置外壳。
+- `planned` 保留现有全局 `surfaceOpacity` 兼容行为；普通输入框、审批后方渐变、backdrop、terminal 内部和设置卡片列为保护边界，不因新增滑块被重写。
+- `planned` 先进行真实 renderer 基线复核，尤其解决透明度记录与当前底部工具栏 CSS 的默认值冲突，再进入 schema、控制中心、共享 runtime、双端同步和回归测试。
+- 详细执行计划保存在 `code-help/WINDOW_LEVEL_TRANSPARENCY_CONTROL_PLAN.md`。本阶段尚未修改实现、打包、提交或推送。
+
+## Phase 6A：Windows-only 发布（2026-09-01，本次任务）
+
+目标：基于当前工作区源码重新构建 Windows 安装包，并在用户授权范围内完成 Windows 发布；macOS 因本机没有打包工具，本次不构建、不上传、不发布。
+
+范围边界：
+
+- 只处理当前 `D:\project\personal\codex-skin` 工作区的 Windows 安装包、校验清单、版本/发布检查和用户明确授权的 Git 发布动作。
+- 保留用户现有改动；不使用 reset、checkout 丢弃改动，不修改 macOS 发布资产，不伪造 macOS 构建或 Release 状态。
+- 若当前版本未提升，不擅自重复覆盖已公开 Release；先依据仓库发布规则核对版本、提交和远端状态。
+
+阶段：
+
+1. `in_progress`：核对当前分支、工作区、版本、远端、README 与 Windows 发布脚本。
+2. `pending`：运行同步检查、Release Doctor、Windows 回归及构建前置检查。
+3. `pending`：从当前源码构建全新 Windows staging/Setup，核对 payload、文件名、大小和 SHA-256。
+4. `pending`：按可用的 GitHub/远端能力完成提交、推送、tag 和 Windows-only Release；macOS 资产不纳入发布。
+5. `pending`：回读远端/Release 状态，记录签名、真实安装 smoke test 和 macOS 缺口。
+
+验收标准：Windows 安装包来自当前目标提交；版本检查通过；Windows 测试与安装器静态/构建检查有明确结果；发布状态分别区分本地构建、提交、推送、tag、公开 Release 和可下载资产；macOS 保持明确未发布。

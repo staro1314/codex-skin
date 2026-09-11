@@ -24,7 +24,7 @@ $archive = Get-Item -LiteralPath $ArchivePath -Force
 if ($archive.Length -le 0 -or $archive.Length -gt 32MB) {
   throw 'Theme ZIP must be non-empty and no larger than 32 MiB.'
 }
-$digest = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$digest = Get-DreamSkinFileSha256 -Path $ArchivePath
 $imported = Import-DreamSkinThemeZip -ArchivePath $ArchivePath -StateRoot $StateRoot `
   -ExpectedArchiveBytes $archive.Length -ExpectedArchiveSha256 $digest
 $duplicate = "$($imported.Status)" -ceq 'Duplicate'

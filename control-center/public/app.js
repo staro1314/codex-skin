@@ -21,6 +21,20 @@ const FALLBACK_CONTROLS = {
   imageDim: 0.18,
   motionLevel: "standard",
 };
+const FALLBACK_WINDOW_OPACITY = {
+  sidebar: 0.10,
+  profileMenu: 0.62,
+  summaryPanel: 0.72,
+  environmentInfoPopover: 0.56,
+  utilitySidePanel: 0.56,
+  utilityToolbar: 0.62,
+  browserContent: 0.52,
+  composer: 0.10,
+  bottomPanel: 0,
+  bottomToolbar: 0,
+  approvalSurface: 0.56,
+  settingsPage: 0,
+};
 const SYSTEM_DEFAULT_THEME_ID = "preset-arina-hashimoto";
 const VIDEO_THEME_COVER_URL = "/video-theme-cover.png";
 
@@ -41,6 +55,9 @@ const state = {
   selectedId: null,
   draft: null,
   optionalFields: { colors: false, controls: false },
+  windowOpacityOriginKeys: null,
+  windowOpacityTouched: new Set(),
+  windowOpacityFocused: null,
   currentState: "idle",
   imageUploadId: null,
   videoUploadId: null,
@@ -64,7 +81,7 @@ const state = {
 const elements = Object.fromEntries([
   "connection-dot", "system-status", "connection-banner", "connection-message", "retry-button",
   "theme-count", "theme-list", "theme-search", "library-match", "library-empty", "preview-name",
-  "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "preview-image",
+  "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "window-focus-label", "preview-image",
   "preview-video", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
   "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "import-theme-button", "import-theme-file", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
   "effect-overlay", "effect-overlay-output", "effect-media", "effect-media-output", "effect-brightness",
@@ -146,7 +163,11 @@ function themeToDraft(theme) {
       muted: theme.colors?.muted ?? "#9ebdb3",
       line: theme.colors?.line ?? "rgba(124, 255, 70, .28)",
     },
-    controls: { ...FALLBACK_CONTROLS, ...(theme.controls ?? {}) },
+    controls: {
+      ...FALLBACK_CONTROLS,
+      ...(theme.controls ?? {}),
+      windowOpacity: { ...FALLBACK_WINDOW_OPACITY, ...(theme.controls?.windowOpacity ?? {}) },
+    },
     stateEffects: Object.fromEntries(STATES.map((key) => [key, { ...DEFAULT_EFFECTS[key], ...(theme.stateEffects?.[key] ?? {}) }])),
     videoPerformance: theme.video?.performance ?? "balanced",
   };
@@ -162,12 +183,29 @@ function optionalFieldsForTheme(theme) {
 function loadDraft(theme) {
   state.draft = themeToDraft(theme);
   state.optionalFields = optionalFieldsForTheme(theme);
+  state.windowOpacityOriginKeys = theme.controls?.windowOpacity
+    && typeof theme.controls.windowOpacity === "object"
+    && !Array.isArray(theme.controls.windowOpacity)
+    ? Object.keys(theme.controls.windowOpacity) : null;
+  state.windowOpacityTouched = new Set();
+  state.windowOpacityFocused = null;
 }
 
-function persistenceDraft(draft, optionalFields = {}) {
+function persistenceDraft(draft, optionalFields = {}, windowOpacityOriginKeys = null, windowOpacityTouched = new Set()) {
   const payload = deepClone(draft);
   if (optionalFields.colors) delete payload.colors;
   if (optionalFields.controls) delete payload.controls;
+  const windowOpacity = payload.controls?.windowOpacity;
+  if (windowOpacity && windowOpacityTouched.size === 0) {
+    if (windowOpacityOriginKeys === null) {
+      delete payload.controls.windowOpacity;
+    } else {
+      payload.controls.windowOpacity = Object.fromEntries(windowOpacityOriginKeys
+        .filter((key) => Object.hasOwn(windowOpacity, key))
+        .map((key) => [key, windowOpacity[key]]));
+      if (Object.keys(payload.controls.windowOpacity).length === 0) delete payload.controls.windowOpacity;
+    }
+  }
   return payload;
 }
 
@@ -260,7 +298,7 @@ function updateActionAvailability() {
   if (!hasDraft) elements.actionHelp.textContent = "选择主题后可开始调校";
   else if (!state.actionsEnabled) elements.actionHelp.textContent = "当前平台未开放原生应用操作";
   else if (!savedSelected) elements.actionHelp.textContent = "内置主题或新建草稿请使用“保存为新主题”；保存并应用只更新已保存主题";
-  else if (state.dirty) elements.actionHelp.textContent = "草稿未保存，保存后才会写入主题库";
+  else if (state.dirty) elements.actionHelp.textContent = "参数尚未应用；点击“应用所选主题”会先保存当前修改再应用";
   else elements.actionHelp.textContent = state.paused ? "皮肤已暂停显示" : "参数已同步到当前主题";
 }
 
@@ -352,6 +390,44 @@ function updateRange(input) {
   if (output) output.textContent = value.toFixed(Number(input.step) < 1 ? 2 : 0);
 }
 
+function syncWindowOpacityPreviewLinks() {
+  if (!state.draft) return;
+  const values = state.draft.controls?.windowOpacity ?? {};
+  const focusedKey = state.windowOpacityFocused;
+  elements.previewStage.dataset.windowFocus = focusedKey ?? "";
+  const focusedSample = focusedKey
+    ? document.querySelector(`.window-opacity-sample[data-window-control="${focusedKey}"]`)
+    : null;
+  if (elements.windowFocusLabel) {
+    elements.windowFocusLabel.textContent = focusedSample
+      ? `当前区域：${focusedSample.querySelector("b")?.textContent ?? focusedKey}`
+      : "选择窗口项查看对应区域";
+  }
+  for (const sample of document.querySelectorAll(".window-opacity-sample[data-window-control]")) {
+    const key = sample.dataset.windowControl;
+    const value = values[key];
+    const output = sample.querySelector("[data-window-preview-value]");
+    if (output) output.textContent = typeof value === "number" ? value.toFixed(2) : "—";
+    const selected = state.windowOpacityFocused === key;
+    sample.classList.toggle("selected", selected);
+    sample.setAttribute("aria-pressed", selected ? "true" : "false");
+    const rangeField = document.querySelector(
+      `.window-opacity-grid [data-window-control="${key}"]`,
+    );
+    rangeField?.classList.toggle("is-linked", selected);
+  }
+}
+
+function focusWindowOpacityControl(key) {
+  const input = document.querySelector(`[data-path="controls.windowOpacity.${key}"]`);
+  if (!input) return;
+  state.windowOpacityFocused = key;
+  setEditorTab("windows");
+  input.focus({ preventScroll: true });
+  input.scrollIntoView({ behavior: "smooth", block: "center" });
+  syncWindowOpacityPreviewLinks();
+}
+
 function syncInputs() {
   if (!state.draft) return;
   elements.themeName.value = state.draft.name;
@@ -404,6 +480,13 @@ function renderPreview() {
   style.setProperty("--surface-opacity", state.draft.controls.surfaceOpacity);
   style.setProperty("--surface-blur", `${state.draft.controls.surfaceBlur}px`);
   style.setProperty("--surface-radius", `${state.draft.controls.surfaceRadius}px`);
+  const windowOpacityPreview = document.querySelector(".window-opacity-preview")?.style;
+  for (const [key, value] of Object.entries(state.draft.controls.windowOpacity)) {
+    const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+    style.setProperty(`--window-opacity-${cssKey}`, value);
+    windowOpacityPreview?.setProperty(`--window-opacity-${cssKey}`, value);
+  }
+  syncWindowOpacityPreviewLinks();
   const effect = currentEffect();
   style.setProperty("--effect-color", effect.color);
   style.setProperty("--effect-overlay", effect.overlayOpacity);
@@ -670,7 +753,15 @@ async function createNewTheme() {
       method: "POST",
       body: JSON.stringify({
         sourceId: source.id,
-        draft: persistenceDraft(draft, optionalFields),
+        draft: persistenceDraft(
+          draft,
+          optionalFields,
+          defaultTheme.theme.controls?.windowOpacity
+            && typeof defaultTheme.theme.controls.windowOpacity === "object"
+            && !Array.isArray(defaultTheme.theme.controls.windowOpacity)
+            ? Object.keys(defaultTheme.theme.controls.windowOpacity) : null,
+          new Set(),
+        ),
         preserveOptionalFields: optionalFields,
         imageUploadId: type === "video" ? null : uploadResult.imageUpload.uploadId,
         videoUploadId: type === "video" ? uploadResult.videoUpload.uploadId : null,
@@ -843,20 +934,29 @@ async function exportTheme() {
   }
 }
 
-async function saveTheme(applyAfter) {
+async function saveTheme(applyAfter, actionButton = null) {
   const theme = selectedTheme();
   const updateCurrent = applyAfter && !state.newDraft && theme?.kind === "saved";
   if (applyAfter && !updateCurrent) {
     toast("请先选择已保存主题；内置主题或新建草稿请使用“保存为新主题”", true);
     return;
   }
-  setBusy(true, applyAfter ? "正在保存并应用" : "正在保存新主题", applyAfter ? elements.saveApplyButton : elements.saveButton);
+  setBusy(
+    true,
+    applyAfter ? "正在保存并应用" : "正在保存新主题",
+    actionButton ?? (applyAfter ? elements.saveApplyButton : elements.saveButton),
+  );
   try {
     const payload = await api(updateCurrent ? `/api/themes/${encodeURIComponent(theme.id)}` : "/api/themes", {
       method: updateCurrent ? "PUT" : "POST",
       body: JSON.stringify({
         sourceId: state.selectedId,
-        draft: persistenceDraft(state.draft, state.optionalFields),
+        draft: persistenceDraft(
+          state.draft,
+          state.optionalFields,
+          state.windowOpacityOriginKeys,
+          state.windowOpacityTouched,
+        ),
         preserveOptionalFields: state.optionalFields,
         imageUploadId: state.imageUploadId,
         videoUploadId: state.videoUploadId,
@@ -872,6 +972,14 @@ async function saveTheme(applyAfter) {
   } finally {
     setBusy(false);
   }
+}
+
+async function applySelectedTheme() {
+  if (state.dirty) {
+    await saveTheme(true, elements.applyButton);
+    return;
+  }
+  await action("apply");
 }
 
 async function deleteTheme(themeId = state.selectedId) {
@@ -954,10 +1062,19 @@ for (const input of document.querySelectorAll("[data-path]")) {
     setPath(state.draft, input.dataset.path, value);
     const [group] = input.dataset.path.split(".");
     if (group === "colors" || group === "controls") state.optionalFields[group] = false;
+    if (input.dataset.path.startsWith("controls.windowOpacity.")) {
+      const key = input.dataset.path.split(".")[2];
+      state.windowOpacityTouched.add(key);
+      state.windowOpacityFocused = key;
+    }
     if (input.type === "range") updateRange(input);
     markDirty();
     renderPreview();
   });
+}
+
+for (const sample of document.querySelectorAll(".window-opacity-sample[data-window-control]")) {
+  sample.addEventListener("click", () => focusWindowOpacityControl(sample.dataset.windowControl));
 }
 
 elements.themeName.addEventListener("input", () => {
@@ -1026,7 +1143,7 @@ for (const [input, key, output] of [
   });
 }
 
-elements.applyButton.addEventListener("click", () => action("apply"));
+elements.applyButton.addEventListener("click", applySelectedTheme);
 elements.pauseButton.addEventListener("click", () => action("pause"));
 elements.resumeButton.addEventListener("click", () => action("resume"));
 elements.startCodexButton.addEventListener("click", () => action("start", null));

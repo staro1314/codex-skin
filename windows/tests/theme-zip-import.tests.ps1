@@ -7,6 +7,12 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
 Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
 
+$canonicalVersionPath = Join-Path (Split-Path -Parent $Root) 'VERSION'
+$currentClientVersion = ([System.IO.File]::ReadAllText($canonicalVersionPath)).Trim()
+if ($currentClientVersion -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+  throw "Canonical test client version is invalid: $currentClientVersion"
+}
+
 # A runtime failure injection is not deterministic across PowerShell 5.1 file
 # providers. Keep this source-order guard as a portable regression: the old
 # canonical backup must survive until the newly published semantic fingerprint
@@ -140,11 +146,11 @@ function Write-TestOfficialThemePack {
   $files = @(
     [ordered]@{
       path = 'theme.json'; mediaType = 'application/json'; bytes = (Get-Item -LiteralPath $themePath).Length
-      sha256 = (Get-FileHash -LiteralPath $themePath -Algorithm SHA256).Hash.ToLowerInvariant()
+      sha256 = Get-DreamSkinFileSha256 -Path $themePath
     },
     [ordered]@{
       path = 'background.jpg'; mediaType = 'image/jpeg'; bytes = (Get-Item -LiteralPath $imagePath).Length
-      sha256 = (Get-FileHash -LiteralPath $imagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+      sha256 = Get-DreamSkinFileSha256 -Path $imagePath
     }
   )
   $capabilities = @('background', 'tokens')
@@ -156,7 +162,7 @@ function Write-TestOfficialThemePack {
   )
   $files += [ordered]@{
     path = 'theme.css'; mediaType = 'text/css'; bytes = (Get-Item -LiteralPath $cssPath).Length
-    sha256 = (Get-FileHash -LiteralPath $cssPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    sha256 = Get-DreamSkinFileSha256 -Path $cssPath
   }
   $capabilities += 'safe-css'
   if ($IncludeOptionalFiles) {
@@ -165,7 +171,7 @@ function Write-TestOfficialThemePack {
     [System.IO.File]::WriteAllText((Join-Path $Directory 'manifest.sig'), 'reserved-signature', [System.Text.UTF8Encoding]::new($false))
     $files += [ordered]@{
       path = 'LICENSE.txt'; mediaType = 'text/plain'; bytes = (Get-Item -LiteralPath $licensePath).Length
-      sha256 = (Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvariant()
+      sha256 = Get-DreamSkinFileSha256 -Path $licensePath
     }
   }
   $manifest = [ordered]@{
@@ -173,7 +179,7 @@ function Write-TestOfficialThemePack {
     themeId = $Id
     version = '1.2.3'
     skinApiVersion = 1
-    minClientVersion = '1.3.0'
+    minClientVersion = $currentClientVersion
     platforms = @('macos', 'windows')
     capabilities = $capabilities
     publisher = [ordered]@{ id = 'dreamskin-studio'; displayName = 'DreamSkin Studio' }
@@ -324,7 +330,7 @@ try {
     -Name 'Studio Windows Contract' -IncludeOptionalFiles
   New-TestZipFromDirectory -Source $officialSource -Archive $officialArchive
   $officialArchiveBytes = (Get-Item -LiteralPath $officialArchive -Force).Length
-  $officialArchiveSha256 = (Get-FileHash -LiteralPath $officialArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+  $officialArchiveSha256 = Get-DreamSkinFileSha256 -Path $officialArchive
   $official = Import-DreamSkinThemeZip -ArchivePath $officialArchive -StateRoot $stateRoot `
     -ExpectedArchiveBytes $officialArchiveBytes -ExpectedArchiveSha256 $officialArchiveSha256
   $officialRuntimeFingerprint = Get-DreamSkinThemeRuntimeContentFingerprint `
@@ -429,7 +435,7 @@ try {
   $missingId = Import-DreamSkinThemeZip -ArchivePath $missingIdArchive -StateRoot $stateRoot
   if ($missingId.Status -cne 'Imported' -or
     $missingId.Id -cne 'import-b009c788e6a9307c35ed281e' -or -not $missingId.Renamed) {
-    throw 'A missing source theme id did not use the stable cross-platform semantic fallback id.'
+    throw "A missing source theme id did not use the stable cross-platform semantic fallback id: status=$($missingId.Status), id=$($missingId.Id), renamed=$($missingId.Renamed)."
   }
 
   $nonStringIdSource = Join-Path $temporaryRoot 'non-string-id-source'
@@ -727,7 +733,7 @@ try {
   $rollbackFirst = Import-DreamSkinThemeZip -ArchivePath $rollbackArchiveA -StateRoot $stateRoot
   $rollbackFingerprintBefore = Get-DreamSkinThemeSemanticFingerprint -ThemeDirectory $rollbackFirst.Path
   $rollbackFilesBefore = @(Get-ChildItem -LiteralPath $rollbackFirst.Path -File | Sort-Object Name |
-    ForEach-Object { "$($_.Name):$($_.Length):$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" })
+    ForEach-Object { "$($_.Name):$($_.Length):$(Get-DreamSkinFileSha256 -Path $_.FullName)" })
   $activeBeforeRollback = Get-DreamSkinThemeSemanticFingerprint -ThemeDirectory $paths.Active
   $script:RollbackOriginalFingerprint = (Get-Item Function:\Get-DreamSkinThemeSemanticFingerprint).ScriptBlock
   $script:RollbackCanonical = [System.IO.Path]::GetFullPath($rollbackFirst.Path)
@@ -755,7 +761,7 @@ try {
     Set-Item Function:\Get-DreamSkinThemeSemanticFingerprint -Value $script:RollbackOriginalFingerprint
   }
   $rollbackFilesAfter = @(Get-ChildItem -LiteralPath $rollbackFirst.Path -File | Sort-Object Name |
-    ForEach-Object { "$($_.Name):$($_.Length):$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" })
+    ForEach-Object { "$($_.Name):$($_.Length):$(Get-DreamSkinFileSha256 -Path $_.FullName)" })
   $rollbackResidue = @(Get-ChildItem -LiteralPath $paths.Saved -Force -ErrorAction Stop |
     Where-Object { $_.Name -match '^\.theme-(?:failed|import-|legacy-cleanup-|replace-)' })
   if (-not $rollbackRejected -or -not $script:RollbackInjectionHit -or
