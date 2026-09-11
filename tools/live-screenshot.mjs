@@ -1,0 +1,33 @@
+const port = Number(process.env.CODEX_DREAM_SKIN_PORT || 9335);
+const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list")).json();
+const state = JSON.parse(await (await import("node:fs/promises")).readFile(process.env.LOCALAPPDATA + "/CodexDreamSkin/control-center.json", "utf8"));
+const target = targets.find((item) => item.type === "page" && item.title === "Codex Skin Studio");
+if (!target) throw new Error("No Codex app renderer");
+const ws = new WebSocket(target.webSocketDebuggerUrl);
+let id = 0;
+const send = (method, params = {}) => new Promise((resolve, reject) => {
+  const current = ++id;
+  const timer = setTimeout(() => reject(new Error(method + " timeout")), 10000);
+  const handler = (event) => {
+    const message = JSON.parse(String(event.data));
+    if (message.id !== current) return;
+    clearTimeout(timer); ws.removeEventListener("message", handler);
+    if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
+  };
+  ws.addEventListener("message", handler);
+  ws.send(JSON.stringify({ id: current, method, params }));
+});
+await new Promise((resolve, reject) => { ws.addEventListener("open", resolve, { once: true }); ws.addEventListener("error", reject, { once: true }); });
+await send("Page.navigate", { url: state.url });
+await new Promise((resolve) => setTimeout(resolve, 1200));
+await send("Runtime.evaluate", { expression: "Array.from(document.querySelectorAll('button')).find((node) => node.textContent.trim() === '窗口')?.click()" });
+await new Promise((resolve) => setTimeout(resolve, 300));
+await send("Runtime.evaluate", { expression: "document.scrollingElement.scrollTop = 1250" });
+await new Promise((resolve) => setTimeout(resolve, 400));
+const info = await send("Runtime.evaluate", { expression: `JSON.stringify({title: document.title, inputs: [...document.querySelectorAll("input[data-path]")].map((n) => ({path:n.dataset.path,value:n.value}),), buttons: [...document.querySelectorAll("button")].map((n) => n.textContent.trim()).filter(Boolean).slice(-20)})`, returnByValue: true }); console.log(info.result?.value); const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+const fs = await import("node:fs/promises");
+const path = "artifacts/live-control-center-installed.png";
+await fs.mkdir("artifacts", { recursive: true });
+await fs.writeFile(path, Buffer.from(shot.data, "base64"));
+console.log(JSON.stringify({ target: target.url, path, bytes: shot.data.length }));
+ws.close();

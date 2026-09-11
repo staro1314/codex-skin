@@ -1,0 +1,11 @@
+import fs from "node:fs/promises";
+const port = Number(process.env.CODEX_DREAM_SKIN_PORT || 9335);
+const name = process.argv[2] || "live-codex.png";
+const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+const target = targets.find((item) => item.type === "page" && item.url?.startsWith("app://-/index.html"));
+if (!target) throw new Error("No Codex renderer target");
+const ws = new WebSocket(target.webSocketDebuggerUrl); let id = 0;
+const send = (method, params = {}) => new Promise((resolve, reject) => { const current = ++id; const timer = setTimeout(() => reject(new Error(`${method} timeout`)), 10000); const onMessage = (event) => { const message = JSON.parse(String(event.data)); if (message.id !== current) return; clearTimeout(timer); ws.removeEventListener("message", onMessage); if (message.error) reject(new Error(message.error.message)); else resolve(message.result); }; ws.addEventListener("message", onMessage); ws.send(JSON.stringify({ id: current, method, params })); });
+await new Promise((resolve, reject) => { ws.addEventListener("open", resolve, { once: true }); ws.addEventListener("error", reject, { once: true }); });
+const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+await fs.mkdir("artifacts", { recursive: true }); await fs.writeFile(`artifacts/${name}`, Buffer.from(shot.data, "base64")); console.log(`artifacts/${name}`); ws.close();

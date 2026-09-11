@@ -1,0 +1,12 @@
+import fs from "node:fs/promises";
+const key = process.argv[2]; const value = Number(process.argv[3]);
+const state = JSON.parse(await fs.readFile(`${process.env.LOCALAPPDATA}/CodexDreamSkin/control-center.json`, "utf8"));
+const headers = { "X-DreamSkin-Token": state.token, Origin: state.origin };
+const bootstrap = await (await fetch(`${state.origin}/api/bootstrap`, { headers })).json();
+const theme = bootstrap.themes.find((item) => item.kind === "saved" && item.id === "custom-theme-mt84xyxo-fc7703");
+if (!theme) throw new Error("active saved theme not found");
+theme.controls.windowOpacity[key] = value;
+const saved = await fetch(`${state.origin}/api/themes/${encodeURIComponent(theme.id)}`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(theme) });
+console.log(JSON.stringify({ status: saved.status, body: await saved.text() }));
+const applied = await fetch(`${state.origin}/api/action`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ action: "apply", themeId: theme.id }) });
+console.log(JSON.stringify({ applyStatus: applied.status, body: await applied.text() }));

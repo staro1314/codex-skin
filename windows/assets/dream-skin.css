@@ -170,6 +170,15 @@ html[data-dream-skin="active"] [data-ds-part="main"] {
   background-image: none !important;
 }
 
+/* The current Windows renderer exposes the validated main surface through
+   the shell-main selector contract before the runtime marker is attached.
+   Keep the same control on both paths so the live value is effective during
+   route transitions and while the marker observer is catching up. */
+html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
+  background-image: none !important;
+}
+
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
   header[class~="bg-surface-elevated-secondary"]::before {
   background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-info-popover)) !important;
@@ -321,7 +330,7 @@ html[data-dream-skin="active"] body::after {
   inset: 0;
   /* The glow is decorative. It must stay below Codex's native chrome and
      never visually cover tabs, title actions, or other controls. */
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   box-shadow: inset 0 0 max(14vw, 120px) var(--dream-state-color, transparent);
   opacity: var(--dream-state-overlay-opacity, 0);
@@ -354,27 +363,6 @@ html[data-dream-skin="active"]:has(:is([role="dialog"], [aria-modal="true"], [da
   content: none !important;
   box-shadow: none !important;
   opacity: 0 !important;
-}
-
-/* The browser workbench contains a native Electron webview. Keep the skin
-   from changing the geometry or page-owned rendering of the native guest;
-   the host container receives its controlled background alpha below. */
-html[data-dream-skin="active"] [data-browser-sidebar-webview],
-html[data-dream-skin="active"] [data-browser-sidebar-webview] > webview {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  text-shadow: none !important;
-}
-
-html[data-dream-skin="active"] [data-browser-sidebar-webview]::before,
-html[data-dream-skin="active"] [data-browser-sidebar-webview]::after,
-html[data-dream-skin="active"] [data-browser-sidebar-webview] > webview::before,
-html[data-dream-skin="active"] [data-browser-sidebar-webview] > webview::after {
-  content: none !important;
-  display: none !important;
 }
 
 html[data-dream-skin="active"][data-dream-state-motion="pulse"] [data-dream-skin-video] {
@@ -618,7 +606,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="full"], [data-dream-art
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="full"], [data-dream-art-task-mode="full"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
   main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -652,7 +640,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
   main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) {
   /* Keep a restrained glass tint so the artwork remains visible without
      making the native conversation typography compete with bright pixels. */
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -670,7 +658,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
   .composer-surface-chrome {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   border: 0 !important;
   box-shadow:
     inset 0 0 0 1px var(--ds-immersive-line),
@@ -777,22 +765,6 @@ html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surfa
    panel shell or the shared .52 fallback used by other dynamic terminals. If
    a build nests an app-theme surface inside the host, clear that nested fill
    so the controlled host remains the single painted glass layer. */
-html[data-dream-skin="active"] [data-ds-part="browser-content"] {
-  color: var(--ds-text) !important;
-  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-browser-content)) !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(12px) saturate(106%) !important;
-}
-
-html[data-dream-skin="active"] [data-ds-part="browser-content"]
-  > [class~="app-theme"][class~="electron-dark"] {
-  background: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-}
-
 /* The right utility sidebar is a separate surface tree.  Live Codex builds
    currently paint its outer wrapper, tabs root, and scroll body with the same
    opaque bg-surface token.  The runtime marks only the wrapper associated
@@ -805,6 +777,12 @@ html[data-dream-skin="active"] [data-ds-part="utility-side-panel"] {
   border-left-color: var(--ds-line) !important;
   box-shadow: 0 0 0 .5px var(--ds-line), -12px 0 30px rgb(var(--ds-bg-rgb) / .16) !important;
   backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+/* Native webviews are separate compositor views. Keep the active browser
+   host above the theme artwork and renderer overlays so its guest can paint. */
+html[data-dream-skin="active"] [data-browser-sidebar-webview] {
+  z-index: 20 !important;
 }
 
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
@@ -889,7 +867,7 @@ html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
    compete with bright pixels. Keep this scoped to the runtime marker;
    composer, messages, controls, and other surfaces retain their own rules. */
 html[data-dream-skin="active"] [data-ds-part="main"] {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
   background-image: none !important;
   box-shadow: none !important;
 }
@@ -1268,7 +1246,7 @@ html[data-dream-skin="active"] .composer-surface-chrome {
   overflow: visible !important;
   border: 1px solid rgb(var(--ds-muted-rgb) / .18) !important;
   border-radius: 22px !important;
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   box-shadow: 0 10px 28px rgb(var(--ds-bg-rgb) / .24) !important;
   backdrop-filter: blur(16px) saturate(108%) !important;
 }
@@ -1278,7 +1256,7 @@ html[data-dream-skin="active"] .composer-surface-chrome {
    transparent glass contract as older builds. */
 html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])
   [class*="_ComposerLayoutRoot_"] {
-  background: rgb(var(--ds-panel-rgb) / .56) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   backdrop-filter: blur(16px) saturate(108%) !important;
 }
 
@@ -1339,7 +1317,7 @@ html[data-dream-skin="active"]:not(:has(main:is(.main-surface, [data-app-shell-m
   overflow: visible !important;
   border: 1px solid rgb(var(--ds-muted-rgb) / .18) !important;
   border-radius: 22px !important;
-  background: rgb(var(--ds-panel-rgb) / .94) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   box-shadow: 0 10px 28px rgb(var(--ds-bg-rgb) / .24) !important;
   backdrop-filter: blur(16px) saturate(108%) !important;
 }
@@ -1370,7 +1348,7 @@ html[data-dream-skin="active"][data-dream-art-wide="true"]:not(:has(main:is(.mai
   [data-ds-part="main"],
 html[data-dream-skin="active"][data-dream-art-wide="true"]:not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])))
   :not(:has([data-ds-part="main"])) > [data-ds-part="home"] {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
   background-image: none !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -1410,7 +1388,7 @@ html[data-dream-skin="active"][data-dream-art-wide="true"]:has(main:is(.main-sur
 }
 
 html[data-dream-skin="active"][data-dream-art-wide="true"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):has([role="main"]) {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-main-surface)) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -1462,7 +1440,7 @@ html[data-dream-skin="active"][data-dream-art-wide="true"] main:is(.main-surface
 }
 
 html[data-dream-skin="active"][data-dream-art-wide="true"] .composer-surface-chrome {
-  background: var(--ds-immersive-composer-solid) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   border: 0 !important;
   box-shadow:
     0 10px 30px rgb(var(--ds-bg-rgb) / .20),
@@ -1598,7 +1576,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"])[data-dream-art-wide="true"]:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])):not(:has(main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]) [role="main"]))
   main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"]))
   :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"]) {
-  background: rgb(var(--ds-panel-rgb) / .10) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
   border: 0 !important;
   box-shadow:
     inset 0 0 0 1px var(--ds-immersive-line),
@@ -1815,6 +1793,16 @@ html[data-dream-skin="active"]
 html[data-dream-skin="active"]
   [class~="app-theme"][class~="electron-dark"] [class*="_ComposerLayoutInput_"] {
   background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
+}
+
+/* The video-wide composer receives a higher-specificity native editor fill.
+   Keep the editor control explicit on this exact route so it cannot inherit
+   the general surface opacity from the composer shell. */
+html[data-dream-skin="active"][data-dream-controls="custom"][data-dream-art-wide="true"]
+  [class~="app-theme"][class~="electron-dark"] [class*="_ComposerLayoutInput_"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
+  background-color: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
+  background-image: none !important;
 }
 
 html[data-dream-skin="active"]

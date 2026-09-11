@@ -1,0 +1,8 @@
+const targets = await (await fetch("http://127.0.0.1:9335/json/list")).json();
+const target = targets.find((item) => item.type === "page" && item.url?.startsWith("app://-/index.html"));
+if (!target) throw new Error("No renderer");
+const ws = new WebSocket(target.webSocketDebuggerUrl); let id = 0;
+const send = (method, params = {}) => new Promise((resolve, reject) => { const n = ++id; const t = setTimeout(() => reject(new Error(`${method} timeout`)), 10000); const h = (e) => { const m = JSON.parse(String(e.data)); if (m.id !== n) return; clearTimeout(t); ws.removeEventListener("message", h); m.error ? reject(new Error(m.error.message)) : resolve(m.result); }; ws.addEventListener("message", h); ws.send(JSON.stringify({id:n,method,params})); });
+await new Promise((resolve, reject) => { ws.addEventListener("open", resolve, {once:true}); ws.addEventListener("error", reject, {once:true}); });
+const expression = `(() => { const host=[...document.querySelectorAll('[data-browser-sidebar-webview]')].find((x)=>getComputedStyle(x).visibility==='visible' && x.offsetWidth>0); const w=host?.querySelector('webview'); if(!w) return {error:'visible webview missing'}; document.documentElement.removeAttribute('data-dream-skin'); return {url:w.getURL?.(),loading:w.isLoading?.(),background:getComputedStyle(w).background}; })()`;
+const result = await send("Runtime.evaluate", {expression, returnByValue:true}); const targetsResult = await send("Target.getTargets"); console.log(JSON.stringify({probe:result.result?.value,targets:targetsResult.targetInfos.filter((x)=>x.type==='webview'||x.url.includes('8090'))},null,2)); ws.close();

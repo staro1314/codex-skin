@@ -1,0 +1,41 @@
+const key = process.argv[2];
+const value = Number(process.argv[3]);
+if (!key || !Number.isFinite(value) || value < 0 || value > 1) throw new Error("Usage: key value");
+const statePath = process.env.LOCALAPPDATA + "/CodexDreamSkin/control-center.json";
+const state = JSON.parse(await (await import("node:fs/promises")).readFile(statePath, "utf8"));
+const targets = await (await fetch("http://127.0.0.1:9335/json/list")).json();
+const target = targets.find((item) => item.type === "page" && item.title === "Codex Skin Studio");
+if (!target) throw new Error("Control center renderer is not open");
+const ws = new WebSocket(target.webSocketDebuggerUrl);
+let id = 0;
+const send = (method, params = {}) => new Promise((resolve, reject) => {
+  const current = ++id;
+  const timer = setTimeout(() => reject(new Error(method + " timeout")), 12000);
+  const handler = (event) => {
+    const message = JSON.parse(String(event.data));
+    if (message.id !== current) return;
+    clearTimeout(timer); ws.removeEventListener("message", handler);
+    if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
+  };
+  ws.addEventListener("message", handler);
+  ws.send(JSON.stringify({ id: current, method, params }));
+});
+await new Promise((resolve, reject) => { ws.addEventListener("open", resolve, { once: true }); ws.addEventListener("error", reject, { once: true }); });
+await send("Page.navigate", { url: state.url });
+await new Promise((resolve) => setTimeout(resolve, 1000));
+const expression = `(() => {
+  const input = document.querySelector('[data-path="controls.windowOpacity.${key}"]');
+  if (!input) return { ok: false, error: "input-not-found" };
+  input.value = "${value}";
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  const button = document.getElementById("save-apply-button");
+  if (!button || button.disabled) return { ok: false, error: "save-apply-disabled", disabled: button?.disabled };
+  button.click();
+  return { ok: true, value: input.value };
+})()`;
+const result = await send("Runtime.evaluate", { expression, returnByValue: true });
+await new Promise((resolve) => setTimeout(resolve, 3500));
+const status = await send("Runtime.evaluate", { expression: "JSON.stringify({busy:document.body.classList.contains('is-busy'),toast:document.querySelector('.toast')?.textContent||'',status:document.getElementById('save-status')?.textContent||''})", returnByValue: true });
+console.log(JSON.stringify({ change: result.result?.value, status: status.result?.value }));
+ws.close();

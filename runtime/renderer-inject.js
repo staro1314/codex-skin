@@ -573,6 +573,19 @@
     for (const [key, value] of Object.entries(WINDOW_OPACITY)) {
       setStyleProperty(root, `--ds-window-opacity-${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}`, String(value));
     }
+    // Codex's current editor node carries a native opaque fill with higher
+    // priority than the adopted theme sheet. Keep the override restricted to
+    // that exact CSS-module node and express it through the live theme vars so
+    // each apply immediately follows composerEditor without touching the
+    // shell or other inputs.
+    for (const editor of document.querySelectorAll('[class*="_ComposerLayoutInput_"]')) {
+      editor.style.setProperty(
+        "background",
+        "rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor))",
+        "important",
+      );
+      editor.style.setProperty("background-image", "none", "important");
+    }
     setStyleProperty(root, "--ds-art-size", CONTROLS.imageZoom === 1
       ? "cover" : `${Number((CONTROLS.imageZoom * 100).toFixed(2))}% auto`);
     setStyleProperty(root, "--ds-theme-image-veil", `linear-gradient(rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}), rgb(var(--ds-bg-rgb) / ${CONTROLS.imageDim}))`);

@@ -23,7 +23,8 @@ await new Promise((resolve, reject) => {
   ws.addEventListener("error", reject, { once: true });
 });
 const expression = `(() => {
-  const keys = ["sidebar","profile-menu","summary-panel","environment-info-popover","utility-side-panel","utility-toolbar","browser-content","composer","bottom-panel","bottom-toolbar","approval-surface","settings-page"];
+  const keys = ["main-surface","sidebar","profile-menu","summary-panel","environment-info-popover","environment-header","utility-side-panel","utility-toolbar","browser-content","composer","composer-shell","composer-editor","bottom-panel","bottom-toolbar","approval-surface","settings-page"];
+  const markerSelectors = { "main-surface": '[data-ds-part="main"]', "composer-shell": '[data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]', "composer-editor": '[class*="_ComposerLayoutInput_"]' };
   const rootStyle = getComputedStyle(document.documentElement);
   const read = (element) => {
     const style = getComputedStyle(element);
@@ -34,7 +35,7 @@ const expression = `(() => {
     url: location.href,
     viewport: { width: innerWidth, height: innerHeight },
     vars: Object.fromEntries(keys.map((key) => [key, rootStyle.getPropertyValue("--ds-window-opacity-" + key).trim()])),
-    markers: Object.fromEntries(keys.map((key) => [key, [...document.querySelectorAll('[data-ds-part="' + key + '"]')].map(read)])),
+    markers: Object.fromEntries(keys.map((key) => [key, [...document.querySelectorAll(markerSelectors[key] || '[data-ds-part="' + key + '"]')].map(read)])),
     browserHosts: [...document.querySelectorAll("[data-browser-sidebar-webview]")].map((element) => ({ ...read(element), outerHTML: element.outerHTML.slice(0, 500), parentChain: (() => { const chain = []; for (let current = element.parentElement, depth = 0; current && depth < 5; current = current.parentElement, depth += 1) chain.push({ tag: current.tagName, className: String(current.className).slice(0, 120), rect: (() => { const r = current.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })() }); return chain; })() })),
     utilityRoots: [...document.querySelectorAll("[data-app-shell-tabs=\\"true\\"]")].map(read),
     nativeWebviews: [...document.querySelectorAll("webview")].map(read),
