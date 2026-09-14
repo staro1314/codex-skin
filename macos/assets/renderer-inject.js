@@ -1,6 +1,6 @@
 // Canonical cross-platform renderer. Run tools/sync-runtime-assets.mjs after editing.
 ((cssText, artDataUrl, themeConfig) => {
-  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"profile-menu-trigger","selector":"button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']","tier":"L2","scope":"all","required":false},{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"floating-left-panel","selector":"aside[data-testid=\"app-shell-floating-left-panel\"]","tier":"L2","scope":"overlay","required":false},{"key":"utility-side-panel","selector":"div[class~=\"absolute\"][class~=\"top-0\"][class~=\"bottom-0\"][class~=\"left-0\"][class~=\"min-w-0\"][class~=\"border-l\"][class~=\"border-default\"]:is([class~=\"bg-surface\"], [class~=\"bg-[var(--app-shell-panel-background,var(--color-surface))]\"]):has([data-app-shell-tabs=\"true\"]):not(:has([data-app-shell-tab-panel-controller=\"bottom\"]))","tier":"L2","scope":"overlay","required":false},{"key":"browser-sidebar-webview","selector":"[data-browser-sidebar-webview]","tier":"L2","scope":"overlay","required":false},{"key":"bottom-panel","selector":"div[class~=\"absolute\"][class~=\"inset-x-0\"][class~=\"top-0\"][class~=\"min-h-0\"][class~=\"border-t\"][class~=\"border-default\"][class~=\"bg-surface\"]:has([data-app-shell-tabs=\"true\"]):has([data-app-shell-tab-panel-controller=\"bottom\"])","tier":"L2","scope":"overlay","required":false},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"settings-page","selector":"div[class~=\"electron:bg-surface\"][class~=\"electron:elevation-prominent\"][class~=\"windows:rounded-tl-lg\"]:has(> [class~=\"draggable\"][class~=\"electron:h-toolbar\"]):has(> [class~=\"overflow-y-auto\"])","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false},{"key":"environment-info-popover","selector":"div[class~=\"bg-surface-elevated-secondary\"][class~=\"rounded-3xl\"]:has(> [class~=\"overflow-y-auto\"])","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
+  const SELECTOR_CONTRACT = {"schema":"codex-dream-skin-selectors/1","selectors":[{"key":"profile-menu-trigger","selector":"button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']","tier":"L2","scope":"all","required":false},{"key":"shell-main","selector":"main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])","tier":"L1","scope":"all","required":true},{"key":"left-panel","selector":"aside:is(.app-shell-left-panel, [class~=\"bg-token-main-surface-primary\"])","tier":"L1","scope":"all","required":true},{"key":"floating-left-panel","selector":"aside[data-testid=\"app-shell-floating-left-panel\"]","tier":"L2","scope":"overlay","required":false},{"key":"utility-side-panel","selector":"div[class~=\"absolute\"][class~=\"top-0\"][class~=\"bottom-0\"][class~=\"left-0\"][class~=\"min-w-0\"][class~=\"border-l\"][class~=\"border-default\"]:is([class~=\"bg-surface\"], [class~=\"bg-[var(--app-shell-panel-background,var(--color-surface))]\"]):has([data-app-shell-tabs=\"true\"]):not(:has([data-app-shell-tab-panel-controller=\"bottom\"]))","tier":"L2","scope":"overlay","required":false},{"key":"browser-sidebar-webview","selector":"[data-browser-sidebar-webview]","tier":"L2","scope":"overlay","required":false},{"key":"bottom-panel","selector":"div[class~=\"absolute\"][class~=\"inset-x-0\"][class~=\"top-0\"][class~=\"min-h-0\"][class~=\"border-t\"][class~=\"border-default\"][class~=\"bg-surface\"]:has([data-app-shell-tabs=\"true\"]):has([data-app-shell-tab-panel-controller=\"bottom\"])","tier":"L2","scope":"overlay","required":false},{"key":"header-tint","selector":"header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])","tier":"L1","scope":"all","required":true},{"key":"main-content-top-fade","selector":":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade], [class*=\"_MainContentTopFade_\"])","tier":"L2","scope":"all","required":false},{"key":"home-icon","selector":"[data-testid=\"home-icon\"]","tier":"L1","scope":"home","required":true},{"key":"home-route","selector":"[role=\"main\"]:has([data-testid=\"home-icon\"])","tier":"L1","scope":"home","required":true},{"key":"home-route-css","selector":"[role=\"main\"]","tier":"L1","scope":"home","required":true},{"key":"home-banners","selector":".home-banners","tier":"L2","scope":"home","required":false},{"key":"composer-chrome","selector":".composer-surface-chrome","tier":"L2","scope":"home+thread","required":false},{"key":"composer-toolbar","selector":".composer-surface-chrome [class*=\"_footer_\"]","tier":"L2","scope":"home+thread","required":false},{"key":"home-utility","selector":"[class*=\"_homeUtilityBar_\"]","tier":"L2","scope":"home","required":false},{"key":"game-source","selector":"[data-feature=\"game-source\"]","tier":"L2","scope":"home","required":false},{"key":"home-suggestions","selector":".group\\/home-suggestions","tier":"L2","scope":"home","required":false},{"key":"project-selector","selector":".group\\/project-selector","tier":"L2","scope":"home config","required":false},{"key":"markdown","selector":"[class*=\"_markdown\"]","tier":"L2","scope":"thread","required":false},{"key":"thread-surface","selector":".thread-scroll-container","tier":"L2","scope":"thread","required":false},{"key":"message","selector":":is([data-message-author-role], [data-local-conversation-user-anchor], [data-local-conversation-final-assistant])","tier":"L2","scope":"thread","required":false},{"key":"settings-panel","selector":"[data-settings-panel-slug=\"general-settings\"]","tier":"L2","scope":"settings","required":false},{"key":"settings-page","selector":"main[class*=\"_MainContentSurface_\"] div[class~=\"electron:bg-surface\"][class~=\"windows:rounded-tl-lg\"]","tier":"L2","scope":"settings","required":false},{"key":"appearance-radio","selector":"input[name=\"appearance-theme\"]","tier":"L2","scope":"settings","required":false},{"key":"overlay-menu","selector":"[role=\"menu\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-dialog","selector":"[role=\"dialog\"]","tier":"L2","scope":"overlay","required":false},{"key":"overlay-popper","selector":"[data-radix-popper-content-wrapper]","tier":"L2","scope":"overlay","required":false},{"key":"environment-info-popover","selector":"div[class~=\"bg-surface-elevated-secondary\"][class~=\"rounded-3xl\"]:has(> [class~=\"overflow-y-auto\"])","tier":"L2","scope":"overlay","required":false}],"stableTestids":["app-shell-header-context-menu-surface","home-icon","theme-preview"]};
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const VIDEO_SOURCE_KEY = "__CODEX_DREAM_SKIN_VIDEO_SOURCE__";
   const VIDEO_TRANSFER_KEY = "__CODEX_DREAM_SKIN_VIDEO_TRANSFER__";
@@ -123,7 +123,7 @@
   let stylePaintRepairTimer = null;
   let videoNode = null;
   let videoSourceOverride = null;
-  let videoSourceBlobUrl = null;
+  let videoSourceUrl = null;
   let videoFailed = false;
   let motionQuery = null;
   let motionHandler = null;
@@ -234,11 +234,14 @@
 
   const setVideoSource = (source) => {
     const normalized = String(source ?? "");
-    if (!normalized.startsWith("blob:")) return false;
-    if (videoSourceBlobUrl && videoSourceBlobUrl !== normalized) {
-      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    const supported = normalized.startsWith("blob:")
+      || normalized.startsWith("data:video/mp4;base64,")
+      || normalized.startsWith("data:video/webm;base64,");
+    if (!supported) return false;
+    if (videoSourceUrl?.startsWith("blob:") && videoSourceUrl !== normalized) {
+      try { URL.revokeObjectURL(videoSourceUrl); } catch {}
     }
-    videoSourceBlobUrl = normalized;
+    videoSourceUrl = normalized;
     videoSourceOverride = normalized;
     videoFailed = false;
     videoNode?.pause?.();
@@ -256,14 +259,13 @@
       return true;
     },
     chunk(base64) {
-      const binary = atob(String(base64 || ""));
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-      this.chunks.push(bytes);
+      const encoded = String(base64 || "");
+      if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) return false;
+      this.chunks.push(encoded);
       return this.chunks.length;
     },
     finish() {
-      const url = URL.createObjectURL(new Blob(this.chunks, { type: this.mime }));
+      const url = `data:${this.mime};base64,${this.chunks.join("")}`;
       this.chunks = [];
       return setVideoSource(url);
     },
@@ -1334,10 +1336,10 @@
     if (styleRegistry.size === 0) delete window[STYLE_REGISTRY_KEY];
     if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
     videoTransfer.abort();
-    if (videoSourceBlobUrl) {
-      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    if (videoSourceUrl?.startsWith("blob:")) {
+      try { URL.revokeObjectURL(videoSourceUrl); } catch {}
     }
-    videoSourceBlobUrl = null;
+    videoSourceUrl = null;
     videoSourceOverride = null;
     videoNode?.pause?.();
     videoNode?.remove?.();

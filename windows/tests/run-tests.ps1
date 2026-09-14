@@ -1243,6 +1243,12 @@ try {
   )) {
     if (-not $css.Contains($requiredCss)) { throw "Windows immersive CSS is missing: $requiredCss" }
   }
+  if ($css -notmatch '(?s)\[data-dream-media="video"\]\s+body\s*>\s*#root\s*\{[^}]*position:\s*relative;[^}]*z-index:\s*auto;') {
+    throw 'Video skin root must avoid a positive stacking context so Electron WebView guests remain composited.'
+  }
+  if ($css -match '(?s)\[data-dream-media="video"\]\s+body\s*>\s*#root\s*\{[^}]*z-index:\s*1;') {
+    throw 'Video skin root still creates the stacking context that hides Electron WebView guests.'
+  }
   if ($css.Contains('home-suggestion-list-item') -or
     $css.Contains('.dream-skin-home') -or $css.Contains('.dream-home') -or
     $css.Contains('.dream-task') -or $css.Contains('codex-dream-skin-chrome')) {
@@ -1353,9 +1359,11 @@ try {
     -not $startSource.Contains('Start-DreamSkinCodexForDebugging -Codex $codex')) {
     throw 'Start bypasses the guarded package-activation and Store-executable launch strategy.'
   }
-  if (-not $startSource.Contains("'--enable-features=DelegatedCompositing'") -or
-    -not $startSource.Contains("'--disable-features=DelegatedCompositingLimitToUi'")) {
-    throw 'Windows startup no longer separates fullscreen video and Codex UI into full DComp delegation planes.'
+  if ($startSource.Contains('DelegatedCompositing')) {
+    throw 'Windows startup must not force delegated compositing; it conflicts with Codex native WebView surfaces.'
+  }
+  if ($startSource.Contains('--disable-direct-composition-video-overlays')) {
+    throw 'Windows startup still carries the disproved DirectComposition video-overlay workaround.'
   }
   $stateReadIndex = $startSource.IndexOf('$previousState = Read-DreamSkinState', [System.StringComparison]::Ordinal)
   $restartPromptIndex = $startSource.IndexOf('$restartAuthorized = Confirm-DreamSkinRestart', [System.StringComparison]::Ordinal)

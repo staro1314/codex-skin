@@ -123,7 +123,7 @@
   let stylePaintRepairTimer = null;
   let videoNode = null;
   let videoSourceOverride = null;
-  let videoSourceBlobUrl = null;
+  let videoSourceUrl = null;
   let videoFailed = false;
   let motionQuery = null;
   let motionHandler = null;
@@ -234,11 +234,14 @@
 
   const setVideoSource = (source) => {
     const normalized = String(source ?? "");
-    if (!normalized.startsWith("blob:")) return false;
-    if (videoSourceBlobUrl && videoSourceBlobUrl !== normalized) {
-      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    const supported = normalized.startsWith("blob:")
+      || normalized.startsWith("data:video/mp4;base64,")
+      || normalized.startsWith("data:video/webm;base64,");
+    if (!supported) return false;
+    if (videoSourceUrl?.startsWith("blob:") && videoSourceUrl !== normalized) {
+      try { URL.revokeObjectURL(videoSourceUrl); } catch {}
     }
-    videoSourceBlobUrl = normalized;
+    videoSourceUrl = normalized;
     videoSourceOverride = normalized;
     videoFailed = false;
     videoNode?.pause?.();
@@ -256,14 +259,13 @@
       return true;
     },
     chunk(base64) {
-      const binary = atob(String(base64 || ""));
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-      this.chunks.push(bytes);
+      const encoded = String(base64 || "");
+      if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)) return false;
+      this.chunks.push(encoded);
       return this.chunks.length;
     },
     finish() {
-      const url = URL.createObjectURL(new Blob(this.chunks, { type: this.mime }));
+      const url = `data:${this.mime};base64,${this.chunks.join("")}`;
       this.chunks = [];
       return setVideoSource(url);
     },
@@ -1334,10 +1336,10 @@
     if (styleRegistry.size === 0) delete window[STYLE_REGISTRY_KEY];
     if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
     videoTransfer.abort();
-    if (videoSourceBlobUrl) {
-      try { URL.revokeObjectURL(videoSourceBlobUrl); } catch {}
+    if (videoSourceUrl?.startsWith("blob:")) {
+      try { URL.revokeObjectURL(videoSourceUrl); } catch {}
     }
-    videoSourceBlobUrl = null;
+    videoSourceUrl = null;
     videoSourceOverride = null;
     videoNode?.pause?.();
     videoNode?.remove?.();

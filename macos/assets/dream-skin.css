@@ -161,7 +161,7 @@ html[data-dream-skin="active"] [data-ds-part="environment-info-popover"] [class~
 }
 
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
-  > header[class~="bg-surface-elevated-secondary"] {
+  header[class~="bg-surface-elevated-secondary"] {
   background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-header)) !important;
 }
 
@@ -181,7 +181,7 @@ html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surfa
 
 html[data-dream-skin="active"] [data-ds-part="environment-info-popover"]
   header[class~="bg-surface-elevated-secondary"]::before {
-  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-info-popover)) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-environment-header)) !important;
 }
 
 /* The environment surface is wrapped by a same-sized native PIP backdrop.
@@ -297,13 +297,13 @@ html[data-dream-skin="active"][data-dream-media="video"] body {
 
 html[data-dream-skin="active"][data-dream-media="video"] body > #root {
   position: relative;
-  z-index: 1;
+  z-index: auto;
 }
 
 html[data-dream-skin="active"] [data-dream-skin-video] {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 0 !important;
+  z-index: -1 !important;
   display: none;
   width: 100vw !important;
   height: 100vh !important;
@@ -330,7 +330,7 @@ html[data-dream-skin="active"] body::after {
   inset: 0;
   /* The glow is decorative. It must stay below Codex's native chrome and
      never visually cover tabs, title actions, or other controls. */
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   box-shadow: inset 0 0 max(14vw, 120px) var(--dream-state-color, transparent);
   opacity: var(--dream-state-overlay-opacity, 0);
@@ -765,6 +765,24 @@ html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surfa
    panel shell or the shared .52 fallback used by other dynamic terminals. If
    a build nests an app-theme surface inside the host, clear that nested fill
    so the controlled host remains the single painted glass layer. */
+html[data-dream-skin="active"] [data-ds-part="browser-content"] {
+  color: var(--ds-text) !important;
+  opacity: var(--ds-window-opacity-browser-content) !important;
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-browser-content)) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+
+html[data-dream-skin="active"] [data-ds-part="browser-content"]
+  > [class~="app-theme"][class~="electron-dark"] {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
 /* The right utility sidebar is a separate surface tree.  Live Codex builds
    currently paint its outer wrapper, tabs root, and scroll body with the same
    opaque bg-surface token.  The runtime marks only the wrapper associated
@@ -777,12 +795,6 @@ html[data-dream-skin="active"] [data-ds-part="utility-side-panel"] {
   border-left-color: var(--ds-line) !important;
   box-shadow: 0 0 0 .5px var(--ds-line), -12px 0 30px rgb(var(--ds-bg-rgb) / .16) !important;
   backdrop-filter: blur(12px) saturate(106%) !important;
-}
-
-/* Native webviews are separate compositor views. Keep the active browser
-   host above the theme artwork and renderer overlays so its guest can paint. */
-html[data-dream-skin="active"] [data-browser-sidebar-webview] {
-  z-index: 20 !important;
 }
 
 html[data-dream-skin="active"] [data-ds-part="utility-side-panel"]
@@ -892,6 +904,19 @@ html[data-dream-skin="active"] [data-ds-part="settings-page"] {
 html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
   [data-app-shell-tab-panel-controller="bottom"] {
   background: transparent !important;
+}
+
+/* Codex 26.903 paints the terminal body on a separate flex surface below the
+   toolbar. The panel root can be transparent while this child remains an
+   opaque native bg-surface, making the bottomPanel control appear ineffective.
+   Bind only the terminal body to bottomPanel; the h-toolbar-pane above keeps
+   its independent bottomToolbar value. */
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [class~="relative"][class~="flex"][class~="min-h-0"][class~="flex-1"][class~="flex-col"][class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-bottom-panel)) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
 html[data-dream-skin="active"] main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) article {

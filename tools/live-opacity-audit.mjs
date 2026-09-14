@@ -24,7 +24,14 @@ await new Promise((resolve, reject) => {
 });
 const expression = `(() => {
   const keys = ["main-surface","sidebar","profile-menu","summary-panel","environment-info-popover","environment-header","utility-side-panel","utility-toolbar","browser-content","composer","composer-shell","composer-editor","bottom-panel","bottom-toolbar","approval-surface","settings-page"];
-  const markerSelectors = { "main-surface": '[data-ds-part="main"]', "composer-shell": '[data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]', "composer-editor": '[class*="_ComposerLayoutInput_"]' };
+  const markerSelectors = {
+    "main-surface": '[data-ds-part="main"]',
+    "summary-panel": '[data-pip-home-surface="thread-summary-panel"]',
+    "environment-header": '[data-ds-part="environment-info-popover"] header[class~="bg-surface-elevated-secondary"]',
+    "composer-shell": '[data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]',
+    "composer-editor": '[class*="_ComposerLayoutInput_"]',
+    "approval-surface": '[data-codex-approval-surface]',
+  };
   const rootStyle = getComputedStyle(document.documentElement);
   const read = (element) => {
     const style = getComputedStyle(element);
@@ -38,6 +45,7 @@ const expression = `(() => {
     markers: Object.fromEntries(keys.map((key) => [key, [...document.querySelectorAll(markerSelectors[key] || '[data-ds-part="' + key + '"]')].map(read)])),
     browserHosts: [...document.querySelectorAll("[data-browser-sidebar-webview]")].map((element) => ({ ...read(element), outerHTML: element.outerHTML.slice(0, 500), parentChain: (() => { const chain = []; for (let current = element.parentElement, depth = 0; current && depth < 5; current = current.parentElement, depth += 1) chain.push({ tag: current.tagName, className: String(current.className).slice(0, 120), rect: (() => { const r = current.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })() }); return chain; })() })),
     utilityRoots: [...document.querySelectorAll("[data-app-shell-tabs=\\"true\\"]")].map(read),
+    environmentChildren: [...document.querySelectorAll('[data-ds-part="environment-info-popover"] *')].map((element) => ({ ...read(element), text: (element.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 80) })).filter((item) => item.rect.width > 100 && item.rect.height > 20),
     nativeWebviews: [...document.querySelectorAll("webview")].map(read),
     visibleSurfaces: [...document.querySelectorAll("div,aside,section,main,header,form")].map((element) => {
       const style = getComputedStyle(element);

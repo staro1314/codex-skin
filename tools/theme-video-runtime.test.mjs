@@ -14,7 +14,7 @@ test.after(async () => {
   await fs.rm(tempRoot, { recursive: true, force: true });
 });
 
-test("video renderer payload stays small while CDP transfers a validated video into a renderer blob", async () => {
+test("video renderer payload stays small while CDP transfers validated video chunks", async () => {
   const themeRoot = path.join(tempRoot, "video-theme");
   await fs.mkdir(themeRoot);
   const theme = JSON.parse(await fs.readFile(path.join(projectRoot, "windows", "assets", "theme.json"), "utf8"));
@@ -32,7 +32,6 @@ test("video renderer payload stays small while CDP transfers a validated video i
   const loaded = await loadPayload(themeRoot);
 
   assert.match(loaded.theme.video.src, /^file:\/\//);
-  assert.doesNotMatch(loaded.payload, /data:video\//);
   assert.doesNotMatch(loaded.payload, /0000001866747970/);
 
   const calls = [];

@@ -638,3 +638,82 @@ settings scope.baseState = settings
 - [evidence] 真实当前状态中 sidebar `.10`、utility 外壳 `.56`、browser host `.52` 的计算背景均符合活动主题；composer marker 的变量为 `.04`，但实际背景仍为 `.86`，原因为通用 `.app-theme.electron-dark` 规则的 class specificity 高于 marker-only composer 规则。
 - [implemented] composer 增加限定在 `.app-theme.electron-dark` 宿主下的高 specificity 规则，并兼容当前 `_ComposerLayoutInput_` CSS-module class；浏览器宿主 marker 只保留可见、可交互、非零尺寸节点，隐藏历史 WebView 不再参与当前透明度消费。
 - [pending] 本轮源码与双端资产已通过 renderer 回归和同步检查，但安装态仍运行修复前资产；重新打包/安装后必须重新读取每个打开窗口的 computed style，未将未安装源码修复宣称为 live 验收完成。
+
+### 6.10 2026-09-14 原生浏览器 WebView 被视频层遮挡
+
+- [root-cause] 在同一个可见 WebView 中加载固定 `data:` 测试页，并按 adopted stylesheet 顶层规则二分。只启用 `[data-dream-skin-video]` 规则即可让原生 guest 消失；单独启用 `body` 背景、视频态 `#root` 和 `body::after` 均不会复现。根因是全屏视频元素的 `position: fixed` 与 `z-index: 0 !important` 进入原生 WebView 合成层之前。
+- [implemented] 背景媒体仍保持全屏、播放、缩放和状态动画，仅将 `[data-dream-skin-video]` 调整为 `z-index: -1 !important`；没有删除、隐藏或停用视频皮肤。浏览器宿主 `browserContent` 透明度规则保留。
+- [visual-verified] 热注入完整主题后，同一截图同时显示主题背景、Codex 透明界面和右侧 `WEBVIEW CONTENT IS VISIBLE` 原生 guest，证明视频仍可见且 WebView 不再被遮挡。
+- [regression] `tools/renderer-runtime.test.mjs` 新增背景媒体必须位于 `-1` 层的断言；真实网页内容仍由网页自身和服务状态决定，不以外部服务在线作为此合成层修复的前提。
+### 6.11 浏览器网页内容透明度必须作用于原生 guest 合成结果（2026-09-14）
+
+- 运行时证据：`--ds-window-opacity-browser-content=0.52` 已到达根节点，但可见的
+  `[data-ds-part="browser-content"]` 只有透明背景，原生 `<webview>` guest 仍以不透明
+  合成层绘制，因此旧实现调节宿主 `background` 不会改变网页内容的视觉透明度。
+- 修复：在已登记的浏览器宿主上增加
+  `opacity: var(--ds-window-opacity-browser-content) !important`。该规则只影响原生 guest
+  的最终合成输出，不复用也不覆盖 `utilitySidePanel` 或 `utilityToolbar`。
+- 视觉验收：在同一真实 Codex renderer、同一浏览器页和视频主题下临时切换 1.00/0.25，
+  截图 `artifacts/browser-content-opacity-1.png` 与
+  `artifacts/browser-content-opacity-0_25.png` 显示网页内容整体透明度明确变化，而相邻工具栏、
+  中间会话区保持不变；computed opacity 分别为 `1` 和 `0.25`。测试后已恢复主题值。
+
+### 6.12 浏览器宿主不得覆盖原生浮层（2026-09-14）
+
+- 复测发现此前用于绕过视频遮挡的 `[data-browser-sidebar-webview] { z-index: 20 }` 会把
+  独立 WebView 合成层抬到环境信息浮层之上，导致浮层 marker 和 computed background 正常，
+  但视觉上仍只看到网页。
+- 视频层已经通过 `z-index: -1` 放到底层，浏览器宿主不再需要额外抬高。删除该 z-index，
+  并增加 renderer CSS 断言，禁止浏览器宿主再次覆盖 Codex 菜单、浮层和对话框。
+- Electron 截图对浮层和 guest 的合成顺序仍有平台差异；验收浮层时允许在截图瞬间隐藏
+  guest 宿主并立即恢复，但不得关闭标签、删除网页或将该状态作为产品实现。
+
+### 6.13 视觉 A/B 的变量优先级与输入框两级关系（2026-09-14）
+
+- 运行时会把部分 `--ds-window-opacity-*` 以 inline `!important` 写入根节点。视觉诊断脚本
+  必须用同优先级临时值，并保存/恢复原值和 priority；普通 `setProperty` 会造成变量未变化的
+  假失败。
+- 会话输入框按外到内分两级：`composerShell` 控制边框包围的完整输入容器，
+  `composerEditor` 控制内部文字编辑带。内层覆盖重叠像素，视觉优先级高于外壳；验证外壳时
+  重点观察上下留白和边缘区域，验证编辑区时观察中间输入带。
+
+### 6.14 Codex 26.903 设置页与环境标题结构漂移（2026-09-14）
+
+- [root-cause] 设置页右侧内容框仍保留 `electron:bg-surface` 与
+  `windows:rounded-tl-lg`，但已移除旧选择器依赖的 `electron:elevation-prominent`、直接
+  toolbar、直接滚动内容子节点，并增加布局包装层。旧 `settings-page` selector 因此命中 0，
+  透明度变量虽然存在但没有消费节点。
+- [implemented] `settings-page` 改为限定在 `_MainContentSurface_` 内的 Electron surface 与
+  Windows 圆角联合选择器。热注入后 marker 命中 1；1.00/0.05 A/B 的背景分别为
+  `rgb(11, 26, 32)` 与 `rgba(11, 26, 32, 0.05)`，设置内部卡片未被扩大命中。
+- [root-cause] 环境信息标题已从浮窗根的直接 `header` 变为 `section > header`。旧直接子选择器
+  不再命中；同时 `header::before` 仍消费外壳变量，导致独立 `environmentHeader` 控制无效。
+- [implemented] 标题和标题伪层均改为消费 `--ds-window-opacity-environment-header`。运行态
+  1.00/0.05 A/B 的标题背景分别为 `rgb(11, 26, 32)` 与
+  `rgba(11, 26, 32, 0.05)`；外壳仍独立消费 `environmentInfoPopover`。
+- [visual-boundary] 当前 Electron `Page.captureScreenshot` 会把原生 WebView guest 合成在浮层
+  截图之前；临时将宿主及 `webview` 设置为 `display:none`、`visibility:hidden` 或
+  `opacity:0` 后仍得到 guest 图像。因此这些 clipped 截图不能作为环境浮层视觉通过证据，
+  computed-style 结果只能证明规则生效。不得把该工具限制误报为产品层级回归。
+# 2026-09-14 视频主题与原生浏览器合成冲突补充
+
+- 浏览器内容透明度变量已确认不是本次空白根因：宿主 `browserContent=1`、guest URL 与尺寸正常时，持续播放视频仍会让原生 guest 不可见。
+- `5bab518` 加入的 Windows 启动参数强制启用完整 `DelegatedCompositing`，但没有视频 + 原生 WebView 的视觉验收；当前实测与独立 DComp surface 冲突一致。
+- 已从启动链移除 `DelegatedCompositing` / `DelegatedCompositingLimitToUi` 强制开关。最终结论必须等待无该参数的新 Codex 进程做真实网页同屏验证，不能用代码测试替代。
+- 无 delegation 强制开关的新进程实测仍复现：视频播放时 fixture 空白、暂停皮肤后 fixture 完整显示，故该回退不足以修复浏览器。
+- 下一 A/B 使用 `--disable-direct-composition-video-overlays`，只禁止视频 overlay；必须在新进程中同时验证视频时间推进与原生 guest 可见。
+
+### 6.15 视频主题根堆叠上下文与原生 WebView 合成（2026-09-14 最终结论）
+
+- [correction] 6.10 中“仅 `[data-dream-skin-video]` 规则即可让 guest 消失”以及“只需把视频层降到 `-1`”不是最终根因。严格二分显示：视频规则单独启用不会复现，视频态 `body > #root` 单独启用也不会复现；二者组合时才失败。
+- [root-cause] `body > #root { position: relative; z-index: 1 }` 创建正层级根堆叠上下文，与 `position: fixed; z-index: -1` 的视频背景组合后，使 Electron 原生 WebView guest 未进入最终合成。空白区域顶层元素仍是 `<webview>`，不存在覆盖 DOM 或伪元素；可见灰色为 WebView 的 `rgb(33, 33, 33)` 占位背景。
+- [fix] 保留根节点 `position: relative` 与视频的全屏动态播放，只把视频主题根节点改为 `z-index: auto`。不要重新引入浏览器宿主 `z-index: 20`，也不要恢复已证伪的 DirectComposition 视频 overlay 启动参数。
+- [visual-verified] 清除所有临时 adopted stylesheet 后，安装态 engine CSS 仍通过 fixture；恢复 `http://localhost:8090/ledger-window-new` 后，guest 文档 `readyState=complete` 且正文可读。`artifacts/final-install-source-real-a.png` 与 `artifacts/final-install-source-real-b.png` 同时显示完整台账网页和不同视频帧；视频运行态为 `readyState=4`、`paused=false`、`error=null`。
+- [acceptance] 后续变更必须同时满足：视频 `currentTime` 连续推进或正常循环、真实网页视觉可见且可交互、浏览器浮层不被宿主 z-index 覆盖、暂停/恢复皮肤不改变浏览器 URL。fixture 只能验证合成边界，不能替代真实网页最终验收。
+
+### 6.16 主内容区边界与底部终端正文层（2026-09-14）
+
+- “主内容区”绑定 `_MainContentSurface_`：从左侧导航右边开始、位于顶部应用菜单下方，是任务会话、浏览器或编辑器的工作区外壳。网页 guest、会话输入框、底部终端和浮层具有独立变量，优先覆盖重叠区域，不能用主内容区设置替代。
+- Codex 26.903 的底部终端分三层：外壳 `[data-ds-part="bottom-panel"]`、顶部 `h-toolbar-pane`、工具栏下的终端正文 flex surface。视觉优先级为终端正文/工具栏高于外壳。
+- `bottomPanel` 必须同时控制外壳和终端正文层；`bottomToolbar` 只控制顶部 40px 工具栏。终端正文的精确特征为 bottom marker 内的 `relative flex min-h-0 flex-1 flex-col` 且带 `bg-[var(--app-shell-panel-background,var(--color-surface))]`。
+- 真实运行态曾出现外壳与工具栏 alpha 均为 0、但正文仍为 `rgb(17,17,17)` 的失效状态。修复后 1.00/0.05 视觉 A/B 明显变化，截图位于 `artifacts/window-opacity-visual/bottomPanel-*` 和 `bottomToolbar-*`。

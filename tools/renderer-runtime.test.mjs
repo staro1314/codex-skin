@@ -322,16 +322,15 @@ function makeFixture({
   }
   if (settingsPage) {
     const settingsPageSelector =
-      'div[class~="electron:bg-surface"][class~="electron:elevation-prominent"]' +
-      '[class~="windows:rounded-tl-lg"]:has(> [class~="draggable"][class~="electron:h-toolbar"])' +
-      ':has(> [class~="overflow-y-auto"])';
+      'main[class*="_MainContentSurface_"] div[class~="electron:bg-surface"]' +
+      '[class~="windows:rounded-tl-lg"]';
     partFixtures.settingsPage = makeDomNode(
       "settings-page",
       body,
       new Map([[
         "class",
         "flex h-full min-h-0 flex-col electron:overflow-hidden electron:bg-surface " +
-          "electron:elevation-prominent windows:rounded-tl-lg",
+          "windows:rounded-tl-lg",
       ]]),
       [settingsPageSelector],
     );
@@ -582,6 +581,10 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Native header controls must stay above the skin artwork layer.");
   assert.match(css, /body::after[\s\S]{0,260}z-index:\s*0;/,
     "State glow must remain below native controls.");
+  assert.match(css, /\[data-dream-skin-video\][\s\S]{0,180}z-index:\s*-1\s*!important/,
+    "Background media must remain below native webview compositor surfaces.");
+  assert.doesNotMatch(css, /\[data-browser-sidebar-webview\]\s*\{[\s\S]{0,120}z-index:/,
+    "The browser host must not be raised above Codex popovers and dialogs.");
   assert.match(css, /\[class\*="_ApplicationMenuTopBar_"\][\s\S]{0,260}color:\s*var\(--ds-text\)/,
     "The rebuilt native menu bar must use the skin text token for contrast.");
   assert.match(css, /aside\[class~="bg-token-main-surface-primary"\][\s\S]{0,360}background:\s*linear-gradient[\s\S]{0,180}rgb\(var\(--ds-panel-rgb\) \/ \.46\)[\s\S]{0,120}rgb\(var\(--ds-bg-rgb\) \/ \.58\)/,
@@ -594,8 +597,10 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The native thread summary panel must retain the scoped glass blur.");
   assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-environment-info-popover\)\)/,
     "The live environment-information popover must use a scoped translucent glass surface.");
-  assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,700}header\[class~="bg-surface-elevated-secondary"\]::before[\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-environment-info-popover\)\)/,
-    "The environment-information section header veil must match the translucent popover surface.");
+  assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,520}header\[class~="bg-surface-elevated-secondary"\]\s*\{[\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-environment-header\)\)/,
+    "The environment-information section header must use its dedicated opacity control.");
+  assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,700}header\[class~="bg-surface-elevated-secondary"\]::before[\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-environment-header\)\)/,
+    "The environment-information section header veil must follow the higher-priority header control.");
   assert.match(css, /\[data-ds-part="environment-info-backdrop"\][\s\S]{0,300}background:\s*transparent[\s\S]{0,220}backdrop-filter:\s*none/,
     "The environment popover's same-sized native backdrop must not add a second dark layer.");
   assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="profile-menu"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-profile-menu\)\)/,
@@ -608,8 +613,8 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The unified sidebar tint must outrank the immersive shell's legacy aside rule.");
   assert.match(css, /:is\(\[data-dream-task-mode="ambient"\][\s\S]{0,520}\[data-ds-part="sidebar"\]\s*\{[\s\S]{0,320}backdrop-filter:\s*none/,
     "The immersive sidebar override must also remove the extra background blur.");
-  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
-    "The validated main interaction surface must use a restrained transparent tint.");
+  assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-main-surface\)\)[\s\S]{0,120}background-image:\s*none/,
+    "The validated main interaction surface must use its dedicated opacity control.");
   assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="settings-page"\][\s\S]{0,300}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-settings-page\)\)[\s\S]{0,180}background-image:\s*none[\s\S]{0,180}box-shadow:\s*none[\s\S]{0,180}backdrop-filter:\s*none/,
     "The native settings content frame must clear its opaque surface and elevation without changing inner settings cards.");
   assert.match(css, /html\[data-dream-skin="active"\] \[data-codex-approval-surface\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-approval-surface\)\) !important;[\s\S]{0,180}background-image:\s*none !important;[\s\S]{0,260}box-shadow:\s*\n?\s*inset 0 0 0 1px var\(--ds-immersive-line\),[\s\S]{0,160}backdrop-filter:\s*none !important;/,
@@ -628,12 +633,14 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Approval state must remove the sibling composer-root gradient without changing the composer surface itself.");
   assert.doesNotMatch(css, /html\[data-dream-skin="active"\] \[data-ds-part="main"\][\s\S]{0,700}text-shadow:/,
     "The main interaction surface must not add a glyph halo or scoped text shadow.");
-  assert.match(css, /Keep a restrained glass tint so the artwork remains visible[\s\S]{0,700}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.10\)[\s\S]{0,120}background-image:\s*none/,
-    "The state-specific main interaction surface override must keep the restrained tint.");
+  assert.match(css, /Keep a restrained glass tint so the artwork remains visible[\s\S]{0,700}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-main-surface\)\)[\s\S]{0,120}background-image:\s*none/,
+    "The state-specific main interaction surface override must keep the dedicated opacity control.");
   assert.match(css, /\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.52\)/,
     "Dynamic terminal panes must use the skin glass surface.");
   assert.match(css, /\[data-ds-part="browser-content"\][\s\S]{0,300}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-browser-content\)\)/,
     "The browser WebView host must consume its dedicated window-opacity variable.");
+  assert.match(css, /\[data-ds-part="browser-content"\][\s\S]{0,180}opacity:\s*var\(--ds-window-opacity-browser-content\)\s*!important/,
+    "The browser WebView host must apply its opacity to the native guest compositor output.");
   assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-utility-side-panel\)\)/,
     "The verified right utility sidebar wrapper must use a translucent glass surface.");
   assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,900}\[data-app-shell-tabs="true"\][\s\S]{0,300}\[class~="h-toolbar"\][\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-utility-toolbar\)\)/,
@@ -644,13 +651,15 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Only the bottom panel terminal content must use a transparent surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,900}\[class~="h-toolbar-pane"\][\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-toolbar\)\)[\s\S]{0,180}backdrop-filter:\s*none/,
     "The bottom panel toolbar must not restore an opaque or blurred native surface.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,900}\[class~="relative"\][\s\S]{0,520}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)/,
+    "The current Codex terminal body must consume bottomPanel instead of retaining an opaque native fill.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="group\/tab"\][\s\S]{0,260}background:\s*transparent/,
     "The bottom panel active tab must not restore an opaque native surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1800}\[class~="w-max"\]\[class~="bg-surface"\][\s\S]{0,180}background:\s*transparent/,
     "The bottom panel tab controls must remain transparent.");
-  assert.match(css, /\[class\*="_ComposerLayoutRoot_"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ \.56\)/,
-    "Current Codex composer roots must use the skin glass surface.");
-  assert.match(css, /:is\([^)]*\.composer-surface-chrome[^)]*\[data-ds-part="composer"\][^)]*\[class\*="_ComposerLayoutRoot_"\][^)]*\)[\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer\)\)/,
+  assert.match(css, /\[class\*="_ComposerLayoutRoot_"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\)/,
+    "Current Codex composer roots must use their dedicated opacity control.");
+  assert.match(css, /:is\([^)]*\.composer-surface-chrome[^)]*\[data-ds-part="composer"\][^)]*\[class\*="_ComposerLayoutRoot_"\][^)]*\)[\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\)/,
     "The bottom composer must consume its dedicated window-opacity variable.");
   assert.match(css, /:has\(main:is\([^)]*\) \[role="main"\]\)\s+aside:is\([^)]*\)\[data-ds-part="sidebar"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-sidebar\)\)/,
     "The home immersive sidebar override must retain the unified tint.");

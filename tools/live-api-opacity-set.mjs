@@ -5,8 +5,18 @@ const headers = { "X-DreamSkin-Token": state.token, Origin: state.origin };
 const bootstrap = await (await fetch(`${state.origin}/api/bootstrap`, { headers })).json();
 const theme = bootstrap.themes.find((item) => item.kind === "saved" && item.id === "custom-theme-mt84xyxo-fc7703");
 if (!theme) throw new Error("active saved theme not found");
-theme.controls.windowOpacity[key] = value;
-const saved = await fetch(`${state.origin}/api/themes/${encodeURIComponent(theme.id)}`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(theme) });
+const editable = theme.theme ?? theme;
+if (!editable.controls?.windowOpacity) throw new Error("saved theme has no windowOpacity controls");
+editable.controls.windowOpacity[key] = value;
+const saved = await fetch(`${state.origin}/api/themes/${encodeURIComponent(theme.id)}`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({
+  sourceId: theme.id,
+  draft: editable,
+  preserveOptionalFields: {},
+  imageUploadId: null,
+  videoUploadId: null,
+  inheritVideo: true,
+  mediaMode: editable.video ? "video" : "image",
+}) });
 console.log(JSON.stringify({ status: saved.status, body: await saved.text() }));
 const applied = await fetch(`${state.origin}/api/action`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ action: "apply", themeId: theme.id }) });
 console.log(JSON.stringify({ applyStatus: applied.status, body: await applied.text() }));
