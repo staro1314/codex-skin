@@ -1,0 +1,736 @@
+{
+  "url": "app://-/index.html",
+  "viewport": {
+    "width": 1441,
+    "height": 853
+  },
+  "vars": {
+    "main-surface": "1",
+    "sidebar": "0.1",
+    "profile-menu": "0.62",
+    "summary-panel": "0.72",
+    "environment-info-popover": "1",
+    "environment-header": ".1",
+    "utility-side-panel": "0.56",
+    "utility-toolbar": "0.62",
+    "browser-content": "0.52",
+    "composer": "0",
+    "composer-shell": "0.1",
+    "composer-editor": "0.1",
+    "bottom-panel": "1",
+    "bottom-toolbar": ".1",
+    "approval-surface": "0.56",
+    "settings-page": "0"
+  },
+  "markers": {
+    "main-surface": [
+      {
+        "tag": "MAIN",
+        "className": "_MainContentSurface_ihb90_2 border-l-hairline border-default",
+        "rect": {
+          "x": 346,
+          "y": 36,
+          "width": 1095,
+          "height": 817
+        },
+        "backgroundColor": "rgb(11, 26, 32)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "none"
+      }
+    ],
+    "sidebar": [
+      {
+        "tag": "ASIDE",
+        "className": "app-shell-left-panel pointer-events-auto relative flex overflow-visible browser:bg-surface",
+        "rect": {
+          "x": 0,
+          "y": 36,
+          "width": 346,
+          "height": 817
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.1)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "none"
+      }
+    ],
+    "profile-menu": [],
+    "summary-panel": [],
+    "environment-info-popover": [
+      {
+        "tag": "DIV",
+        "className": "relative flex max-h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-surface-elevated-secondary electron:elevation-prominent extension:border extension:border-default extension",
+        "rect": {
+          "x": 1135.71875,
+          "y": 94.5,
+          "width": 240,
+          "height": 278.3999938964844
+        },
+        "backgroundColor": "rgb(11, 26, 32)",
+        "backgroundImage": "none",
+        "boxShadow": "rgba(124, 255, 70, 0.28) 0px 0px 0px 0.5px, rgba(7, 17, 22, 0.22) 0px 12px 30px 0px",
+        "backdropFilter": "blur(14px) saturate(1.08)"
+      }
+    ],
+    "environment-header": [],
+    "utility-side-panel": [
+      {
+        "tag": "DIV",
+        "className": "absolute top-0 bottom-0 min-w-0 left-0 bg-[var(--app-shell-panel-background,var(--color-surface))] border-default border-l",
+        "rect": {
+          "x": 1091.71875,
+          "y": 36,
+          "width": 349.28125,
+          "height": 817
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.56)",
+        "backgroundImage": "none",
+        "boxShadow": "rgba(124, 255, 70, 0.28) 0px 0px 0px 0.5px, rgba(7, 17, 22, 0.16) -12px 0px 30px 0px",
+        "backdropFilter": "blur(12px) saturate(1.06)"
+      }
+    ],
+    "utility-toolbar": [],
+    "browser-content": [
+      {
+        "tag": "DIV",
+        "className": "",
+        "rect": {
+          "x": 1092.71875,
+          "y": 122,
+          "width": 348,
+          "height": 731
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.52)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "blur(12px) saturate(1.06)"
+      }
+    ],
+    "composer": [
+      {
+        "tag": "DIV",
+        "className": "_ComposerLayoutInput_kbwao_2 flex-grow overflow-y-auto",
+        "rect": {
+          "x": 362,
+          "y": 753,
+          "width": 713.71875,
+          "height": 44
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.1)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "blur(18px) saturate(1.06)"
+      }
+    ],
+    "composer-shell": [
+      {
+        "tag": "DIV",
+        "className": "_ComposerLayoutRoot_kbwao_2",
+        "rect": {
+          "x": 362,
+          "y": 739,
+          "width": 713.71875,
+          "height": 98
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.1)",
+        "backgroundImage": "none",
+        "boxShadow": "rgba(158, 189, 179, 0.42) 0px 0px 0px 1px inset, rgba(233, 255, 241, 0.16) 0px 1px 0px 0px inset",
+        "backdropFilter": "none"
+      },
+      {
+        "tag": "DIV",
+        "className": "_ComposerLayoutInput_kbwao_2 flex-grow overflow-y-auto",
+        "rect": {
+          "x": 362,
+          "y": 753,
+          "width": 713.71875,
+          "height": 44
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.1)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "blur(18px) saturate(1.06)"
+      }
+    ],
+    "composer-editor": [
+      {
+        "tag": "DIV",
+        "className": "_ComposerLayoutInput_kbwao_2 flex-grow overflow-y-auto",
+        "rect": {
+          "x": 362,
+          "y": 753,
+          "width": 713.71875,
+          "height": 44
+        },
+        "backgroundColor": "rgba(11, 26, 32, 0.1)",
+        "backgroundImage": "none",
+        "boxShadow": "none",
+        "backdropFilter": "blur(18px) saturate(1.06)"
+      }
+    ],
+    "bottom-panel": [],
+    "bottom-toolbar": [],
+    "approval-surface": [],
+    "settings-page": []
+  },
+  "browserHosts": [
+    {
+      "tag": "DIV",
+      "className": "",
+      "rect": {
+        "x": 1092.71875,
+        "y": 122,
+        "width": 348,
+        "height": 731
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.52)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "blur(12px) saturate(1.06)",
+      "outerHTML": "<div data-browser-sidebar-webview=\"01a0380f-1121-7393-9f1f-fbf414d5a8fe\u00003842abb4-1522-4eea-a391-19b89c58d9e4\" data-app-shell-focus-area=\"right-panel\" style=\"height: 731px; left: 1092.72px; opacity: 1; overflow: hidden; pointer-events: auto; position: fixed; top: 122px; visibility: visible; width: 348px;\" data-ds-part=\"browser-content\"><webview class=\"h-full w-full\" data-browser-sidebar-conversation-id=\"01a0380f-1121-7393-9f1f-fbf414d5a8fe\" data-browser-sidebar-browser-tab-id=\"3842abb4-1522-4eea-",
+      "parentChain": [
+        {
+          "tag": "DIV",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "BODY",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "HTML",
+          "className": "electron-dark",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        }
+      ]
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "rect": {
+        "x": 818.296875,
+        "y": 122,
+        "width": 406,
+        "height": 478
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "outerHTML": "<div data-browser-sidebar-webview=\"01a08ac2-7330-7511-9df7-59e8fdad43c0\u00000d80f7aa-be63-487e-9d69-e5200426b961\" data-app-shell-focus-area=\"right-panel\" style=\"height: 478px; left: 818.297px; opacity: 1; overflow: hidden; pointer-events: none; position: fixed; top: 122px; visibility: hidden; width: 406px;\"><webview class=\"h-full w-full\" data-browser-sidebar-conversation-id=\"01a08ac2-7330-7511-9df7-59e8fdad43c0\" data-browser-sidebar-browser-tab-id=\"0d80f7aa-be63-487e-9d69-e5200426b961\" data-browser-",
+      "parentChain": [
+        {
+          "tag": "DIV",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "BODY",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "HTML",
+          "className": "electron-dark",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        }
+      ]
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "rect": {
+        "x": 1039.1796875,
+        "y": 122,
+        "width": 402,
+        "height": 731
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "outerHTML": "<div data-browser-sidebar-webview=\"client-new-thread:7861092a-4972-431e-9e6e-0cd522c555a1\u00000d80f7aa-be63-487e-9d69-e5200426b961\" data-app-shell-focus-area=\"right-panel\" style=\"height: 731px; left: 1039.18px; opacity: 1; pointer-events: none; position: fixed; top: 122px; visibility: hidden; width: 402px; overflow: hidden;\"><webview class=\"h-full w-full\" data-browser-sidebar-conversation-id=\"client-new-thread:7861092a-4972-431e-9e6e-0cd522c555a1\" data-browser-sidebar-browser-tab-id=\"0d80f7aa-be63-4",
+      "parentChain": [
+        {
+          "tag": "DIV",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "BODY",
+          "className": "",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        },
+        {
+          "tag": "HTML",
+          "className": "electron-dark",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1441,
+            "height": 853
+          }
+        }
+      ]
+    }
+  ],
+  "utilityRoots": [
+    {
+      "tag": "DIV",
+      "className": "isolate flex h-full min-h-0 flex-col [contain:layout_paint]",
+      "rect": {
+        "x": 1092.71875,
+        "y": 36,
+        "width": 348.28125,
+        "height": 817
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none"
+    }
+  ],
+  "nativeWebviews": [
+    {
+      "tag": "WEBVIEW",
+      "className": "flex h-full w-full bg-surface opacity-0",
+      "rect": {
+        "x": 0,
+        "y": 46,
+        "width": 1441,
+        "height": 807
+      },
+      "backgroundColor": "rgb(17, 17, 17)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none"
+    },
+    {
+      "tag": "WEBVIEW",
+      "className": "h-full w-full",
+      "rect": {
+        "x": 1092.71875,
+        "y": 122,
+        "width": 348.28125,
+        "height": 731
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none"
+    },
+    {
+      "tag": "WEBVIEW",
+      "className": "h-full w-full",
+      "rect": {
+        "x": 818.296875,
+        "y": 122,
+        "width": 405.703125,
+        "height": 478
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none"
+    },
+    {
+      "tag": "WEBVIEW",
+      "className": "h-full w-full",
+      "rect": {
+        "x": 1039.1796875,
+        "y": 122,
+        "width": 401.8203125,
+        "height": 731
+      },
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none"
+    }
+  ],
+  "visibleSurfaces": [
+    {
+      "tag": "MAIN",
+      "className": "flex h-full min-h-0 flex-col overflow-hidden bg-surface no-drag",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1441,
+        "height": 853
+      },
+      "backgroundColor": "rgb(17, 17, 17)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "返回 ChatGPT"
+    },
+    {
+      "tag": "DIV",
+      "className": "absolute inset-0 z-10 flex items-center justify-center bg-surface",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 0,
+        "y": 46,
+        "width": 1441,
+        "height": 807
+      },
+      "backgroundColor": "rgb(17, 17, 17)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "className": "_ApplicationMenuTopBar_ihb90_2",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1441,
+        "height": 36
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.9)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "文件编辑视图帮助"
+    },
+    {
+      "tag": "ASIDE",
+      "className": "app-shell-left-panel pointer-events-auto relative flex overflow-visible browser:bg-surface",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 0,
+        "y": 36,
+        "width": 346,
+        "height": 817
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.1)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "Codex 新对话 Pull Request定时任务插件 探索项目 台账 project-skill 审判业务系统 合同系统 persona firefly-g"
+    },
+    {
+      "tag": "MAIN",
+      "className": "_MainContentSurface_ihb90_2 border-l-hairline border-default",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 346,
+        "y": 36,
+        "width": 1095,
+        "height": 817
+      },
+      "backgroundColor": "rgb(11, 26, 32)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "功能跟新分享 你说：继续验证调整，发现问题就解决问题，解决完就继续剩余的验证，依次验证完成18:49用时 5分钟 49秒ChatGPT 说：这次已经继续并解决了"
+    },
+    {
+      "tag": "DIV",
+      "className": "bg-user-message text-user-message max-w-(--user-chat-width) min-w-0 overflow-hidden break-words px-(--thread-content-margin) [&_.contain-inline-size]:[contain:initial] _bubble_11ym",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 582.1171875,
+        "y": -3115.75,
+        "width": 478.6015625,
+        "height": 65.5
+      },
+      "backgroundColor": "oklab(0.991063 0.0000452101 0.0000197887 / 0.05)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "继续验证调整，发现问题就解决问题，解决完就继续剩余的验证，依次验证完成"
+    },
+    {
+      "tag": "DIV",
+      "className": "flex max-w-[min(100%,var(--thread-resource-card-max-width,100%))] flex-col overflow-hidden font-sans text-default [--thread-resource-card-row-padding-x:0.75rem] bg-surface-elevated",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 377,
+        "y": -2451.5,
+        "width": 683.71875,
+        "height": 173.5
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.34)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(158, 189, 179, 0.16) 0px 0px 0px 0.5px",
+      "backdropFilter": "none",
+      "text": "已编辑 3 个文件+34-3查看更改撤销审核tools/live-cssom-probe.mjstools/live-cssom-probe.mjs+11-3r"
+    },
+    {
+      "tag": "DIV",
+      "className": "bg-user-message text-user-message max-w-(--user-chat-width) min-w-0 overflow-hidden break-words px-(--thread-content-margin) [&_.contain-inline-size]:[contain:initial] _bubble_11ym",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 958.71875,
+        "y": -2232,
+        "width": 102,
+        "height": 42.75
+      },
+      "backgroundColor": "oklab(0.991063 0.0000452101 0.0000197887 / 0.05)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "好的，继续"
+    },
+    {
+      "tag": "DIV",
+      "className": "flex max-w-[min(100%,var(--thread-resource-card-max-width,100%))] flex-col overflow-hidden font-sans text-default [--thread-resource-card-row-padding-x:0.75rem] bg-surface-elevated",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 377,
+        "y": -1616,
+        "width": 683.71875,
+        "height": 137.5
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.34)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(158, 189, 179, 0.16) 0px 0px 0px 0.5px",
+      "backdropFilter": "none",
+      "text": "已编辑 2 个文件+14-0查看更改撤销审核artifacts/live-utility-split.cssartifacts/live-utility-spl"
+    },
+    {
+      "tag": "DIV",
+      "className": "bg-user-message text-user-message max-w-(--user-chat-width) min-w-0 overflow-hidden break-words px-(--thread-content-margin) [&_.contain-inline-size]:[contain:initial] _bubble_11ym",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 582.1171875,
+        "y": -1432.5,
+        "width": 478.6015625,
+        "height": 65.5
+      },
+      "backgroundColor": "oklab(0.991063 0.0000452101 0.0000197887 / 0.05)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "继续，但是有个问题，浏览器打开的页面，看不到网页内容，这个要调一下"
+    },
+    {
+      "tag": "DIV",
+      "className": "flex max-w-[min(100%,var(--thread-resource-card-max-width,100%))] flex-col overflow-hidden font-sans text-default [--thread-resource-card-row-padding-x:0.75rem] bg-surface-elevated",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 377,
+        "y": -717.75,
+        "width": 683.71875,
+        "height": 64.5
+      },
+      "backgroundColor": "oklab(0.268617 0.000012286 0.00000536442 / 0.5)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(252, 252, 252, 0.157) 0px 0px 0px 0.5px",
+      "backdropFilter": "none",
+      "text": "网页预览网站打开打开方式"
+    },
+    {
+      "tag": "DIV",
+      "className": "flex max-w-[min(100%,var(--thread-resource-card-max-width,100%))] flex-col overflow-hidden font-sans text-default [--thread-resource-card-row-padding-x:0.75rem] bg-surface-elevated",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 377,
+        "y": -641.25,
+        "width": 683.71875,
+        "height": 173.5
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.34)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(158, 189, 179, 0.16) 0px 0px 0px 0.5px",
+      "backdropFilter": "none",
+      "text": "已编辑 3 个文件+21-1查看更改撤销审核tools/live-browser-target-screenshot.mjstools/live-browser"
+    },
+    {
+      "tag": "DIV",
+      "className": "bg-user-message text-user-message max-w-(--user-chat-width) min-w-0 overflow-hidden break-words px-(--thread-content-margin) [&_.contain-inline-size]:[contain:initial] _bubble_11ym",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 664.71875,
+        "y": 181,
+        "width": 396,
+        "height": 42.75
+      },
+      "backgroundColor": "oklab(0.991063 0.0000452101 0.0000197887 / 0.05)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": "你能不能解决了，怎么总是停，明明能够一次性解决，快改"
+    },
+    {
+      "tag": "DIV",
+      "className": "_ComposerLayoutRoot_kbwao_2",
+      "role": "presentation",
+      "testid": null,
+      "rect": {
+        "x": 362,
+        "y": 739,
+        "width": 713.71875,
+        "height": 98
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.1)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(158, 189, 179, 0.42) 0px 0px 0px 1px inset, rgba(233, 255, 241, 0.16) 0px 1px 0px 0px inset",
+      "backdropFilter": "none",
+      "text": "帮我批准选择强度GPT-5.6 Sol轻度"
+    },
+    {
+      "tag": "DIV",
+      "className": "_ComposerLayoutInput_kbwao_2 flex-grow overflow-y-auto",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 362,
+        "y": 753,
+        "width": 713.71875,
+        "height": 44
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.1)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "blur(18px) saturate(1.06)",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "className": "relative flex max-h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-surface-elevated-secondary electron:elevation-prominent extension:border extension:border-default extension",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 1135.71875,
+        "y": 94.5,
+        "width": 240,
+        "height": 278.3999938964844
+      },
+      "backgroundColor": "rgb(11, 26, 32)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(124, 255, 70, 0.28) 0px 0px 0px 0.5px, rgba(7, 17, 22, 0.22) 0px 12px 30px 0px",
+      "backdropFilter": "blur(14px) saturate(1.08)",
+      "text": "环境信息变更+1,579-128本地client-name提交或推送来源codex-clipboard-1e63525d-7f23-46b5-a58f-708f"
+    },
+    {
+      "tag": "DIV",
+      "className": "absolute top-0 bottom-0 min-w-0 left-0 bg-[var(--app-shell-panel-background,var(--color-surface))] border-default border-l",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 1091.71875,
+        "y": 36,
+        "width": 349.28125,
+        "height": 817
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.56)",
+      "backgroundImage": "none",
+      "boxShadow": "rgba(124, 255, 70, 0.28) 0px 0px 0px 0.5px, rgba(7, 17, 22, 0.16) -12px 0px 30px 0px",
+      "backdropFilter": "blur(12px) saturate(1.06)",
+      "text": "Smart OS localhost:8090/ledger-window-new正在注释"
+    },
+    {
+      "tag": "DIV",
+      "className": "h-toolbar bg-[var(--app-shell-panel-background,var(--color-surface))] pe-2 isolate flex min-w-0 shrink-0 select-none items-center ps-2 [contain:layout_paint]",
+      "role": "presentation",
+      "testid": null,
+      "rect": {
+        "x": 1092.71875,
+        "y": 36,
+        "width": 348.28125,
+        "height": 46
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.62)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "blur(12px) saturate(1.06)",
+      "text": "Smart OS"
+    },
+    {
+      "tag": "DIV",
+      "className": "pointer-events-none absolute inset-0 z-0 rounded-md group-hover/tab:bg-[var(--app-shell-tab-background)] bg-[var(--app-shell-tab-background)]",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 1100.71875,
+        "y": 44.5,
+        "width": 156,
+        "height": 28
+      },
+      "backgroundColor": "color(srgb 0.112745 0.112745 0.112745)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "none",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "role": null,
+      "testid": null,
+      "rect": {
+        "x": 1092.71875,
+        "y": 122,
+        "width": 348,
+        "height": 731
+      },
+      "backgroundColor": "rgba(11, 26, 32, 0.52)",
+      "backgroundImage": "none",
+      "boxShadow": "none",
+      "backdropFilter": "blur(12px) saturate(1.06)",
+      "text": ""
+    }
+  ]
+}

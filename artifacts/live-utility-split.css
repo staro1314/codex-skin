@@ -1,0 +1,8 @@
+html[data-dream-skin="active"] {
+  --ds-window-opacity-main-surface: .1 !important;
+  --ds-window-opacity-composer-shell: .1 !important;
+  --ds-window-opacity-composer-editor: .1 !important;
+  --ds-window-opacity-utility-side-panel: 1 !important;
+  --ds-window-opacity-utility-toolbar: .1 !important;
+  --ds-window-opacity-browser-content: .52 !important;
+}

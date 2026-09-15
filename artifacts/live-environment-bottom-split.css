@@ -1,0 +1,6 @@
+html[data-dream-skin="active"] {
+  --ds-window-opacity-environment-info-popover: 1 !important;
+  --ds-window-opacity-environment-header: .1 !important;
+  --ds-window-opacity-bottom-panel: 1 !important;
+  --ds-window-opacity-bottom-toolbar: .1 !important;
+}

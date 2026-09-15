@@ -1,0 +1,11 @@
+html[data-dream-skin="active"] {
+  --ds-window-opacity-main-surface: .1 !important;
+  --ds-window-opacity-composer-shell: 1 !important;
+  --ds-window-opacity-composer-editor: .1 !important;
+}
+html[data-dream-skin="active"] :is([data-ds-part="composer"], [class*="_ComposerLayoutRoot_"]) {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-shell)) !important;
+}
+html[data-dream-skin="active"] [class*="_ComposerLayoutInput_"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-composer-editor)) !important;
+}

@@ -1,0 +1,11 @@
+const mode = process.argv[2] || "fixture";
+const targets = await (await fetch("http://127.0.0.1:9335/json/list")).json();
+const target = targets.find((item) => item.type === "page" && item.url === "app://-/index.html");
+if (!target) throw new Error("No Codex renderer");
+const ws = new WebSocket(target.webSocketDebuggerUrl); let id = 0;
+const send = (method, params = {}) => new Promise((resolve, reject) => { const n=++id; const t=setTimeout(()=>reject(new Error(`${method} timeout`)),10000); const h=(e)=>{const m=JSON.parse(String(e.data));if(m.id!==n)return;clearTimeout(t);ws.removeEventListener("message",h);m.error?reject(new Error(m.error.message)):resolve(m.result)};ws.addEventListener("message",h);ws.send(JSON.stringify({id:n,method,params})) });
+await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true})});
+const fixture = "data:text/html;charset=utf-8," + encodeURIComponent(`<!doctype html><style>body{margin:0;background:#fff;color:#15213a;font:700 34px system-ui}header{background:#3267e3;color:#fff;padding:24px}main{padding:30px}.card{border:3px solid #3267e3;padding:24px;border-radius:16px}</style><header>Codex Skin Browser Fixture</header><main><div class=card>WEBVIEW CONTENT IS VISIBLE<br><small>native guest rendering check</small></div></main>`);
+const url = mode === "restore" ? "http://localhost:8090/ledger-window-new" : fixture;
+const expression = `(() => { const host=[...document.querySelectorAll('[data-browser-sidebar-webview]')].find(x=>getComputedStyle(x).visibility==='visible'&&x.offsetWidth>0); const w=host?.querySelector('webview'); if(!w)return {ok:false}; w.loadURL(${JSON.stringify(url)}); return {ok:true,url:${JSON.stringify(url)}} })()`;
+const result=await send("Runtime.evaluate",{expression,returnByValue:true});console.log(JSON.stringify(result.result?.value));ws.close();

@@ -1,0 +1,4 @@
+html[data-dream-skin="active"][data-dream-media="video"] body > #root {
+  position: static !important;
+  z-index: 1 !important;
+}
