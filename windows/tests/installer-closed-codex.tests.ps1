@@ -40,6 +40,80 @@ if (-not $restoreText.Contains('[switch]$DeploymentOnly') -or
   throw 'Restore script has no deployment-only path that bypasses Codex discovery.'
 }
 
+# A clean target machine may have no node.exe process at all. Mock the native
+# Get-Process behavior so this contract stays deterministic even when the test
+# runner itself has unrelated Node.js processes.
+& {
+  . $commonScript
+  function Get-Process {
+    param(
+      [string]$Name,
+      [System.Management.Automation.ActionPreference]$ErrorAction
+    )
+    if ($Name -cne 'node') {
+      throw "Unexpected process query in clean-machine fixture: $Name"
+    }
+    $missingProcess = [Microsoft.PowerShell.Commands.ProcessCommandException]::new(
+      "Cannot find a process with the name '$Name'."
+    )
+    $missingRecord = [System.Management.Automation.ErrorRecord]::new(
+      $missingProcess,
+      'NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand',
+      [System.Management.Automation.ErrorCategory]::ObjectNotFound,
+      $Name
+    )
+    throw $missingRecord
+  }
+
+  $missingNodePath = Join-Path ([System.IO.Path]::GetTempPath()) 'codex-dream-skin-missing-node\node.exe'
+  if (@(Get-DreamSkinRuntimeNodeProcesses -NodePath $missingNodePath).Count -ne 0) {
+    throw 'A clean machine unexpectedly reported a bundled Node.js process.'
+  }
+  Stop-DreamSkinRuntimeNodeProcess -NodePath $missingNodePath -RequireStopped
+}
+
+& {
+  . $commonScript
+  function Get-Process {
+    param(
+      [string]$Name,
+      [System.Management.Automation.ActionPreference]$ErrorAction
+    )
+    throw [System.UnauthorizedAccessException]::new('Process query denied.')
+  }
+  $nodePath = Join-Path ([System.IO.Path]::GetTempPath()) 'codex-dream-skin-engine\node.exe'
+  $queryRejected = $false
+  try { Stop-DreamSkinRuntimeNodeProcess -NodePath $nodePath -RequireStopped }
+  catch { $queryRejected = $_.Exception.Message -like '*Process query denied*' }
+  if (-not $queryRejected) {
+    throw 'A failed Node.js process query was incorrectly treated as no processes.'
+  }
+}
+
+& {
+  . $commonScript
+  $expectedNodePath = Join-Path ([System.IO.Path]::GetTempPath()) 'codex-dream-skin-engine\node.exe'
+  $unrelatedNodePath = Join-Path ([System.IO.Path]::GetTempPath()) 'unrelated-node-runtime\node.exe'
+  function Get-Process {
+    param(
+      [string]$Name,
+      [System.Management.Automation.ActionPreference]$ErrorAction
+    )
+    if ($Name -cne 'node') {
+      throw "Unexpected process query in exact-path fixture: $Name"
+    }
+    return @(
+      [pscustomobject]@{ Id = 101; Path = $expectedNodePath },
+      [pscustomobject]@{ Id = 202; Path = $unrelatedNodePath }
+    )
+  }
+
+  $matchedNodeProcesses = @(Get-DreamSkinRuntimeNodeProcesses -NodePath $expectedNodePath)
+  if ($matchedNodeProcesses.Count -ne 1 -or $matchedNodeProcesses[0].Id -ne 101) {
+    throw 'Bundled Node.js process detection no longer filters by the exact executable path.'
+  }
+}
+
 $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) `
   ('codex-dream-skin-closed-codex-' + [guid]::NewGuid().ToString('N'))
 $payloadRoot = Join-Path $fixtureRoot 'payload'

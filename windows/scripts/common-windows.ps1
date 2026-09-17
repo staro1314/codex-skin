@@ -200,8 +200,17 @@ function Get-DreamSkinRuntimeNodeProcesses {
   if (-not $NodePath) { return @() }
   try { $normalized = [System.IO.Path]::GetFullPath($NodePath) } catch { return @() }
   try {
+    try {
+      $nodeProcesses = @(Get-Process -Name 'node' -ErrorAction Stop)
+    } catch {
+      if ($_.FullyQualifiedErrorId -ceq
+        'NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand') {
+        return @()
+      }
+      throw
+    }
     return @(
-      Get-Process -Name 'node' -ErrorAction Stop | Where-Object {
+      $nodeProcesses | Where-Object {
         try {
           $processPath = $_.Path
           $processPath -and
