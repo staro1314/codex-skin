@@ -21,6 +21,8 @@ runtime/*
 !runtime/validate-safe-css-file.mjs
 !runtime/compatibility.json
 !runtime/runtime-doctor.mjs
+!runtime/product.json
+!runtime/product.mjs
 
 # local agent context
 TASK_PROGRESS.md
