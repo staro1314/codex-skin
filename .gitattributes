@@ -8,6 +8,8 @@
 
 # Release-reviewed build inputs are hashed byte-for-byte.
 macos/presets/preset-gothic-void-crusade/theme.json text eol=lf
+macos/presets/preset-video-fox-spirit/theme.json text eol=lf
+macos/presets/preset-video-fox-spirit/theme.css text eol=lf
 windows/presets/preset-gothic-void-crusade/theme.json text eol=lf
 windows/installer/languages/ChineseSimplified.isl text eol=lf
 windows/installer/languages/Inno-Setup-License.txt text eol=lf
