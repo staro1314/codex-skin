@@ -301,15 +301,15 @@ function makeFixture({
         "bottom-panel-trigger",
         body,
         new Map([[
-          "aria-label", "切换底部面板显示",
+          "aria-label", "隐藏底部面板",
         ], ["aria-pressed", "true"]]),
       );
-      const triggerSelector = 'button[aria-label="切换底部面板显示"]';
+      const triggerSelector = 'button[aria-label="隐藏底部面板"]';
       register("button", trigger);
       register(triggerSelector, trigger);
       const bottomSelector =
         'div[class~="absolute"][class~="inset-x-0"][class~="top-0"][class~="min-h-0"]' +
-        '[class~="border-t"][class~="border-default"][class~="bg-surface"]' +
+        '[class~="border-t"][class~="border-default"]' +
         ':has([data-app-shell-tabs="true"]):has([data-app-shell-tab-panel-controller="bottom"])';
       partFixtures.bottomPanel = makeDomNode(
         "bottom-panel",
@@ -653,6 +653,8 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The bottom panel toolbar must not restore an opaque or blurred native surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,900}\[class~="relative"\][\s\S]{0,520}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)/,
     "The current Codex terminal body must consume bottomPanel instead of retaining an opaque native fill.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="h-full"\][\s\S]{0,420}\[class~="flex-col"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)/,
+    "The current Codex terminal content surface must consume bottomPanel instead of retaining an opaque black rectangle.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="group\/tab"\][\s\S]{0,260}background:\s*transparent/,
     "The bottom panel active tab must not restore an opaque native surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1800}\[class~="w-max"\]\[class~="bg-surface"\][\s\S]{0,180}background:\s*transparent/,

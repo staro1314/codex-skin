@@ -988,8 +988,23 @@
         style?.pointerEvents !== "none" &&
         (width === undefined || width > 0) && (height === undefined || height > 0);
     });
-  const bottomPanelNodes = () => pressedPanelTrigger("切换底部面板显示")
-    ? selectorNodes("bottom-panel") : [];
+  const bottomPanelNodes = () => {
+    const trigger = [
+      'button[aria-label="切换底部面板显示"]',
+      'button[aria-label="显示底部面板"]',
+      'button[aria-label="隐藏底部面板"]',
+      'button[aria-label="Toggle bottom panel visibility"]',
+      'button[aria-label="Show bottom panel"]',
+      'button[aria-label="Hide bottom panel"]',
+    ].flatMap((selector) => genericNodes(selector))
+      .find((node) => {
+        const aria = node.getAttribute?.("aria-label") || "";
+        return aria.includes("隐藏底部") || aria.includes("Hide bottom") ||
+          node.getAttribute?.("aria-pressed") === "true" ||
+          node.getAttribute?.("aria-expanded") === "true";
+      });
+    return trigger ? selectorNodes("bottom-panel") : [];
+  };
   const environmentInfoPopoverNodes = () => selectorNodes("environment-info-popover")
     .filter((node) => String(node.textContent || "").includes("环境信息"));
   const environmentInfoBackdropNodes = () => {

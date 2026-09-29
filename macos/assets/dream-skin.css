@@ -912,7 +912,19 @@ html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
    Bind only the terminal body to bottomPanel; the h-toolbar-pane above keeps
    its independent bottomToolbar value. */
 html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
-  [class~="relative"][class~="flex"][class~="min-h-0"][class~="flex-1"][class~="flex-col"][class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"] {
+  [class~="relative"][class~="flex"][class~="min-h-0"][class~="flex-1"][class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"] {
+  background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-bottom-panel)) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Codex 26.924 adds one more terminal-content surface below the panel body.
+   It is structurally unique to the terminal body: h-full + w-full + flex-col.
+   Remove only this nested native fill so bottomPanel controls the complete
+   terminal content area instead of leaving a black rectangle inside it. */
+html[data-dream-skin="active"] [data-ds-part="bottom-panel"]
+  [class~="relative"][class~="flex"][class~="h-full"][class~="w-full"][class~="flex-col"] {
   background: rgb(var(--ds-panel-rgb) / var(--ds-window-opacity-bottom-panel)) !important;
   background-image: none !important;
   box-shadow: none !important;

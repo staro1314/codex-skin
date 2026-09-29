@@ -45,6 +45,15 @@ assert.equal(
   '[data-settings-panel-slug="general-settings"]',
   "The Settings contract must use the stable Codex 26.727 general-settings panel marker.",
 );
+assert.doesNotMatch(
+  selectorFor("bottom-panel"),
+  /\[class~="bg-surface"\]/,
+  "Codex 26.924 removed bg-surface from the bottom panel root; the structural anchor must remain valid.",
+);
+assert.match(
+  selectorFor("bottom-panel"),
+  /data-app-shell-tab-panel-controller="bottom"/,
+);
 const resultFor = (baseState, hits, overlay = false) => gradeDoctorResult(contract, {
   baseState,
   overlay,

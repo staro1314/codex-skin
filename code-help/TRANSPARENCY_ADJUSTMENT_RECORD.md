@@ -717,3 +717,32 @@ settings scope.baseState = settings
 - Codex 26.903 的底部终端分三层：外壳 `[data-ds-part="bottom-panel"]`、顶部 `h-toolbar-pane`、工具栏下的终端正文 flex surface。视觉优先级为终端正文/工具栏高于外壳。
 - `bottomPanel` 必须同时控制外壳和终端正文层；`bottomToolbar` 只控制顶部 40px 工具栏。终端正文的精确特征为 bottom marker 内的 `relative flex min-h-0 flex-1 flex-col` 且带 `bg-[var(--app-shell-panel-background,var(--color-surface))]`。
 - 真实运行态曾出现外壳与工具栏 alpha 均为 0、但正文仍为 `rgb(17,17,17)` 的失效状态。修复后 1.00/0.05 视觉 A/B 明显变化，截图位于 `artifacts/window-opacity-visual/bottomPanel-*` 和 `bottomToolbar-*`。
+
+### 6.17 Codex 26.924 会话容器误命中顶部渐变规则（2026-09-29）
+
+- [root-cause] Windows Codex `26.924.2738.0` 将 `data-app-shell-main-content-top-fade="visible"` 放到了包裹完整会话正文和输入框的业务容器；真正的装饰渐变仍是它下面带 `aria-hidden="true"` 的 `_MainContentTopFade_` 子节点。旧合同中的裸 `[data-app-shell-main-content-top-fade]` 因而把完整业务容器命中为渐变层，并由共享 CSS 施加 `display:none !important`，使 thread 和 composer 的运行态矩形同时变成 `0x0`。
+- [evidence] 失败态最上层匹配规则来自第一张 adopted stylesheet；移除该单条命中后正文立即恢复。结构审计确认业务容器含渐变子节点和实际会话子树，不是蒙版覆盖、视频层遮挡或 WebView 合成问题。
+- [fix] `main-content-top-fade` 只接受历史专用类 `.app-shell-main-content-top-fade`、带 `aria-hidden="true"` 的专用 data 节点或 `[class*="_MainContentTopFade_"]`；明确禁止恢复裸 `[data-app-shell-main-content-top-fade]`。共享 selector 合同、Windows/macOS 生成资产和 runtime CSS 已同步。
+- [compatibility] 新增 Windows `26.924` validated profile。该变更只缩窄装饰渐变的隐藏范围，不改变主内容区、输入框、浏览器、底部终端、视频背景和各窗口透明度变量的归属。
+- [visual-verified] 修复后的真实 Codex 截图 `artifacts/codex-26.924.2738-fixed-runtime.png` 同时显示新版 52px 图标轨道、项目侧栏、顶部应用菜单、会话正文、输入框和动态视频背景。computed geometry 为 thread `1146x752`、composer `736x98`、业务容器 `1146x752`；真正的 `_MainContentTopFade_` 子节点保持 `display:none`。
+- [video-regression] 两次采样中视频 `readyState=4`、`paused=false`，`currentTime` 从 `1.61457` 推进到 `6.258912`，证明修复没有通过暂停或移除视频换取正文可见。
+- [acceptance] 后续 Codex 升级必须同时核对：业务容器非零尺寸、真正渐变节点被隐藏、会话与 composer 可见、视频时间推进、浏览器/终端等独立 surface 未被扩大命中。仅看选择器命中数量不能替代 computed geometry 和视觉截图。
+- [installed-visual] v1.0.4 Setup 本机升级安装成功后，控制中心 `resume` 在 Codex 窗口可见时返回 `applied=true`。安装态截图 `artifacts/codex-26.924.2738-installed-1.0.4.png` 显示新版导航轨道、项目侧栏、会话正文、输入框和视频同屏；thread `1146x752`、composer `736x98`，无隐藏祖先。视频 `readyState=4`、`paused=false`、`error=null`，连续采样跨越循环边界从 `7.468395` 到 `2.259729` 秒。
+- [visual-note] 当前用户所选视频主题在画面亮部对白色会话文字的对比偏低；本次只修复误隐藏，不擅自修改用户保存的主内容区透明度或主题素材。安装态另已实际导航并截图首页 `artifacts/codex-26.924.2738-installed-home-1.0.4.png` 和设置页 `artifacts/codex-26.924.2738-installed-settings-1.0.4.png`：新版左侧导航及设置卡片结构可见、无整页误隐藏；随后通过返回按钮恢复原会话。右侧浏览器和底部终端未打开，仍需单独视觉复验。
+
+### 6.18 Codex 26.924 底部终端第三层正文表面（2026-09-29）
+
+- [root-cause] 新版底部终端的外壳已移除旧 `bg-surface` 类，且按钮 aria-label 从“切换底部面板显示”改为打开时的“隐藏底部面板”；旧 selector 与旧 aria-pressed 门控因此同时失效，`bottom-panel` marker 未写入。
+- [evidence] 修复外壳 selector 和按钮门控后，实时 marker 命中唯一外壳，外壳、工具栏、正文第一层 computed background 已随 `bottomPanel` 变为 `rgba(11, 26, 32, 0.16)`；视觉截图仍显示底部黑块。继续对该 marker 的可见 descendants 做 computed-style 审计，唯一剩余大面积不透明层是 `relative flex h-full w-full flex-col`，computed background 为 `rgb(17, 17, 17)`。
+- [fix] 在 `bottom-panel` marker 内仅覆盖这组结构特征的新版 terminal-content surface，使用同一 `--ds-window-opacity-bottom-panel`；没有扩大到全局 `.app-theme` 或所有 `flex-col`，工具栏仍由 `bottomToolbar` 独立控制。
+- [acceptance] 需同时满足：打开态按钮 marker 命中唯一外壳；外壳、工具栏、正文两层和 terminal-content surface 都不再保留 `rgb(17,17,17)` 不透明填充；底部真实终端内容仍可见；视频继续推进；其他窗口与浏览器规则不受影响。
+
+### 6.19 Codex 26.924 重启后视频焦点恢复与浏览器复验（2026-09-29）
+
+- [runtime-evidence] 用户重启 Codex 并通过控制中心重新启用皮肤后，安装态 renderer 的视频节点为 `readyState=4`、`error=null`、`display=block`，但在控制中心保持前台时 `document.hasFocus()=false`，视频为 `paused=true`。现有 `blur` 处理器会暂停视频，`focus` 处理器会调用 `ensure` 恢复播放；因此该暂停状态属于焦点生命周期，不是视频资源损坏或 WebView 遮挡。
+- [verified] 触发同一已注册的 focus 恢复路径后，视频 2 秒内从 `currentTime=5.431762` 推进到 `7.4351`，随后继续循环；未修改视频为静态图，也未移除视频层。
+- [visual-verified] `artifacts/codex-restart-video-a.png` 与 `artifacts/codex-restart-video-b.png` 是真实 Codex renderer 的连续截图，背景画面不同；同屏可见新版 Codex UI、视频皮肤、右侧 WebView 外壳和底部终端。
+- [browser-boundary] 同屏 WebView 当前完整显示 Chromium 的 `ERR_CONNECTION_REFUSED` 页面，失败 URL 为 `http://localhost:8090/ledger-window-new`。这证明 WebView guest 没有被蒙版覆盖；页面业务内容不可见的原因是该本地服务未响应，本轮不改变服务启动方式。fixture 成功显示证据仍为 `artifacts/codex-26.924.2738-browser-fixture-visible.png`。
+- [acceptance] 重启后的最终验收必须在 Codex 窗口重新取得焦点后同时满足：视频 `paused=false` 且时间持续推进、底部终端正文按 `bottomPanel` 透明度显示、WebView guest 可见且可交互；本轮已完成前三项的运行态/视觉证据，真实台账页面仍受本地 8090 服务状态限制。
+- [regression] Windows renderer 资产测试最初未通过，是测试 mock 只登记了单个 aria selector，而实现向 DOM 查询逗号合并 selector；实现已改为逐个候选 selector 查询，真实 DOM 语义不变，`windows/tests/renderer-inject.test.mjs` 已通过。
+- [environment-boundary] 完整 Windows suite 在当前环境的 `.NET File.Replace` 最小探针同样返回 `Access denied`，因此保留该测试失败，不修改原子替换实现。新安装包构建还被官方 WebView2 与 Node 依赖下载的 TLS/连接错误阻断；未生成新 Setup，旧包不代表本轮修复。
