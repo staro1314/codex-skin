@@ -537,7 +537,9 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.match(css, /main:is\(\.main-surface, \[data-app-shell-main-surface\], \[class\*=\"_MainContentSurface_\"\]\):has\(\[role="main"\]\)/);
   assert.match(css, /main:is\(\.main-surface, \[data-app-shell-main-surface\], \[class\*=\"_MainContentSurface_\"\]\):not\(:has\(\[role="main"\]\)\)/);
   assert.match(css, /header:is\(\.app-header-tint, \[data-app-shell-header-edge-scroll\], \[class\*=\"_Header_\"\]\)/);
-  assert.match(css, /:is\(\.app-shell-main-content-top-fade, \[data-app-shell-main-content-top-fade\], \[class\*=\"_MainContentTopFade_\"\]\)/);
+  assert.match(css, /:is\(\.app-shell-main-content-top-fade, \[data-app-shell-main-content-top-fade\]\[aria-hidden=\"true\"\], \[class\*=\"_MainContentTopFade_\"\]\)/);
+  assert.doesNotMatch(css, /\[data-app-shell-main-content-top-fade\](?!\[aria-hidden=\"true\"\])\s*[,)]/,
+    "The 26.924 thread container must not be hidden as a decorative fade.");
   assert.doesNotMatch(css, /:has\([^()]*:has\(/);
   assert.doesNotMatch(css, /content:\s*var\(--dream-skin-name[\s\S]{0,180}var\(--dream-skin-brand-subtitle/,
     "The renderer must not inject a duplicate title into Codex's native header.");
