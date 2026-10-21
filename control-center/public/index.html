@@ -17,6 +17,7 @@
       </div>
     </div>
     <div class="topbar-context">
+      <button id="license-button" class="license-button" type="button"><span id="license-badge">FREE</span><b>升级 Pro</b></button>
       <span class="context-label">当前工作区</span>
       <strong>视觉主题管理</strong>
       <span class="context-divider" aria-hidden="true"></span>
@@ -322,6 +323,26 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="license-dialog" class="license-dialog" aria-labelledby="license-title">
+    <form id="license-form" class="license-form">
+      <div class="dialog-kicker">CODEX SKIN PRO</div>
+      <h2 id="license-title">高级功能授权</h2>
+      <p id="license-description" class="dialog-description">可免费体验全部 Pro 功能 24 小时；购买后凭当前机器码获取离线许可证。</p>
+      <div class="license-status"><span>当前状态</span><strong id="license-status">免费版</strong><small id="license-detail">基础主题功能可正常使用</small></div>
+      <div id="license-fields" class="license-fields">
+        <label class="text-field"><span>本机机器码</span><input id="license-machine-code" type="text" readonly></label>
+        <label class="text-field"><span>离线许可证</span><textarea id="license-key" maxlength="8192" rows="4" autocomplete="off" spellcheck="false" placeholder="粘贴购买后收到的设备绑定许可证"></textarea></label>
+      </div>
+      <p id="license-error" class="dialog-error" role="alert"></p>
+      <div class="license-actions">
+        <button id="license-close" class="button ghost" type="button">关闭</button>
+        <button id="license-deactivate" class="button ghost" type="button" hidden>释放此设备</button>
+        <button id="license-trial" class="button secondary" type="button">免费体验 24 小时</button>
+        <button id="license-buy" class="button secondary" type="button">购买 Pro</button>
+        <button id="license-activate" class="button primary" type="submit">激活许可证</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="new-theme-dialog" class="new-theme-dialog" aria-labelledby="new-theme-title">
     <form method="dialog" class="new-theme-form">
       <div class="dialog-kicker">NEW THEME</div>

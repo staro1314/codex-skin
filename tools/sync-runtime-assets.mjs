@@ -36,6 +36,16 @@ for (const [key, maxLength] of [
 if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(product.packageStem)) {
   throw new Error("PRODUCT.json packageStem must be a safe package filename stem");
 }
+const licensing = product.licensing;
+if (!licensing || !["lemonsqueezy", "offline_signed"].includes(licensing.provider) ||
+    typeof licensing.purchaseUrl !== "string" ||
+    (licensing.provider === "lemonsqueezy" && !["storeId", "productId", "variantId"].every((key) => licensing[key] === null || Number.isSafeInteger(licensing[key]))) ||
+    (licensing.provider === "offline_signed" && (typeof licensing.publicKeyPem !== "string" || licensing.productCode !== "codex-skin-pro")) ||
+    licensing.trialHours !== 24 ||
+    !Number.isSafeInteger(licensing.validationDays) || licensing.validationDays < 1 || licensing.validationDays > 30 ||
+    !Number.isSafeInteger(licensing.offlineGraceDays) || licensing.offlineGraceDays < licensing.validationDays || licensing.offlineGraceDays > 90) {
+  throw new Error("PRODUCT.json has an invalid licensing contract");
+}
 const productFile = `${JSON.stringify(product, null, 2)}\n`;
 const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const productEnv = [

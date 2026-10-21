@@ -84,6 +84,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .brand-lockup strong em { color: var(--accent); font-style: normal; }
 .brand-lockup div > span { display: block; margin-top: 4px; color: var(--text-dim); font-size: 9px; letter-spacing: .16em; }
 .topbar-context { gap: 10px; color: var(--text-soft); font-size: 12px; }
+.license-button { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(198, 255, 97, .24); border-radius: 8px; background: rgba(198, 255, 97, .07); color: var(--text); cursor: pointer; }
+.license-button span { padding: 2px 5px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); font-size: 8px; font-weight: 900; letter-spacing: .08em; }
+.license-button b { font-size: 10px; }
+.license-button[data-pro="true"] b { color: var(--accent); }
 .topbar-context strong { color: var(--text); font-size: 13px; font-weight: 600; }
 .context-label { color: var(--text-dim); }
 .context-divider { width: 1px; height: 18px; margin: 0 8px; background: var(--line-strong); }
@@ -107,6 +111,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .connection-banner strong { font-size: 12px; }
 .connection-banner span { color: #dabd9b; font-size: 11px; }
 .text-button { border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 700; }
+
+.license-dialog { width: min(560px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); color: var(--text); background: #111715; box-shadow: var(--shadow); }
+.license-dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(8px); }
+.license-form { display: grid; gap: 16px; padding: 28px; }
+.license-form h2 { margin: -7px 0 0; font-size: 24px; }
+.license-status { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 255, 255, .025); }
+.license-status span, .license-status small { color: var(--text-dim); font-size: 11px; }
+.license-status strong { color: var(--accent); font-size: 13px; }
+.license-status small { grid-column: 1 / -1; }
+.license-fields { display: grid; gap: 12px; }
+.license-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+[data-pro-locked="true"] { opacity: .48; }
 
 .workbench {
   width: 100%;

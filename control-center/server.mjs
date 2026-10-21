@@ -9,6 +9,13 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PRODUCT_NAME, PRODUCT_STUDIO_NAME } from "../runtime/product.mjs";
+import {
+  LicenseManager,
+  MemoryLicenseStore,
+  MirroredLicenseStore,
+  WindowsDpapiLicenseStore,
+  WindowsRegistryLicenseStore,
+} from "./license-manager.mjs";
 import { ThemeExporter } from "./theme-exporter.mjs";
 import { ThemeStore, validateUploadedMedia } from "./theme-store.mjs";
 
@@ -305,12 +312,22 @@ export async function createControlCenter(options = {}) {
   });
   const clientVersion = options.clientVersion
     ?? (await fs.readFile(path.join(runtimeRoot, "VERSION"), "utf8")).trim();
+  const embedded = options.embedded === true;
+  const product = JSON.parse(await fs.readFile(path.join(runtimeRoot, "assets", "product.json"), "utf8"));
+  const licenseManager = options.licenseManager ?? new LicenseManager({
+    store: embedded && platform === "win32"
+      ? new MirroredLicenseStore([
+        new WindowsDpapiLicenseStore({ filePath: path.join(stateRoot, "license-state.dpapi") }),
+        new WindowsRegistryLicenseStore(),
+      ])
+      : new MemoryLicenseStore(),
+    config: product.licensing,
+  });
   const exporter = new ThemeExporter({ stateRoot, store, clientVersion });
   const uploads = new Map();
   const media = new Map();
   const mediaIds = new Map();
   const allowActions = options.allowActions ?? true;
-  const embedded = options.embedded === true;
   const importEnabled = embedded && platform === "win32";
   const actionRunner = options.actionRunner ?? ((action) => runWindowsAction({
     ...action,
@@ -362,6 +379,7 @@ export async function createControlCenter(options = {}) {
       warnings: snapshot.warnings,
       themes: snapshot.themes.map((entry) => publicTheme(entry, mediaIds)),
       exports: await exporter.summaries(),
+      licensing: await licenseManager.summary(),
     });
   }
 
@@ -451,8 +469,22 @@ export async function createControlCenter(options = {}) {
       const mutating = req.method !== "GET" && req.method !== "HEAD";
       if (!authorize(req, mutating)) return json(res, 403, { error: "Control Center authorization failed" });
       if (req.method === "GET" && url.pathname === "/api/bootstrap") return bootstrap(res);
+      if (req.method === "POST" && url.pathname === "/api/license/trial") {
+        return json(res, 200, { licensing: await licenseManager.startTrial() });
+      }
+      if (req.method === "POST" && url.pathname === "/api/license/activate") {
+        const body = await readJson(req);
+        return json(res, 200, { licensing: await licenseManager.activate(body) });
+      }
+      if (req.method === "POST" && url.pathname === "/api/license/validate") {
+        return json(res, 200, { licensing: await licenseManager.validate({ force: true }) });
+      }
+      if (req.method === "POST" && url.pathname === "/api/license/deactivate") {
+        return json(res, 200, { licensing: await licenseManager.deactivate() });
+      }
       if (req.method === "POST" && url.pathname === "/api/upload") {
         const kind = url.searchParams.get("kind");
+        if (kind === "video") await licenseManager.requirePro("视频背景");
         const limit = kind === "image" ? 10 * 1024 * 1024 : kind === "video" ? 32 * 1024 * 1024 : 0;
         if (!limit) return json(res, 400, { error: "Upload kind must be image or video" });
         const upload = validateUploadedMedia(kind, await readBody(req, limit));
@@ -462,12 +494,14 @@ export async function createControlCenter(options = {}) {
         return json(res, 201, { uploadId, kind, mediaType: upload.mediaType, bytes: upload.bytes.length });
       }
       if (req.method === "POST" && url.pathname === "/api/themes") {
+        await licenseManager.requirePro("高级主题编辑器");
         const body = await readJson(req);
         const saved = await saveTheme(body);
         return json(res, 201, { theme: publicTheme(saved, mediaIds) });
       }
       const themePath = /^\/api\/themes\/([^/]+)$/u.exec(url.pathname);
       if (req.method === "PUT" && themePath) {
+        await licenseManager.requirePro("高级主题编辑器");
         const body = await readJson(req);
         const themeId = decodeURIComponent(themePath[1]);
         const saved = await saveTheme(body, themeId);
@@ -479,6 +513,7 @@ export async function createControlCenter(options = {}) {
         return json(res, 200, { id: themeId });
       }
       if (req.method === "POST" && url.pathname === "/api/export") {
+        await licenseManager.requirePro("主题分享包导出");
         const exported = await exporter.exportPackage(await readJson(req));
         return response(res, 200, exported.archive, {
           "Content-Disposition": `attachment; filename="${exported.filename}"`,
@@ -518,6 +553,7 @@ export async function createControlCenter(options = {}) {
           const snapshot = await store.list();
           const selected = snapshot.themes.find((entry) => entry.id === body.themeId && entry.kind === "saved");
           if (!selected) return json(res, 404, { error: "Saved theme not found" });
+          if (selected.theme?.video) await licenseManager.requirePro("视频背景");
           themeId = selected.id;
         }
         const result = await actionRunner({ action: body.action, themeId, stateRoot });

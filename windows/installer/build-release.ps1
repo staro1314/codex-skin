@@ -516,6 +516,7 @@ try {
     'scripts\validate-safe-css-file.mjs',
     'scripts\verify-dream-skin.ps1',
     'control-center\server.mjs',
+    'control-center\license-manager.mjs',
     'control-center\theme-store.mjs',
     'control-center\theme-exporter.mjs',
     'control-center\zip-writer.mjs',

@@ -86,6 +86,7 @@ const state = {
   mediaMode: "image",
   newDraft: false,
   connected: false,
+  licensing: { status: "free", pro: false, enforcementEnabled: false, purchaseAvailable: false },
   busyButton: null,
 };
 
@@ -102,7 +103,9 @@ const elements = Object.fromEntries([
   "export-button", "save-apply-button", "start-codex-button", "restore-button", "action-dock", "operation-progress", "operation-progress-label", "operation-progress-time",
   "toast", "new-theme-dialog", "new-theme-name", "new-theme-type-image",
   "new-theme-type-video", "new-theme-file", "new-theme-file-label", "new-theme-file-hint", "new-theme-error",
-  "new-theme-cancel", "new-theme-confirm",
+  "new-theme-cancel", "new-theme-confirm", "license-button", "license-badge", "license-dialog", "license-form",
+  "license-description", "license-status", "license-detail", "license-fields", "license-machine-code", "license-key", "license-error",
+  "license-close", "license-deactivate", "license-trial", "license-buy", "license-activate",
 ].map((id) => [id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()), document.getElementById(id)]));
 
 async function api(path, options = {}) {
@@ -120,6 +123,39 @@ async function api(path, options = {}) {
 
 function mediaUrl(id) {
   return id ? `/api/media/${encodeURIComponent(id)}` : "";
+}
+
+function renderLicensing() {
+  const licensing = state.licensing;
+  const enabled = licensing.enforcementEnabled === true;
+  const pro = !enabled || licensing.pro === true;
+  const labels = {
+    free: "免费版",
+    trial_active: "Pro 体验中",
+    trial_expired: "体验已结束",
+    pro_licensed: "Pro 已激活",
+    license_invalid: "许可证无效",
+  };
+  elements.licenseStatus.textContent = enabled ? labels[licensing.status] ?? "免费版" : "功能锁尚未启用";
+  elements.licenseBadge.textContent = licensing.status === "trial_active" ? "TRIAL" : pro ? "PRO" : "FREE";
+  elements.licenseButton.dataset.pro = String(pro);
+  elements.licenseButton.querySelector("b").textContent = pro ? "Pro 授权" : "升级 Pro";
+  elements.licenseDetail.textContent = licensing.status === "trial_active"
+    ? `剩余约 ${Math.max(1, Math.ceil((licensing.trialRemainingSeconds ?? 0) / 3600))} 小时`
+    : licensing.status === "pro_licensed" ? `设备：${licensing.instanceName || "当前设备"}`
+      : enabled ? "视频、逐窗口调节、状态特效和分享包导出需要 Pro"
+        : "配置正式商品后才会启用付费限制；当前功能保持完整可用";
+  elements.licenseTrial.hidden = !enabled || licensing.status !== "free";
+  elements.licenseBuy.hidden = !licensing.purchaseAvailable || licensing.status === "pro_licensed";
+  elements.licenseDeactivate.hidden = licensing.status !== "pro_licensed";
+  elements.licenseFields.hidden = !enabled || licensing.status === "pro_licensed";
+  elements.licenseActivate.hidden = !enabled || licensing.status === "pro_licensed";
+  elements.licenseMachineCode.value = licensing.machineCode || "尚未生成";
+  for (const section of document.querySelectorAll('[data-section="windows"], [data-section="effects"], [data-section="export"]')) {
+    section.dataset.proLocked = String(enabled && !pro);
+  }
+  updateEditorAvailability();
+  updateActionAvailability();
 }
 
 function releaseObjectUrl(value) {
@@ -295,18 +331,21 @@ function setBusy(busy, label = "", button = null) {
 function updateActionAvailability() {
   const savedSelected = !state.newDraft && selectedTheme()?.kind === "saved";
   const hasDraft = Boolean(state.draft);
+  const proLocked = state.licensing.enforcementEnabled && !state.licensing.pro;
+  const selectedVideoLocked = proLocked && Boolean(selectedTheme()?.theme?.video);
   elements.resetButton.disabled = state.busy || !state.dirty || !hasDraft;
-  elements.applyButton.disabled = state.busy || !state.actionsEnabled || !savedSelected;
+  elements.applyButton.disabled = state.busy || !state.actionsEnabled || !savedSelected || selectedVideoLocked;
   elements.pauseButton.disabled = state.busy || !state.actionsEnabled || state.paused;
   elements.resumeButton.disabled = state.busy || !state.actionsEnabled || !state.paused;
   elements.startCodexButton.disabled = state.busy || !state.actionsEnabled;
   elements.restoreButton.disabled = state.busy || !state.actionsEnabled;
-  elements.saveButton.disabled = state.busy || !hasDraft;
-  elements.exportButton.disabled = state.busy || !savedSelected;
-  elements.saveApplyButton.disabled = state.busy || !state.actionsEnabled || !hasDraft || !savedSelected;
-  elements.newThemeButton.disabled = state.busy || state.themes.length === 0;
+  elements.saveButton.disabled = state.busy || !hasDraft || proLocked;
+  elements.exportButton.disabled = state.busy || !savedSelected || proLocked;
+  elements.saveApplyButton.disabled = state.busy || !state.actionsEnabled || !hasDraft || !savedSelected || proLocked;
+  elements.newThemeButton.disabled = state.busy || state.themes.length === 0 || proLocked;
   elements.deleteThemeButton.disabled = state.busy || !savedSelected;
-  if (!hasDraft) elements.actionHelp.textContent = "选择主题后可开始调校";
+  if (proLocked) elements.actionHelp.textContent = "高级编辑、视频主题和分享包导出需要 Pro；可免费体验 24 小时";
+  else if (!hasDraft) elements.actionHelp.textContent = "选择主题后可开始调校";
   else if (!state.actionsEnabled) elements.actionHelp.textContent = "当前平台未开放原生应用操作";
   else if (!savedSelected) elements.actionHelp.textContent = "内置主题或新建草稿请使用“保存为新主题”；保存并应用只更新已保存主题";
   else if (state.dirty) elements.actionHelp.textContent = "参数尚未应用；点击“应用所选主题”会先保存当前修改再应用";
@@ -321,6 +360,13 @@ function updateEditorAvailability() {
   elements.imageUpload.disabled = disabled || state.mediaMode === "video";
   elements.videoUpload.disabled = disabled || state.mediaMode === "image";
   elements.inheritVideo.disabled = disabled || state.mediaMode !== "video";
+  const proLocked = state.licensing.enforcementEnabled && !state.licensing.pro;
+  elements.mediaModeVideo.disabled = disabled || proLocked;
+  elements.newThemeTypeVideo.disabled = proLocked;
+  for (const input of document.querySelectorAll('[data-section="windows"] input, [data-section="effects"] input, [data-section="effects"] select, [data-section="export"] input, [data-section="export"] select, [data-section="export"] textarea')) {
+    input.disabled = disabled || proLocked;
+  }
+  elements.exportButton.disabled = state.busy || !state.themes.some((theme) => theme.id === state.selectedId && theme.kind === "saved") || proLocked;
 }
 
 function updateMediaModeUI() {
@@ -848,6 +894,7 @@ async function refresh(selectId = null) {
   state.importEnabled = payload.app.importEnabled === true;
   elements.importThemeButton.hidden = !state.importEnabled;
   state.exports = payload.exports ?? {};
+  state.licensing = payload.licensing ?? state.licensing;
   state.connected = true;
   elements.connectionDot.classList.add("online");
   elements.systemStatus.textContent = payload.paused ? "皮肤已暂停 / 服务在线" : "本地主题引擎在线";
@@ -867,6 +914,7 @@ async function refresh(selectId = null) {
     updateEditorAvailability();
   }
   updateActionAvailability();
+  renderLicensing();
   if (payload.warnings.length) toast(`已忽略 ${payload.warnings.length} 个无效主题`, true);
 }
 
@@ -1175,6 +1223,43 @@ elements.newThemeDialog.querySelector("form").addEventListener("submit", (event)
   createNewTheme();
 });
 elements.newThemeDialog.addEventListener("cancel", () => elements.newThemeError.textContent = "");
+elements.licenseButton.addEventListener("click", () => { elements.licenseError.textContent = ""; elements.licenseDialog.showModal(); });
+elements.licenseClose.addEventListener("click", () => elements.licenseDialog.close());
+elements.licenseTrial.addEventListener("click", async () => {
+  if (!window.confirm("确认现在开始连续 24 小时的 Pro 免费体验吗？开始后无法暂停或重新领取。")) return;
+  try {
+    const payload = await api("/api/license/trial", { method: "POST", body: "{}" });
+    state.licensing = { ...state.licensing, ...payload.licensing };
+    renderLicensing();
+    toast("Pro 免费体验已开始");
+  } catch (error) { elements.licenseError.textContent = error.message; }
+});
+elements.licenseBuy.addEventListener("click", () => {
+  if (state.licensing.purchaseUrl) window.open(state.licensing.purchaseUrl, "_blank", "noopener,noreferrer");
+});
+elements.licenseForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  elements.licenseError.textContent = "";
+  try {
+    const payload = await api("/api/license/activate", {
+      method: "POST",
+      body: JSON.stringify({ licenseKey: elements.licenseKey.value }),
+    });
+    state.licensing = { ...state.licensing, ...payload.licensing };
+    elements.licenseKey.value = "";
+    renderLicensing();
+    toast("Codex Skin Pro 已激活");
+  } catch (error) { elements.licenseError.textContent = error.message; }
+});
+elements.licenseDeactivate.addEventListener("click", async () => {
+  if (!window.confirm("确认移除当前设备的 Pro 许可证吗？如需恢复，可重新粘贴同一许可证。")) return;
+  try {
+    const payload = await api("/api/license/deactivate", { method: "POST", body: "{}" });
+    state.licensing = { ...state.licensing, ...payload.licensing };
+    renderLicensing();
+    toast("已释放当前设备");
+  } catch (error) { elements.licenseError.textContent = error.message; }
+});
 elements.deleteThemeButton.addEventListener("click", deleteTheme);
 elements.saveButton.addEventListener("click", () => saveTheme(false));
 elements.exportButton.addEventListener("click", exportTheme);

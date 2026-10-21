@@ -7,6 +7,7 @@ import test from "node:test";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { createControlCenter } from "../control-center/server.mjs";
+import { LicenseManager, MemoryLicenseStore } from "../control-center/license-manager.mjs";
 import { createZip, readZipEntries } from "../control-center/zip-writer.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,6 +43,9 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.match(shellHtml, /id="export-version"/);
     assert.match(shellHtml, /id="export-button"/);
     assert.match(shellHtml, /id="theme-search"/);
+    assert.match(shellHtml, /id="license-dialog"/);
+    assert.match(shellHtml, /id="license-trial"/);
+    assert.match(shellHtml, /id="license-activate"/);
     assert.match(shellHtml, /data-editor-tab="surface"/);
     assert.match(shellHtml, /data-editor-tab="windows"/,
       "Window opacity controls must have a sibling editor tab instead of living under surfaces.");
@@ -477,6 +481,43 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.deepEqual(refreshed.exports[saved.theme.id].versions, ["1.0.0"]);
     assert.equal(refreshed.exports[saved.theme.id].suggestedVersion, "1.0.1");
     assert.equal((await fs.readdir(stateRoot)).some((name) => name.startsWith(".control-center-export-")), false);
+  } finally {
+    await center.close();
+  }
+});
+
+test("configured licensing gates Pro APIs and a user-started trial unlocks them", async () => {
+  const stateRoot = path.join(tempRoot, "licensed-state");
+  const licenseManager = new LicenseManager({
+    store: new MemoryLicenseStore(),
+    config: {
+      purchaseUrl: "https://example.lemonsqueezy.com/buy/codex-skin-pro",
+      storeId: 10,
+      productId: 20,
+      variantId: 30,
+    },
+  });
+  const center = await createControlCenter({
+    port: 0,
+    stateRoot,
+    bundledThemeRoot: path.join(projectRoot, "windows", "assets"),
+    allowActions: false,
+    exposeErrors: true,
+    licenseManager,
+  });
+  const headers = { "X-DreamSkin-Token": center.token, Origin: center.origin };
+  try {
+    const before = await fetch(`${center.origin}/api/upload?kind=video`, { method: "POST", headers, body: tinyMp4 });
+    assert.equal(before.status, 402);
+    const trial = await fetch(`${center.origin}/api/license/trial`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(trial.status, 200);
+    assert.equal((await trial.json()).licensing.status, "trial_active");
+    const after = await fetch(`${center.origin}/api/upload?kind=video`, { method: "POST", headers, body: tinyMp4 });
+    assert.equal(after.status, 201);
   } finally {
     await center.close();
   }

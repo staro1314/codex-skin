@@ -3,5 +3,14 @@
   "displayName": "Codex Skin",
   "studioName": "Codex Skin Studio",
   "packageStem": "CodexSkin",
-  "publisher": "Codex Skin contributors"
+  "publisher": "Codex Skin contributors",
+  "licensing": {
+    "provider": "offline_signed",
+    "purchaseUrl": "",
+    "publicKeyPem": "",
+    "productCode": "codex-skin-pro",
+    "trialHours": 24,
+    "validationDays": 7,
+    "offlineGraceDays": 30
+  }
 }
