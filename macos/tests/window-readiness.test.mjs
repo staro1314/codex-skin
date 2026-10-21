@@ -56,13 +56,20 @@ const baseRenderer = {
 
 assert.equal(readyNativeWindow.status, "ready");
 assert.equal(assessRendererVerification(baseRenderer, readyNativeWindow, exactPayload).pass, true);
+assert.equal(assessRendererVerification({
+  ...baseRenderer,
+  homeRoute: true,
+  homePresent: true,
+  hero: { visible: false, width: 0, height: 0 },
+}, readyNativeWindow, exactPayload).pass, true,
+"Hidden cached home DOM must not make an active thread fail verification");
 
 // Codex 26.721.x sometimes renders game-source/home suggestions before
 // home-icon. In that interval homeRoute is already a real [role=main], so
 // verification must use it when the stricter home-route selector is late.
 assert.match(
   injectorSource,
-  /const home = document\.querySelector\(\$\{selectorLiteral\("home-route"\)\}\) \?\? homeRoute;/,
+  /const home = homeCandidates\.find\(\(node\) => box\(node\)\?\.visible\) \?\?\s*homeCandidates\[0\] \?\? homeRoute;/,
   "Home verification must fall back to the already-resolved semantic home route (#306).",
 );
 assert.equal(

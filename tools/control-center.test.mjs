@@ -54,14 +54,42 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The window editor section must remain separate from the effects editor section.");
     const surfaceSectionHtml = shellHtml.slice(surfaceSectionStart, windowsSectionStart);
     const windowsSectionHtml = shellHtml.slice(windowsSectionStart, effectsSectionStart);
+    const appSource = await fs.readFile(path.join(projectRoot, "control-center", "public", "app.js"), "utf8");
+    const previewCss = await fs.readFile(path.join(projectRoot, "control-center", "public", "styles.css"), "utf8");
+    const defaultsBody = appSource.match(/const FALLBACK_WINDOW_OPACITY = \{([\s\S]*?)\};/)?.[1] ?? "";
+    const defaultKeys = [...defaultsBody.matchAll(/^\s+([A-Za-z]+):/gm)].map((match) => match[1])
+      .filter((key) => key !== "composer"); // Legacy alias uses composerShell's slider.
+    const sliders = [...windowsSectionHtml.matchAll(/<input id="([^"]+)" type="range"[^>]*data-path="controls\.windowOpacity\.([A-Za-z]+)"/g)]
+      .map((match) => ({ id: match[1], key: match[2] }));
+    assert.deepEqual(sliders.map((item) => item.key).sort(), [...defaultKeys].sort(),
+      "Every window-opacity default except the legacy composer alias must have exactly one slider.");
+    for (const { id, key } of sliders) {
+      const cssKey = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+      assert.match(windowsSectionHtml, new RegExp(`data-window-control="${key}" aria-controls="${id}"`),
+        `${key} slider must have a clickable preview card`);
+      assert.match(shellHtml, new RegExp(`data-window-preview-target="${key}"`),
+        `${key} slider must have a central preview target`);
+      assert.ok(previewCss.includes(`var(--window-opacity-${cssKey}`),
+        `${key} central preview must consume the slider's alpha variable`);
+    }
     assert.doesNotMatch(surfaceSectionHtml, /controls\.windowOpacity\./,
       "The surface editor must not contain window-opacity controls.");
     assert.match(windowsSectionHtml, /data-path="controls\.windowOpacity\.sidebar"/,
       "The window editor must expose a dedicated sidebar window-opacity control.");
+    for (const key of ["floatingSidebar", "browserStartPage", "browserToolbar", "questionCard"]) {
+      assert.match(windowsSectionHtml, new RegExp(`data-path="controls\\.windowOpacity\\.${key}"`),
+        `${key} must have a dedicated slider`);
+      assert.match(windowsSectionHtml, new RegExp(`data-window-control="${key}"[\\s\\S]*?aria-controls="window-opacity-[^"]+"`),
+        `${key} must have a linked preview card`);
+      assert.match(shellHtml, new RegExp(`data-window-preview-target="${key}"`),
+        `${key} must exist in the central preview`);
+    }
     assert.match(windowsSectionHtml, /会话输入框[\s\S]*data-path="controls\.windowOpacity\.composerShell"/,
       "The window editor must expose the bottom composer separately from the terminal panel.");
     assert.match(windowsSectionHtml, /底部终端面板[\s\S]*data-path="controls\.windowOpacity\.bottomPanel"/,
       "The existing bottom-panel control must be labelled as the terminal panel.");
+    assert.match(windowsSectionHtml, /右侧终端[\s\S]*data-path="controls\.windowOpacity\.rightTerminal"/,
+      "The right terminal must have its own control, separate from the browser and bottom terminal.");
     assert.match(windowsSectionHtml, /摘要浮层[\s\S]*data-path="controls\.windowOpacity\.summaryPanel"/,
       "The summary control must describe the actual right-side PIP backing surface.");
     assert.match(windowsSectionHtml, /右侧工具面板[\s\S]*data-path="controls\.windowOpacity\.utilityToolbar"/,
@@ -70,10 +98,23 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The browser-content control must be separate from the utility-panel shell.");
     assert.match(windowsSectionHtml, /设置页[\s\S]*data-path="controls\.windowOpacity\.settingsPage"/,
       "The settings control must identify the Windows content panel rather than the whole shell.");
-    assert.match(windowsSectionHtml, /data-window-control="composer"[\s\S]*aria-controls="window-opacity-composer"/,
-      "The composer preview must be linked to its matching slider.");
+    for (const [key, id] of [
+      ["mainSurface", "window-opacity-main-surface"],
+      ["composerShell", "window-opacity-composer-shell"],
+      ["composerEditor", "window-opacity-composer-editor"],
+      ["environmentHeader", "window-opacity-environment-header"],
+    ]) {
+      assert.match(windowsSectionHtml, new RegExp(`data-window-control="${key}"[\\s\\S]*?aria-controls="${id}"`),
+        `${key} preview must link to its actual slider`);
+      assert.match(shellHtml, new RegExp(`data-window-preview-target="${key}"`),
+        `${key} must have a central preview target`);
+    }
+    assert.doesNotMatch(windowsSectionHtml, /aria-controls="window-opacity-composer"/,
+      "The preview must not link to the retired composer slider ID.");
     assert.match(windowsSectionHtml, /data-window-control="bottomPanel"[\s\S]*aria-controls="window-opacity-bottom-panel"/,
       "The terminal-panel preview must be linked to its matching slider.");
+    assert.match(windowsSectionHtml, /data-window-control="rightTerminal"[\s\S]*aria-controls="window-opacity-right-terminal"/,
+      "The right-terminal preview must be linked to its matching slider.");
     assert.match(windowsSectionHtml, /点击预览卡可定位对应滑块/,
       "The window preview must explain its click-to-focus behavior.");
     assert.match(shellHtml, /data-window-preview-target="sidebar"/,
@@ -84,8 +125,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
       "The environment-information preview must be nested in the right utility panel.");
     assert.match(shellHtml, /mock-utility-panel[\s\S]*mock-browser-content[\s\S]*data-window-preview-target="browserContent"/,
       "The browser-content preview must be nested in the right utility panel.");
-    assert.match(shellHtml, /data-window-preview-target="composer"/,
-      "The central preview must expose the composer target.");
+    assert.match(shellHtml, /data-window-preview-target="composerShell"[\s\S]*data-window-preview-target="composerEditor"/,
+      "The central preview must show composer shell and editor as separate nested surfaces.");
     assert.match(shellHtml, /id="window-focus-label"/,
       "The central preview must expose a live focus readout.");
     assert.match(shellHtml, /窗口级透明度/,
@@ -233,7 +274,8 @@ test("control center serves an authenticated theme editor and saves immutable dr
       controls: {
         surfaceOpacity: 0.8, surfaceBlur: 22, surfaceRadius: 19,
         imageZoom: 1.08, imageDim: 0.28, motionLevel: "reduced",
-        windowOpacity: { sidebar: 0.14, utilityToolbar: 0.66 },
+        windowOpacity: { sidebar: 0.14, utilityToolbar: 0.66,
+          floatingSidebar: 0.72, browserStartPage: 0.64, browserToolbar: 0.61, questionCard: 0.74 },
       },
       stateEffects: {
         thinking: {
@@ -279,6 +321,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(saved.theme.theme.controls.surfaceBlur, 22);
     assert.equal(saved.theme.theme.controls.windowOpacity.sidebar, 0.14);
     assert.equal(saved.theme.theme.controls.windowOpacity.utilityToolbar, 0.66);
+    assert.equal(saved.theme.theme.controls.windowOpacity.floatingSidebar, 0.72);
+    assert.equal(saved.theme.theme.controls.windowOpacity.browserStartPage, 0.64);
+    assert.equal(saved.theme.theme.controls.windowOpacity.browserToolbar, 0.61);
+    assert.equal(saved.theme.theme.controls.windowOpacity.questionCard, 0.74);
     assert.equal(saved.theme.theme.stateEffects.thinking.motion, "pulse");
 
     const directory = path.join(stateRoot, "themes", saved.theme.id);
@@ -413,6 +459,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.deepEqual(partialWindowUpdate.theme.theme.controls.windowOpacity, {
       sidebar: 0.14,
       utilityToolbar: 0.66,
+      floatingSidebar: 0.72,
+      browserStartPage: 0.64,
+      browserToolbar: 0.61,
+      questionCard: 0.74,
       bottomPanel: 0.38,
     }, "Partial window opacity edits must merge missing keys from the source theme.");
 

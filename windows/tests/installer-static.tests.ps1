@@ -61,6 +61,15 @@ if ("$($manifest.version)" -cne '22.23.1' -or
 
 $definition = [System.IO.File]::ReadAllText($definitionPath)
 $builder = [System.IO.File]::ReadAllText($builderPath)
+foreach ($metadataContract in @(
+  '-p:AssemblyTitle=$($product.displayName)',
+  '-p:Product=$($product.displayName)',
+  'Published Windows client metadata does not match PRODUCT.json.'
+)) {
+  if (-not $builder.Contains($metadataContract)) {
+    throw "Windows client notification identity no longer follows PRODUCT.json: $metadataContract"
+  }
+}
 $bootstrap = [System.IO.File]::ReadAllText($bootstrapPath)
 $common = [System.IO.File]::ReadAllText($commonPath)
 $themeRuntime = [System.IO.File]::ReadAllText($themePath)

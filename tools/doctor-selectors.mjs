@@ -29,19 +29,28 @@ function normalizePlatform(platform = process.platform) {
 }
 
 export function extractCodexVersion(version = {}) {
-  const candidates = [
-    version.codexVersion,
-    version.CodexVersion,
-    version["Codex-Version"],
-    version.Browser,
-    version.Product,
-    version["User-Agent"],
-  ];
-  for (const candidate of candidates) {
-    const match = String(candidate ?? "").match(/(?:^|[^\d])((?:\d+\.){2}\d+)(?:[^\d]|$)/);
+  for (const candidate of [version.codexVersion, version.CodexVersion, version["Codex-Version"]]) {
+    const match = String(candidate ?? "").match(/^((?:\d+\.){2,3}\d+)$/);
+    if (match) return match[1];
+  }
+  for (const candidate of [version.Browser, version.Product, version["User-Agent"]]) {
+    const match = String(candidate ?? "").match(/\bCodex\/((?:\d+\.){2,3}\d+)\b/i);
     if (match) return match[1];
   }
   return null;
+}
+
+export function codexVersionFromState(state, port, cdpVersion) {
+  if (Number(state?.port) !== port || typeof state?.browserId !== "string") return null;
+  let currentBrowserId;
+  try {
+    const url = new URL(cdpVersion?.webSocketDebuggerUrl);
+    if (url.protocol !== "ws:" || !["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname) ||
+        Number(url.port) !== port || !url.pathname.startsWith("/devtools/browser/")) return null;
+    currentBrowserId = url.pathname.slice("/devtools/browser/".length);
+  } catch { return null; }
+  if (state.browserId !== currentBrowserId) return null;
+  return extractCodexVersion({ codexVersion: state.codexVersion });
 }
 
 export function selectSelectorProfile(contract, clientVersion, platform = process.platform) {
@@ -146,10 +155,23 @@ function pageDoctor(selectors, stableTestids = []) {
     const probe = byKey.get(key);
     return probe ? evaluate(probe).count : 0;
   };
+  const visibleCount = function (key) {
+    const probe = byKey.get(key);
+    if (!probe) return 0;
+    try {
+      return [...document.querySelectorAll(probe.selector)].filter((node) =>
+        typeof node.checkVisibility !== "function" ||
+        node.checkVisibility({ checkVisibilityCSS: true })).length;
+    } catch { return 0; }
+  };
   const stableTestidCount = function (testid) {
     if (!testid || !stableTestids.includes(testid)) return 0;
     const selector = `[data-testid="${testid}"]`;
-    try { return document.querySelectorAll(selector).length; } catch { return 0; }
+    try {
+      return [...document.querySelectorAll(selector)].filter((node) =>
+        typeof node.checkVisibility !== "function" ||
+        node.checkVisibility({ checkVisibilityCSS: true })).length;
+    } catch { return 0; }
   };
   // These probes are the small state-classification set.  Once the base route
   // and overlay state are known, every remaining selector is evaluated only if
@@ -158,10 +180,11 @@ function pageDoctor(selectors, stableTestids = []) {
   const overlay = count("overlay-menu") > 0 || count("overlay-dialog") > 0 ||
     count("overlay-popper") > 0;
   let baseState = "thread";
-  if (count("settings-panel") > 0 || count("appearance-radio") > 0 ||
+  if (visibleCount("settings-panel") > 0 || visibleCount("appearance-radio") > 0 ||
     stableTestidCount("theme-preview") > 0) baseState = "settings";
-  else if (count("home-icon") > 0 || count("home-route") > 0) baseState = "home";
-  else if (count("shell-main") === 0) baseState = "settings";
+  else if (visibleCount("thread-surface") > 0 || visibleCount("message") > 0) baseState = "thread";
+  else if (visibleCount("home-icon") > 0 || visibleCount("home-route") > 0) baseState = "home";
+  else if (visibleCount("shell-main") === 0) baseState = "settings";
 
   const activeScopes = new Set([baseState]);
   if (baseState !== "settings") activeScopes.add("all");
@@ -235,6 +258,15 @@ async function stateFilePorts() {
   return ports;
 }
 
+async function stateFileVersion(port, cdpVersion) {
+  if (process.platform !== "win32" || !process.env.LOCALAPPDATA) return null;
+  try {
+    const statePath = path.join(process.env.LOCALAPPDATA, "CodexDreamSkin", "state.json");
+    const state = JSON.parse(await fs.readFile(statePath, "utf8"));
+    return codexVersionFromState(state, port, cdpVersion);
+  } catch { return null; }
+}
+
 async function candidatePorts(options) {
   const ports = [];
   if (options.port) ports.push(options.port);
@@ -249,6 +281,18 @@ async function candidatePorts(options) {
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+export function selectMainCdpTarget(targets, port) {
+  const validTargets = (Array.isArray(targets) ? targets : []).filter((item) => {
+    if (item?.type !== "page" || !String(item.url || "").startsWith("app://")) return false;
+    try {
+      const url = new URL(item.webSocketDebuggerUrl);
+      return url.protocol === "ws:" && ["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname) &&
+        Number(url.port) === port && url.pathname.startsWith("/devtools/page/");
+    } catch { return false; }
+  });
+  return validTargets.find((item) => item.url === "app://-/index.html") ?? validTargets[0] ?? null;
+}
+
 async function discover(options) {
   const ports = await candidatePorts(options);
   const deadline = Date.now() + options.waitSeconds * 1000;
@@ -257,14 +301,7 @@ async function discover(options) {
       try {
         const version = await fetchJson(port, "/json/version");
         const targets = await fetchJson(port, "/json/list", 2000);
-        const target = (Array.isArray(targets) ? targets : []).find((item) => {
-          if (item?.type !== "page" || !String(item.url || "").startsWith("app://")) return false;
-          try {
-            const url = new URL(item.webSocketDebuggerUrl);
-            return url.protocol === "ws:" && ["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname) &&
-              Number(url.port) === port && url.pathname.startsWith("/devtools/page/");
-          } catch { return false; }
-        });
+        const target = selectMainCdpTarget(targets, port);
         if (target) return { port, target, version };
       } catch {}
     }
@@ -344,7 +381,8 @@ async function main() {
     const pageResult = await session.evaluate(
       `(${pageDoctor.toString()})(${JSON.stringify(contract.selectors)}, ${JSON.stringify(contract.stableTestids || [])})`,
     );
-    const clientVersion = extractCodexVersion(found.version);
+    const clientVersion = extractCodexVersion(found.version) ??
+      await stateFileVersion(found.port, found.version);
     const result = gradeDoctorResult(contract, pageResult, {
       clientVersion,
       platform: process.platform,

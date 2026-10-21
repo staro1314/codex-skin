@@ -30,15 +30,21 @@ function classList(initial) {
 function makeFixture({
   nativeAppearance = "dark", settings = false, settingsPanel = false, settingsPage = false, adopted = true,
   generic = false, genericComposer = true, genericHome = false, genericSearch = false,
+  nestedComposerEditor = false,
   lateComposer = false,
   modernMessages = false, reducedMotion = false, threadRoute = false, visualSignal = null,
   locationHref = "app://-/index.html", visibilityState = "visible", overlay = false,
   profileMenu = false,
   floatingLeftPanel = false,
+  floatingSidebar = false,
   utilitySidePanel = false,
   utilitySidePanelTriggerLabel = "显示/隐藏侧边面板",
   browserContent = false,
+  browserStartPage = false,
+  browserToolbar = false,
+  questionCard = false,
   bottomPanel = false,
+  rightTerminal = false,
   environmentInfoPopover = false,
   environmentInfoBackdrop = false,
   environmentInfoText = "环境信息变更本地来源查看全部",
@@ -126,7 +132,13 @@ function makeFixture({
       partFixtures.composer = makeDomNode(
         "generic-composer", partFixtures.main, new Map(), lateComposer ? [] : [composerSelector],
       );
-      partFixtures.input = makeDomNode("generic-input", partFixtures.composer, new Map(), [inputSelector]);
+      if (nestedComposerEditor) {
+        partFixtures.composer.addMatch('[class*="_ComposerLayoutRoot_"]');
+        partFixtures.editor = makeDomNode("generic-composer-editor", partFixtures.composer,
+          new Map(), [composerSelector]);
+      }
+      partFixtures.input = makeDomNode("generic-input",
+        partFixtures.editor || partFixtures.composer, new Map(), [inputSelector]);
       if (lateComposer) {
         activateLateComposer = () => {
           partFixtures.composer.addMatch(composerSelector);
@@ -182,6 +194,13 @@ function makeFixture({
       register("[data-codex-state]", signalNode);
     }
     register('aside:is(.app-shell-left-panel, [class~="bg-token-main-surface-primary"])', partFixtures.sidebar);
+    if (floatingSidebar) {
+      const selector = 'aside.app-shell-left-panel .sidebar-navigation > .sidebar-navigation';
+      partFixtures.sidebar.addMatch('aside.app-shell-left-panel');
+      partFixtures.sidebar.offsetWidth = 52;
+      partFixtures.floatingSidebar = makeDomNode('floating-sidebar', partFixtures.sidebar);
+      register(selector, partFixtures.floatingSidebar);
+    }
     if (floatingLeftPanel) {
       const floatingLeftPanelSelector = 'aside[data-testid="app-shell-floating-left-panel"]';
       partFixtures.floatingLeftPanel = makeDomNode(
@@ -209,8 +228,8 @@ function makeFixture({
       register(messageSelector, partFixtures.userMessage);
       register(messageSelector, partFixtures.assistantMessage);
     }
-    register(".composer-surface-chrome", partFixtures.composer);
-    register('.composer-surface-chrome [class*="_footer_"]', partFixtures.composerToolbar);
+    register(':is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"])', partFixtures.composer);
+    register(':is(.composer-surface-chrome [class*="_footer_"], [class*="_ComposerLayoutRoot_"] [class*="_ComposerLayoutFooter_"])', partFixtures.composerToolbar);
     if (profileMenu) {
       const triggerSelector = "button[aria-label='打开个人资料菜单'], button[aria-label='Open profile menu']";
       const triggerId = "profile-menu-trigger";
@@ -276,8 +295,8 @@ function makeFixture({
       const utilitySelector =
         'div[class~="absolute"][class~="top-0"][class~="bottom-0"][class~="left-0"]' +
         '[class~="min-w-0"][class~="border-l"][class~="border-default"]' +
-        ':is([class~="bg-surface"], [class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"])' +
-        ':has([data-app-shell-tabs="true"]):not(:has([data-app-shell-tab-panel-controller="bottom"]))';
+        ':has([data-app-shell-tabs="true"]):has([data-app-shell-tab-panel-controller="right"])' +
+        ':not(:has([data-app-shell-tab-panel-controller="bottom"]))';
       partFixtures.utilitySidePanel = makeDomNode(
         "utility-side-panel",
         body,
@@ -295,6 +314,24 @@ function makeFixture({
         [browserSelector],
       );
       register(browserSelector, partFixtures.browserContent);
+    }
+    if (browserStartPage) {
+      const selector = '[data-app-shell-tab-panel-controller="right"] [class~="bg-surface-canvas"]';
+      partFixtures.browserStartPage = makeDomNode('browser-start-page', body);
+      register(selector, partFixtures.browserStartPage);
+    }
+    if (browserToolbar) {
+      const selector = '[data-app-shell-tab-panel-controller="right"] [class~="h-12"][class~="border-b"][class~="bg-surface"]';
+      partFixtures.browserToolbar = makeDomNode('browser-toolbar', body);
+      register(selector, partFixtures.browserToolbar);
+    }
+    if (questionCard) {
+      const selector = '[class~="@container/request-card"]';
+      partFixtures.questionCard = makeDomNode('question-card', partFixtures.main);
+      partFixtures.questionCard.querySelector = (query) =>
+        query === '[contenteditable][aria-label="回复…"]' ? partFixtures.questionInput : null;
+      partFixtures.questionInput = makeDomNode('question-input', partFixtures.questionCard);
+      register(selector, partFixtures.questionCard);
     }
     if (bottomPanel) {
       const trigger = makeDomNode(
@@ -318,6 +355,15 @@ function makeFixture({
         [bottomSelector],
       );
       register(bottomSelector, partFixtures.bottomPanel);
+    }
+    if (rightTerminal) {
+      const selector = '[data-app-shell-tab-panel-controller="right"][data-tab-id^="terminal:"]';
+      partFixtures.rightTerminal = makeDomNode("right-terminal", body,
+        new Map([["data-app-shell-tab-panel-controller", "right"], ["data-tab-id", "terminal:test"]]),
+        [selector]);
+      partFixtures.rightTerminal.checkVisibility = () => true;
+      partFixtures.rightTerminal.getClientRects = () => [{ width: 540, height: 700 }];
+      register(selector, partFixtures.rightTerminal);
     }
   }
   if (settingsPage) {
@@ -397,6 +443,9 @@ function makeFixture({
       return (selectorNodes.get(selector) || [])[0] || null;
     },
     querySelectorAll(selector) {
+      if (selector === 'video[data-dream-skin-video]') {
+        return videoNodes.filter((node) => node.parentElement && node.getAttribute('data-dream-skin-video') !== null);
+      }
       if (selector === "[data-ds-part]") {
         return [...domNodes].filter((node) => node.getAttribute?.("data-ds-part") !== null);
       }
@@ -524,6 +573,12 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Runtime payload must not carry retired selector documentation/fossils.");
   assert.doesNotMatch(template, /classList\.(add|remove|toggle)/);
   assert.doesNotMatch(template, /getBoundingClientRect|ResizeObserver/);
+  assert.match(template, /const sideChatNodes = \(\) => genericNodes\('aside\[class\*="z-\[41\]"\]'\)/,
+    "The side-chat marker must remain scoped to the new floating aside.");
+  assert.match(template, /addPart\(desired, "side-chat", sideChatNodes\(\)\)/,
+    "The side-chat body must receive its independent runtime marker.");
+  assert.match(template, /addPart\(desired, "chat-actions-menu", chatActionsMenuNodes\(\)\)/,
+    "The chat-actions menu must receive its own aria-bound runtime marker.");
   assert.match(template, /childList:\s*true/);
   assert.match(template, /subtree:\s*true/);
   // The new contract intentionally keeps the `data-dream-*` attribute names
@@ -536,6 +591,16 @@ export async function runRendererRuntimeTest(assetRoot) {
   // canonical CSS therefore gates on the :has()-free home-route-css alias.
   assert.match(css, /main:is\(\.main-surface, \[data-app-shell-main-surface\], \[class\*=\"_MainContentSurface_\"\]\):has\(\[role="main"\]\)/);
   assert.match(css, /main:is\(\.main-surface, \[data-app-shell-main-surface\], \[class\*=\"_MainContentSurface_\"\]\):not\(:has\(\[role="main"\]\)\)/);
+  assert.match(css, /\[role="main"\]:has\(\[data-testid="home-icon"\]\) > div:first-child:not\(\[class~="group\/home-composer-layout"\]\)\s*\{\s*min-height:\s*100% !important/,
+    "Legacy home height must not stretch the Codex 26.1013 composer layout.");
+  assert.match(css, /\[role="main"\]:has\(\[data-testid="home-icon"\]\) > div:first-child:not\(\[class~="group\/home-composer-layout"\]\) > div:first-child\s*\{\s*flex:\s*0 0 440px !important/,
+    "Legacy hero flex must not size Codex 26.1013 display:contents nodes.");
+  assert.match(css, /\[role="main"\]:has\(\[data-testid="home-icon"\]\) > div:first-child:not\(\[class~="group\/home-composer-layout"\]\) > div:first-child > div:first-child\s*\{[^}]*min-height:\s*248px !important/s,
+    "Legacy compact hero must not stretch the 26.1013 home-takeover and clip New Chat input.");
+  assert.match(css, /\[class~="group\/home-composer-layout"\] \[class\*="_ComposerLayoutRoot_"\] > \[class\*="_ComposerLayoutBody_"\]\s*\{\s*background:\s*transparent !important;\s*background-image:\s*none !important;/,
+    "The 26.1013 New Chat composer body must not cover its shell opacity with an opaque native fill.");
+  assert.match(css, /\[class~="group\/home-composer-layout"\] \[class\*="_rail_"\]\[class\*="_attached_"\]\s*> \[class\*="_item_"\]\[class~="bg-background-composer-action-bar"\]\s*\{\s*background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\) !important;/,
+    "The New Chat project rail must follow composerShell instead of retaining an opaque native bar.");
   assert.match(css, /header:is\(\.app-header-tint, \[data-app-shell-header-edge-scroll\], \[class\*=\"_Header_\"\]\)/);
   assert.match(css, /:is\(\.app-shell-main-content-top-fade, \[data-app-shell-main-content-top-fade\]\[aria-hidden=\"true\"\], \[class\*=\"_MainContentTopFade_\"\]\)/);
   assert.doesNotMatch(css, /\[data-app-shell-main-content-top-fade\](?!\[aria-hidden=\"true\"\])\s*[,)]/,
@@ -595,6 +660,14 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Floating dropdown surfaces must remain translucent under the skin.");
   assert.match(css, /\[data-pip-home-surface="thread-summary-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-summary-panel\)\)/,
     "The native thread summary panel must use the scoped readable glass surface.");
+  assert.match(css, /\[class~="group\/summary-panel"\]\[class~="bg-surface-elevated-secondary"\][\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-summary-panel\)\)/,
+    "The current Codex summary popover must consume the summary opacity control.");
+    assert.match(css, /\[class~="group\/summary-panel"\] header\[class~="bg-surface-elevated-secondary"\]::before\s*\{[\s\S]{0,100}background-color:\s*transparent\s*!important/,
+      "The summary heading and its native before strip must not mask the controlled outer glass surface.");
+  assert.match(css, /\[data-ds-part="side-chat"\][\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-side-chat\)\)/,
+    "The independent side-chat body must consume its own opacity control.");
+  assert.match(css, /\[data-ds-part="chat-actions-menu"\][\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-chat-actions-menu\)\)/,
+    "The chat-actions menu must consume its own opacity control.");
   assert.match(css, /\[data-pip-home-surface="thread-summary-panel"\][\s\S]{0,520}backdrop-filter:\s*blur\(14px\) saturate\(108%\)/,
     "The native thread summary panel must retain the scoped glass blur.");
   assert.match(css, /\[data-ds-part="environment-info-popover"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-environment-info-popover\)\)/,
@@ -609,6 +682,17 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Only the runtime-marked profile menu must use the readable glass surface.");
   assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="sidebar"\]\s*\{[\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-sidebar\)\)/,
     "The validated sidebar and its floating variant must match the main surface tint.");
+  assert.match(css, /aside\.app-shell-left-panel \.sidebar-navigation:has\(> \[data-ds-part="floating-sidebar"\]\)\s*\{[\s\S]{0,100}background:\s*transparent !important/,
+    "The floating sidebar's native wrapper must not compound its configured opacity.");
+  for (const [part, key] of [
+    ["floating-sidebar", "floating-sidebar"],
+    ["browser-start-page", "browser-start-page"],
+    ["browser-toolbar", "browser-toolbar"],
+    ["question-card", "question-card"],
+  ]) {
+    assert.match(css, new RegExp(`\\[data-ds-part="${part}"\\][\\s\\S]{0,150}background:\\s*rgb\\(var\\(--ds-panel-rgb\\) \\/ var\\(--ds-window-opacity-${key}\\)\\)`),
+      `${part} must consume only its own window-opacity variable`);
+  }
   assert.match(css, /html\[data-dream-skin="active"\] \[data-ds-part="sidebar"\]\s*\{[\s\S]{0,320}backdrop-filter:\s*none/,
     "The validated sidebar and its floating variant must not add a second background blur.");
   assert.match(css, /:is\(\[data-dream-task-mode="ambient"\][\s\S]{0,520}\[data-ds-part="sidebar"\]\s*\{[\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-sidebar\)\)/,
@@ -641,13 +725,13 @@ export async function runRendererRuntimeTest(assetRoot) {
     "Dynamic terminal panes must use the skin glass surface.");
   assert.match(css, /\[data-ds-part="browser-content"\][\s\S]{0,300}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-browser-content\)\)/,
     "The browser WebView host must consume its dedicated window-opacity variable.");
-  assert.match(css, /\[data-ds-part="browser-content"\][\s\S]{0,180}opacity:\s*var\(--ds-window-opacity-browser-content\)\s*!important/,
-    "The browser WebView host must apply its opacity to the native guest compositor output.");
+  assert.doesNotMatch(css, /\[data-ds-part="browser-content"\]\s*\{[^}]*opacity:\s*var\(--ds-window-opacity-browser-content\)/,
+    "The browser host alpha must not dim the native guest and render page text unreadable.");
   assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-utility-side-panel\)\)/,
     "The verified right utility sidebar wrapper must use a translucent glass surface.");
   assert.match(css, /\[data-ds-part="utility-side-panel"\][\s\S]{0,900}\[data-app-shell-tabs="true"\][\s\S]{0,300}\[class~="h-toolbar"\][\s\S]{0,220}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-utility-toolbar\)\)/,
     "The right utility sidebar tab toolbar must remain translucent and readable.");
-  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,420}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)[\s\S]{0,220}box-shadow:\s*none[\s\S]{0,120}backdrop-filter:\s*none/,
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,420}background:\s*transparent[\s\S]{0,220}box-shadow:\s*none[\s\S]{0,120}backdrop-filter:\s*none/,
     "The verified bottom panel wrapper must not add a dark fill, shadow, or blur.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,520}\[class~="app-theme"\]\[class~="electron-dark"\][\s\S]{0,220}background:\s*transparent/,
     "Only the bottom panel terminal content must use a transparent surface.");
@@ -655,15 +739,23 @@ export async function runRendererRuntimeTest(assetRoot) {
     "The bottom panel toolbar must not restore an opaque or blurred native surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,900}\[class~="relative"\][\s\S]{0,520}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)/,
     "The current Codex terminal body must consume bottomPanel instead of retaining an opaque native fill.");
-  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="h-full"\][\s\S]{0,420}\[class~="flex-col"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-bottom-panel\)\)/,
-    "The current Codex terminal content surface must consume bottomPanel instead of retaining an opaque black rectangle.");
+  assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="h-full"\][\s\S]{0,420}\[class~="flex-col"\][\s\S]{0,260}background:\s*transparent/,
+    "The nested Codex terminal content surface must not stack another bottomPanel tint over the body.");
+  assert.match(css, /\[data-ds-part="right-terminal"\]\s*\{[\s\S]{0,160}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-right-terminal\)\)/,
+    "The right terminal must consume its own alpha, not the browser or utility-panel alpha.");
+  assert.match(css, /\[data-ds-part="right-terminal"\] \[data-codex-terminal="true"\]\s*\{[\s\S]{0,80}background:\s*transparent/,
+    "The native right-terminal content fill must not mask the independent alpha.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1200}\[class~="group\/tab"\][\s\S]{0,260}background:\s*transparent/,
     "The bottom panel active tab must not restore an opaque native surface.");
   assert.match(css, /\[data-ds-part="bottom-panel"\][\s\S]{0,1800}\[class~="w-max"\]\[class~="bg-surface"\][\s\S]{0,180}background:\s*transparent/,
     "The bottom panel tab controls must remain transparent.");
   assert.match(css, /\[class\*="_ComposerLayoutRoot_"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\)/,
     "Current Codex composer roots must use their dedicated opacity control.");
-  assert.match(css, /:is\([^)]*\.composer-surface-chrome[^)]*\[data-ds-part="composer"\][^)]*\[class\*="_ComposerLayoutRoot_"\][^)]*\)[\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\)/,
+  assert.match(css, /Codex 26\.1013 puts two decorative native surface layers[\s\S]{0,900}\[data-thread-scroll-footer="true"\] > \[aria-hidden="true"\]\[class\*="_background_"\]\[class\*="_surface_"\]/,
+    "The current thread composer backdrop must be cleared only inside the verified video-thread boundary.");
+  assert.match(css, /Codex 26\.1013 puts two decorative native surface layers[\s\S]{0,1250}\.sticky > \[aria-hidden="true"\]\[class\*="_background_"\]\[class\*="_fade_"\][\s\S]{0,100}background-image:\s*none !important/,
+    "The current sticky footer fade must not hide the video under the composer.");
+  assert.match(css, /:is\(:is\(\.composer-surface-chrome, \[class\*="_ComposerLayoutRoot_"\]\), \[data-ds-part="composer"\], \[class\*="_ComposerLayoutRoot_"\]\)[\s\S]{0,180}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-composer-shell\)\)/,
     "The bottom composer must consume its dedicated window-opacity variable.");
   assert.match(css, /:has\(main:is\([^)]*\) \[role="main"\]\)\s+aside:is\([^)]*\)\[data-ds-part="sidebar"\][\s\S]{0,260}background:\s*rgb\(var\(--ds-panel-rgb\) \/ var\(--ds-window-opacity-sidebar\)\)/,
     "The home immersive sidebar override must retain the unified tint.");
@@ -778,6 +870,13 @@ export async function runRendererRuntimeTest(assetRoot) {
   video.videoNodes[0].mediaListeners.get("error")();
   assert.equal(video.attrs.get("data-dream-media"), "poster");
   assert.equal(video.rootStyle.values.get("--dream-skin-art"), 'url("blob:fixture-1")');
+  const orphanVideo = video.document.createElement('video');
+  orphanVideo.setAttribute('data-dream-skin-video', 'true');
+  video.document.body.appendChild(orphanVideo);
+  assert.equal(video.window.__CODEX_DREAM_SKIN_VIDEO_SOURCE__('data:video/mp4;base64,AAAA'), true);
+  assert.equal(orphanVideo.parentElement, null,
+    "Transferring a validated video source must remove orphaned file-backed skin videos.");
+  assert.equal(video.videoNodes.at(-1).src, 'data:video/mp4;base64,AAAA');
 
   const reducedVideo = makeFixture({ nativeAppearance: "dark", reducedMotion: true });
   vm.runInNewContext(reducedVideo.payloadFor({
@@ -800,6 +899,13 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.scope.baseState, "thread");
   assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.visualState.state, "thinking");
   assert.equal(thinking.window.__CODEX_DREAM_SKIN_STATE__.visualState.source, "dom");
+
+  const cachedHome = makeFixture({ nativeAppearance: "dark" });
+  cachedHome.partFixtures.homeIcon.checkVisibility = () => false;
+  cachedHome.partFixtures.home.checkVisibility = () => false;
+  vm.runInNewContext(cachedHome.payloadFor(), cachedHome.context);
+  assert.equal(cachedHome.window.__CODEX_DREAM_SKIN_STATE__.scope.baseState, "thread",
+    "A hidden cached home route must not replace the visible thread scope");
 
   const stateBridge = makeFixture({ nativeAppearance: "dark", threadRoute: true });
   vm.runInNewContext(stateBridge.payloadFor(), stateBridge.context);
@@ -826,6 +932,22 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(staleVideoPortal.document.adoptedStyleSheets.some((sheet) =>
     sheet.cssRules?.some((rule) => rule.selectorText?.includes("body > :not([data-dream-skin-video])"))), false,
   "Reinjection must remove the legacy video portal positioning sheet.");
+
+  const orphanSkin = makeFixture({ nativeAppearance: "dark", threadRoute: true });
+  const nativeSheet = { cssRules: [{ selectorText: "body", cssText: "body { color: white; }" }] };
+  const oldSkinSheet = { cssRules: [
+    { cssText: "@layer dreamskin-accessibility, dreamskin-community;" },
+    { selectorText: ':root[data-dream-skin="active"]',
+      cssText: ':root[data-dream-skin="active"] { --ds-bg: #111318; --ds-panel: #191c22; }' },
+  ] };
+  orphanSkin.document.adoptedStyleSheets.push(nativeSheet, oldSkinSheet);
+  vm.runInNewContext(orphanSkin.payloadFor(), orphanSkin.context);
+  assert.equal(orphanSkin.document.adoptedStyleSheets.includes(oldSkinSheet), false,
+    "Reinjection must remove an orphaned old skin sheet that still overrides current home CSS.");
+  assert.equal(orphanSkin.document.adoptedStyleSheets.includes(nativeSheet), true,
+    "A native adopted stylesheet must survive orphaned-skin cleanup.");
+  assert.equal(orphanSkin.document.adoptedStyleSheets.length, 2,
+    "Only the native sheet and the current skin sheet should remain.");
 
   const videoOverlay = makeFixture({ nativeAppearance: "dark", threadRoute: true, overlay: true });
   vm.runInNewContext(videoOverlay.payloadFor({
@@ -978,6 +1100,13 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(floatingLeftPanel.partFixtures.floatingLeftPanel.getAttribute("data-ds-part"), "sidebar",
     "The exact app-shell floating left panel must reuse the validated sidebar glass surface.");
 
+  const floatingSidebar = makeFixture({ nativeAppearance: "dark", floatingSidebar: true });
+  vm.runInNewContext(floatingSidebar.payloadFor({ controls: { windowOpacity: { floatingSidebar: 0.73 } } }), floatingSidebar.context);
+  assert.equal(floatingSidebar.partFixtures.floatingSidebar.getAttribute("data-ds-part"), "floating-sidebar");
+  assert.equal(floatingSidebar.rootStyle.values.get("--ds-window-opacity-floating-sidebar"), "0.73");
+  assert.equal(floatingSidebar.partFixtures.sidebar.getAttribute("data-ds-part"), "sidebar",
+    "The collapsed icon rail must retain its independent opacity control.");
+
   const utilitySidePanel = makeFixture({ nativeAppearance: "dark", utilitySidePanel: true });
   vm.runInNewContext(utilitySidePanel.payloadFor(), utilitySidePanel.context);
   assert.equal(utilitySidePanel.partFixtures.utilitySidePanel.getAttribute("data-ds-part"),
@@ -993,6 +1122,21 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(browserContent.rootStyle.values.get("--ds-window-opacity-browser-content"), "0.37",
     "The browser WebView host must receive the saved browser-content alpha.");
 
+  const browserStart = makeFixture({ nativeAppearance: "dark", browserStartPage: true, browserToolbar: true });
+  vm.runInNewContext(browserStart.payloadFor({ controls: { windowOpacity: { browserStartPage: 0.44, browserToolbar: 0.58 } } }), browserStart.context);
+  assert.equal(browserStart.partFixtures.browserStartPage.getAttribute("data-ds-part"), "browser-start-page");
+  assert.equal(browserStart.partFixtures.browserToolbar.getAttribute("data-ds-part"), "browser-toolbar");
+  assert.equal(browserStart.rootStyle.values.get("--ds-window-opacity-browser-start-page"), "0.44");
+  assert.equal(browserStart.rootStyle.values.get("--ds-window-opacity-browser-toolbar"), "0.58");
+  assert.equal(browserStart.partFixtures.browserContent, undefined,
+    "The native start page must not impersonate the WebView host.");
+
+  const question = makeFixture({ nativeAppearance: "dark", questionCard: true });
+  vm.runInNewContext(question.payloadFor({ controls: { windowOpacity: { questionCard: 0.71 } } }), question.context);
+  assert.equal(question.partFixtures.questionCard.getAttribute("data-ds-part"), "question-card");
+  assert.equal(question.rootStyle.values.get("--ds-window-opacity-question-card"), "0.71");
+  assert.notEqual(question.partFixtures.questionCard.getAttribute("data-ds-part"), "approval-surface");
+
   const legacyUtilitySidePanel = makeFixture({
     nativeAppearance: "dark", utilitySidePanel: true,
     utilitySidePanelTriggerLabel: "显示/隐藏侧边栏",
@@ -1007,6 +1151,15 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(bottomPanel.partFixtures.bottomPanel.getAttribute("data-ds-part"),
     "bottom-panel",
     "The exact open bottom panel must receive its dedicated visual part.");
+
+  const rightTerminal = makeFixture({ nativeAppearance: "dark", rightTerminal: true });
+  vm.runInNewContext(rightTerminal.payloadFor({ controls: {
+    windowOpacity: { rightTerminal: 0.71 },
+  } }), rightTerminal.context);
+  assert.equal(rightTerminal.partFixtures.rightTerminal.getAttribute("data-ds-part"),
+    "right-terminal",
+    "Only the visible right terminal tab must receive its independent marker.");
+  assert.equal(rightTerminal.rootStyle.values.get("--ds-window-opacity-right-terminal"), "0.71");
 
   const environment = makeFixture({ nativeAppearance: "dark", threadRoute: true, environmentInfoPopover: true });
   vm.runInNewContext(environment.payloadFor(), environment.context);
@@ -1049,6 +1202,12 @@ export async function runRendererRuntimeTest(assetRoot) {
     "An aside inside the main content must not be exposed as the app sidebar.");
   assert.equal(generic.partFixtures.dialogInput.getAttribute("data-ds-part"), null,
     "Dialog inputs must not be mistaken for the app composer.");
+
+  const nestedComposer = makeFixture({ nativeAppearance: "dark", generic: true, nestedComposerEditor: true });
+  vm.runInNewContext(nestedComposer.payloadFor(), nestedComposer.context);
+  assert.equal(nestedComposer.partFixtures.composer.getAttribute("data-ds-part"), "composer",
+    "The outer Codex 26.1013 layout root, not its nested editor, owns the composer opacity part.");
+  assert.equal(nestedComposer.partFixtures.editor.getAttribute("data-ds-part"), null);
 
   const lateGeneric = makeFixture({ nativeAppearance: "dark", generic: true, lateComposer: true });
   vm.runInNewContext(lateGeneric.payloadFor(), lateGeneric.context);

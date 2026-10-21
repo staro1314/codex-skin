@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { installVideoBlob, loadPayload } from "../windows/scripts/injector.mjs";
+import vm from "node:vm";
+import { installVideoBlob, loadPayload, rendererNeedsVideoTransfer } from "../windows/scripts/injector.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-dream-skin-video-runtime-"));
@@ -53,4 +54,28 @@ test("video renderer payload stays small while CDP transfers validated video chu
   });
   assert.deepEqual(Buffer.concat(chunks), Buffer.concat([tinyMp4, videoBytes]));
   assert.doesNotMatch(calls.join("\n"), /data:video\//);
+});
+
+test("watcher retries only a visible video page lacking a healthy transferred source", async () => {
+  const loaded = { videoPath: "background.mp4", theme: { video: { performance: "balanced" } } };
+  const fileVideo = { src: "file:///background.mp4", currentSrc: "", error: { code: 4 }, display: "none" };
+  const dataVideo = { src: "data:video/mp4;base64,AAAA", currentSrc: "", error: null, display: "block" };
+  const document = {
+    visibilityState: "visible",
+    documentElement: { getAttribute: () => "active" },
+    querySelectorAll: () => [fileVideo],
+  };
+  const session = { evaluate: expression => vm.runInNewContext(expression, {
+    document, window: { __CODEX_DREAM_SKIN_VIDEO_TRANSFER__: { begin() {} } },
+    getComputedStyle: node => ({ display: node.display }),
+  }) };
+  assert.equal(await rendererNeedsVideoTransfer(session, loaded), true);
+  document.querySelectorAll = () => [fileVideo, dataVideo];
+  assert.equal(await rendererNeedsVideoTransfer(session, loaded), false,
+    "A healthy visible data video must suppress repeated 23 MB transfers.");
+  dataVideo.error = { code: 4 };
+  assert.equal(await rendererNeedsVideoTransfer(session, loaded), true);
+  document.visibilityState = "hidden";
+  assert.equal(await rendererNeedsVideoTransfer(session, loaded), false);
+  assert.equal(await rendererNeedsVideoTransfer(session, { ...loaded, theme: { video: { performance: "eco" } } }), false);
 });

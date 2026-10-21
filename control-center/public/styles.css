@@ -220,27 +220,50 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .glass-surface { border: 1px solid rgba(235, 255, 241, .13); background: rgba(13, 21, 19, var(--surface-opacity, .86)); box-shadow: 0 12px 36px rgba(0, 0, 0, .16); }
 .mock-rail[data-window-preview-target="sidebar"],
 .mock-sidebar[data-window-preview-target="sidebar"] { background: rgb(13 21 19 / var(--window-opacity-sidebar, var(--surface-opacity, .86))); }
-.mock-composer[data-window-preview-target="composer"] { background: rgb(13 21 19 / var(--window-opacity-composer, var(--surface-opacity, .86))); }
+.mock-floating-sidebar[data-window-preview-target="floatingSidebar"] { background: rgb(13 21 19 / var(--window-opacity-floating-sidebar, .72)); }
+.mock-main[data-window-preview-target="mainSurface"] { background: rgb(13 21 19 / var(--window-opacity-main-surface, .10)); }
+.mock-composer[data-window-preview-target="composerShell"] { background: rgb(13 21 19 / var(--window-opacity-composer-shell, .10)); }
+.mock-composer-editor[data-window-preview-target="composerEditor"] { background: rgb(13 21 19 / var(--window-opacity-composer-editor, .10)); }
 .mock-profile-menu[data-window-preview-target="profileMenu"] { background: rgb(13 21 19 / var(--window-opacity-profile-menu, var(--surface-opacity, .86))); }
 .mock-environment-popover[data-window-preview-target="environmentInfoPopover"] { background: rgb(13 21 19 / var(--window-opacity-environment-info-popover, var(--surface-opacity, .86))); }
+.mock-environment-header[data-window-preview-target="environmentHeader"] { background: rgb(13 21 19 / var(--window-opacity-environment-header, .56)); }
 .mock-utility-panel[data-window-preview-target="utilitySidePanel"] { background: rgb(13 21 19 / var(--window-opacity-utility-side-panel, var(--surface-opacity, .86))); }
 .mock-browser-content[data-window-preview-target="browserContent"] { background: rgb(13 21 19 / var(--window-opacity-browser-content, var(--surface-opacity, .86))); }
-.mock-bottom-panel[data-window-preview-target="bottomPanel"] { background: rgb(13 21 19 / var(--window-opacity-bottom-panel, var(--surface-opacity, .86))); }
+.mock-browser-start-page[data-window-preview-target="browserStartPage"] { background: rgb(13 21 19 / var(--window-opacity-browser-start-page, .66)); }
+.mock-browser-toolbar[data-window-preview-target="browserToolbar"] { background: rgb(13 21 19 / var(--window-opacity-browser-toolbar, .66)); }
+.mock-question-card[data-window-preview-target="questionCard"] { background: rgb(13 21 19 / var(--window-opacity-question-card, .72)); }
+.mock-right-terminal[data-window-preview-target="rightTerminal"] { background: rgb(13 21 19 / var(--window-opacity-right-terminal, var(--surface-opacity, .86))); }
+.mock-side-chat[data-window-preview-target="sideChat"] { background: rgb(13 21 19 / var(--window-opacity-side-chat, .72)); }
+.mock-chat-actions-menu[data-window-preview-target="chatActionsMenu"] { background: rgb(13 21 19 / var(--window-opacity-chat-actions-menu, .72)); }
+.mock-bottom-panel[data-window-preview-target="bottomPanel"] { background: transparent; }
 .mock-approval[data-window-preview-target="approvalSurface"] { background: rgb(13 21 19 / var(--window-opacity-approval-surface, var(--surface-opacity, .86))); }
 .mock-settings[data-window-preview-target="settingsPage"] { background: rgb(13 21 19 / var(--window-opacity-settings-page, var(--surface-opacity, .86))); }
 .mock-summary-backdrop[data-window-preview-target="summaryPanel"] { background: rgb(13 21 19 / var(--window-opacity-summary-panel, var(--surface-opacity, .86))); }
 .mock-window-target { transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease; }
-.mock-summary-backdrop, .mock-profile-menu, .mock-environment-popover, .mock-utility-panel, .mock-browser-content, .mock-bottom-panel, .mock-approval, .mock-settings { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(5px); }
+.mock-summary-backdrop, .mock-profile-menu, .mock-environment-popover, .mock-utility-panel, .mock-browser-content, .mock-browser-start-page, .mock-browser-toolbar, .mock-floating-sidebar, .mock-question-card, .mock-right-terminal, .mock-bottom-panel, .mock-approval, .mock-settings { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(5px); }
+.mock-side-chat { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(5px); }
+.mock-chat-actions-menu { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(5px); }
 .preview-stage[data-window-focus="profileMenu"] .mock-profile-menu,
 .preview-stage[data-window-focus="summaryPanel"] .mock-summary-backdrop,
 .preview-stage[data-window-focus="summaryPanel"] .mock-utility-panel,
 .preview-stage[data-window-focus="environmentInfoPopover"] .mock-environment-popover,
+.preview-stage[data-window-focus="environmentHeader"] .mock-environment-popover,
 .preview-stage[data-window-focus="environmentInfoPopover"] .mock-summary-backdrop,
 .preview-stage[data-window-focus="environmentInfoPopover"] .mock-utility-panel,
 .preview-stage[data-window-focus="utilitySidePanel"] .mock-utility-panel,
 .preview-stage[data-window-focus="utilityToolbar"] .mock-utility-panel,
+.preview-stage[data-window-focus="browserToolbar"] .mock-utility-panel,
+.preview-stage[data-window-focus="browserStartPage"] .mock-utility-panel,
 .preview-stage[data-window-focus="browserContent"] .mock-utility-panel,
+.preview-stage[data-window-focus="browserToolbar"] .mock-browser-toolbar,
+.preview-stage[data-window-focus="browserStartPage"] .mock-browser-toolbar,
+.preview-stage[data-window-focus="browserStartPage"] .mock-browser-start-page,
 .preview-stage[data-window-focus="browserContent"] .mock-browser-content,
+.preview-stage[data-window-focus="floatingSidebar"] .mock-floating-sidebar,
+.preview-stage[data-window-focus="questionCard"] .mock-question-card,
+.preview-stage[data-window-focus="rightTerminal"] .mock-right-terminal,
+.preview-stage[data-window-focus="sideChat"] .mock-side-chat,
+.preview-stage[data-window-focus="chatActionsMenu"] .mock-chat-actions-menu,
 .preview-stage[data-window-focus="bottomPanel"] .mock-bottom-panel,
 .preview-stage[data-window-focus="bottomToolbar"] .mock-bottom-panel,
 .preview-stage[data-window-focus="approvalSurface"] .mock-approval,
@@ -250,6 +273,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .mock-profile-menu span { color: var(--text-dim); }
 .mock-environment-popover { position: absolute; top: 39px; right: 11px; z-index: 5; width: 142px; display: grid; gap: 5px; padding: 9px; border: 1px solid rgba(235, 255, 241, .18); border-radius: 8px; box-shadow: 0 12px 30px rgba(0, 0, 0, .28); font-size: 8px; }
 .mock-environment-popover b { color: var(--text); font-size: 9px; }
+.mock-environment-header { display: block; margin: -9px -9px 3px; padding: 8px 9px; border-radius: 8px 8px 0 0; }
 .mock-environment-popover span { color: var(--text-dim); }
 .mock-utility-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 4; width: 23%; display: grid; align-content: start; gap: 8px; padding: 10px 8px; border-left: 1px solid var(--line); box-shadow: -12px 0 30px rgba(0, 0, 0, .2); font-size: 8px; }
 .mock-utility-panel > strong { color: var(--text); font-size: 9px; }
@@ -261,10 +285,31 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .mock-utility-toolbar b { margin-right: auto; color: var(--text-soft); font-size: 8px; }
 .mock-utility-toolbar i, .mock-bottom-toolbar i { width: 4px; height: 4px; border-radius: 50%; background: var(--effect-color, var(--accent)); }
 .mock-browser-content { position: absolute; inset: 39px 0 0; z-index: 1; display: grid; align-content: start; gap: 6px; padding: 10px 8px; border-top: 1px solid var(--line); box-shadow: inset 0 8px 20px rgba(0, 0, 0, .12); font-size: 8px; }
+.mock-browser-toolbar { position: absolute; inset: 0 0 auto; z-index: 3; height: 32px; display: flex; align-items: center; gap: 8px; padding: 6px; border-bottom: 1px solid var(--line); font-size: 8px; }
+.mock-browser-toolbar span { flex: 1; padding: 3px 5px; border-radius: 8px; background: rgba(5, 10, 12, .36); color: var(--text-dim); }
+.mock-browser-start-page { position: absolute; inset: 32px 0 0; z-index: 2; display: grid; align-content: start; gap: 7px; padding: 13px 9px; font-size: 8px; }
+.mock-browser-start-page b { color: var(--text); }
+.mock-browser-start-page span { color: var(--text-dim); }
+.mock-floating-sidebar { position: absolute; top: 0; bottom: 0; left: 22px; z-index: 6; width: 115px; display: grid; align-content: start; gap: 9px; padding: 12px 9px; border: 1px solid var(--line); border-radius: 8px; font-size: 8px; }
+.mock-floating-sidebar b, .mock-floating-sidebar span { color: var(--text); }
+.mock-question-card { position: absolute; left: 33%; right: 27%; bottom: 38px; z-index: 7; display: grid; gap: 7px; padding: 9px; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, .2); font-size: 8px; }
+.mock-question-card b, .mock-question-card span { color: var(--text); }
+.mock-question-card i { padding: 4px; border: 1px solid var(--line); border-radius: 4px; color: var(--text-dim); font-style: normal; }
 .mock-browser-content b { color: var(--text-soft); font-size: 9px; }
 .mock-browser-content span { color: var(--text-dim); }
+.mock-right-terminal { position: absolute; top: 0; right: 0; bottom: 0; z-index: 5; width: 23%; display: grid; align-content: start; gap: 8px; padding: 12px 9px; border-left: 1px solid var(--line); font-size: 8px; }
+.mock-right-terminal b { color: var(--text); font-size: 9px; }
+.mock-right-terminal code { color: var(--text-soft); font-size: 8px; }
+.mock-right-terminal span { color: var(--text-dim); }
+.mock-side-chat { position: absolute; top: 0; right: 0; bottom: 0; z-index: 5; width: 23%; display: grid; align-content: start; gap: 8px; padding: 12px 9px; border-left: 1px solid var(--line); font-size: 8px; }
+.mock-side-chat b { color: var(--text); font-size: 9px; }
+.mock-side-chat span { color: var(--text-dim); }
+.mock-chat-actions-menu { position: absolute; top: 30px; right: 24%; z-index: 7; width: 132px; display: grid; gap: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; font-size: 8px; }
+.mock-chat-actions-menu b { color: var(--text); font-size: 9px; }
+.mock-chat-actions-menu span { color: var(--text-dim); }
 .mock-bottom-panel { position: absolute; right: 0; bottom: 0; left: 192px; z-index: 6; height: 29%; display: grid; align-content: start; gap: 8px; padding: 0 10px 8px; border-top: 1px solid var(--line); box-shadow: 0 -12px 30px rgba(0, 0, 0, .22); }
 .mock-bottom-toolbar { display: flex; align-items: center; gap: 4px; margin: 0 -10px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: rgb(13 21 19 / var(--window-opacity-bottom-toolbar, var(--surface-opacity, .86))); }
+.mock-bottom-body { position: absolute; inset: 25px 0 0; padding: 8px 10px; background: rgb(13 21 19 / var(--window-opacity-bottom-panel, var(--surface-opacity, .86))); }
 .mock-bottom-toolbar b { margin-right: auto; color: var(--text-soft); font-size: 8px; }
 .mock-bottom-panel code { color: var(--text-dim); font-size: 7px; }
 .mock-composer { position: relative; }
@@ -276,14 +321,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .mock-settings span { color: var(--text-dim); font-size: 8px; }
 .mock-settings span:last-child { grid-column: 2; width: 80%; height: 5px; margin-top: 1px; border-radius: 3px; background: rgba(235, 255, 241, .25); }
 .preview-stage[data-window-focus="sidebar"] .mock-rail,
+.preview-stage[data-window-focus="mainSurface"] .mock-main,
 .preview-stage[data-window-focus="sidebar"] .mock-sidebar,
+.preview-stage[data-window-focus="floatingSidebar"] .mock-floating-sidebar,
 .preview-stage[data-window-focus="profileMenu"] .mock-profile-menu,
 .preview-stage[data-window-focus="summaryPanel"] .mock-summary-backdrop,
+.preview-stage[data-window-focus="questionCard"] .mock-question-card,
 .preview-stage[data-window-focus="environmentInfoPopover"] .mock-environment-popover,
+.preview-stage[data-window-focus="environmentHeader"] .mock-environment-header,
 .preview-stage[data-window-focus="utilitySidePanel"] .mock-utility-panel,
 .preview-stage[data-window-focus="utilityToolbar"] .mock-utility-toolbar,
 .preview-stage[data-window-focus="browserContent"] .mock-browser-content,
-.preview-stage[data-window-focus="composer"] .mock-composer,
+.preview-stage[data-window-focus="browserToolbar"] .mock-browser-toolbar,
+.preview-stage[data-window-focus="browserStartPage"] .mock-browser-start-page,
+.preview-stage[data-window-focus="rightTerminal"] .mock-right-terminal,
+.preview-stage[data-window-focus="sideChat"] .mock-side-chat,
+.preview-stage[data-window-focus="chatActionsMenu"] .mock-chat-actions-menu,
+.preview-stage[data-window-focus="composerShell"] .mock-composer,
+.preview-stage[data-window-focus="composerEditor"] .mock-composer-editor,
 .preview-stage[data-window-focus="bottomPanel"] .mock-bottom-panel,
 .preview-stage[data-window-focus="bottomToolbar"] .mock-bottom-toolbar,
 .preview-stage[data-window-focus="approvalSurface"] .mock-approval,
@@ -317,6 +372,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .response-line.long { width: 100%; background: linear-gradient(90deg, var(--effect-color, var(--accent)), rgba(235, 255, 241, .18)); }
 .response-line.short { width: 58%; }
 .mock-composer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 7% 16px; padding: 9px 10px; border-radius: var(--surface-radius, 18px); color: var(--text-dim); font-size: 9px; }
+.mock-composer-editor { flex: 1; min-width: 0; padding: 5px 7px; border-radius: 8px; }
 .mock-composer button { width: 21px; height: 21px; border: 0; border-radius: 50%; color: var(--accent-ink); background: var(--effect-color, var(--accent)); font-size: 13px; }
 .scan-line { position: absolute; inset: 0; background: linear-gradient(transparent 49.8%, rgba(198, 255, 97, .08) 50%, transparent 50.2%); background-size: 100% 9px; opacity: .18; pointer-events: none; z-index: 3; }
 .stage-corner { position: absolute; color: rgba(235, 255, 241, .5); font-size: 8px; letter-spacing: .13em; z-index: 4; }
@@ -413,14 +469,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .window-opacity-sample span { width: 62%; height: 3px; border-radius: 2px; background: rgba(232, 255, 241, .5); }
 .window-opacity-grid .range-field.is-linked { padding: 5px 6px; margin: -5px -6px; border-radius: 6px; background: rgba(198, 255, 97, .05); box-shadow: inset 0 0 0 1px rgba(198, 255, 97, .2); }
 .window-opacity-sample[data-window-control="sidebar"] { --window-preview-opacity: var(--window-opacity-sidebar); }
+.window-opacity-sample[data-window-control="mainSurface"] { --window-preview-opacity: var(--window-opacity-main-surface); }
+.window-opacity-sample[data-window-control="floatingSidebar"] { --window-preview-opacity: var(--window-opacity-floating-sidebar); }
 .window-opacity-sample[data-window-control="profileMenu"] { --window-preview-opacity: var(--window-opacity-profile-menu); }
 .window-opacity-sample[data-window-control="summaryPanel"] { --window-preview-opacity: var(--window-opacity-summary-panel); }
 .window-opacity-sample[data-window-control="environmentInfoPopover"] { --window-preview-opacity: var(--window-opacity-environment-info-popover); }
+.window-opacity-sample[data-window-control="environmentHeader"] { --window-preview-opacity: var(--window-opacity-environment-header); }
 .window-opacity-sample[data-window-control="utilitySidePanel"] { --window-preview-opacity: var(--window-opacity-utility-side-panel); }
 .window-opacity-sample[data-window-control="utilityToolbar"] { --window-preview-opacity: var(--window-opacity-utility-toolbar); }
-.window-opacity-sample[data-window-control="composer"] { --window-preview-opacity: var(--window-opacity-composer); }
+.window-opacity-sample[data-window-control="browserToolbar"] { --window-preview-opacity: var(--window-opacity-browser-toolbar); }
+.window-opacity-sample[data-window-control="browserStartPage"] { --window-preview-opacity: var(--window-opacity-browser-start-page); }
+.window-opacity-sample[data-window-control="browserContent"] { --window-preview-opacity: var(--window-opacity-browser-content); }
+.window-opacity-sample[data-window-control="questionCard"] { --window-preview-opacity: var(--window-opacity-question-card); }
+.window-opacity-sample[data-window-control="composerShell"] { --window-preview-opacity: var(--window-opacity-composer-shell); }
+.window-opacity-sample[data-window-control="composerEditor"] { --window-preview-opacity: var(--window-opacity-composer-editor); }
 .window-opacity-sample[data-window-control="bottomPanel"] { --window-preview-opacity: var(--window-opacity-bottom-panel); }
 .window-opacity-sample[data-window-control="bottomToolbar"] { --window-preview-opacity: var(--window-opacity-bottom-toolbar); }
+.window-opacity-sample[data-window-control="rightTerminal"] { --window-preview-opacity: var(--window-opacity-right-terminal); }
+.window-opacity-sample[data-window-control="sideChat"] { --window-preview-opacity: var(--window-opacity-side-chat); }
+.window-opacity-sample[data-window-control="chatActionsMenu"] { --window-preview-opacity: var(--window-opacity-chat-actions-menu); }
 .window-opacity-sample[data-window-control="approvalSurface"] { --window-preview-opacity: var(--window-opacity-approval-surface); }
 .window-opacity-sample[data-window-control="settingsPage"] { --window-preview-opacity: var(--window-opacity-settings-page); }
 .control-note { margin: 0; color: var(--text-dim); font-size: 9px; line-height: 1.5; }

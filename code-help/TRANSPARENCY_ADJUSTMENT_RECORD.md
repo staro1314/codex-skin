@@ -1,5 +1,11 @@
 # Codex Skin 窗口透明度调整记录
 
+## 2026-10-20 Codex 26.1013 摘要浮层内层实机复核
+
+- 安装 r6 后若未执行“启动／重新应用 Codex”，现有进程可能仍使用旧的 adopted stylesheet；磁盘文件哈希一致不代表内存样式已更新。重启后 CSSOM 才包含新的 `group/summary-panel` 规则，外壳计算背景为 `rgba(11,26,32,.72)`。
+- 当前摘要浮层根节点是 `[class~="group/summary-panel"][class~="bg-surface-elevated-secondary"]`。其内部多个 `header[class~="bg-surface-elevated-secondary"]` 和各自 `::before` 顶部条仍独立绘制 `rgb(38,38,38)`，不受外壳 alpha 控制。r7 源码以摘要根节点限定，令两层背景透明；不触及会话输入框、浏览器、其他菜单。
+- 可撤销 adopted CSS 前后对照：外壳保持 `.72`；标题及 `::before` 从 `rgb(38,38,38)` 变为 `rgba(0,0,0,0)`。真实 Codex 截图：`artifacts/codex-26-1013-summary-inner-before-r7.png`、`artifacts/codex-26-1013-summary-inner-after-r7.png`。截图显示深色条消失、文字可读；热覆盖已清除。此为运行态实验，不等于 r7 安装态验收。
+
 最后核对时间：2026-08-21
 适用工作区：`D:\\project\\personal\\codex-skin`
 记录性质：当前源码、生成资源和已完成的 Windows 实时 CDP 验证的定位索引。
@@ -746,3 +752,75 @@ settings scope.baseState = settings
 - [acceptance] 重启后的最终验收必须在 Codex 窗口重新取得焦点后同时满足：视频 `paused=false` 且时间持续推进、底部终端正文按 `bottomPanel` 透明度显示、WebView guest 可见且可交互；本轮已完成前三项的运行态/视觉证据，真实台账页面仍受本地 8090 服务状态限制。
 - [regression] Windows renderer 资产测试最初未通过，是测试 mock 只登记了单个 aria selector，而实现向 DOM 查询逗号合并 selector；实现已改为逐个候选 selector 查询，真实 DOM 语义不变，`windows/tests/renderer-inject.test.mjs` 已通过。
 - [environment-boundary] 完整 Windows suite 在当前环境的 `.NET File.Replace` 最小探针同样返回 `Access denied`，因此保留该测试失败，不修改原子替换实现。新安装包构建还被官方 WebView2 与 Node 依赖下载的 TLS/连接错误阻断；未生成新 Setup，旧包不代表本轮修复。
+
+### 6.20 Windows Codex 26.1013 输入框壳层级审计（2026-10-19，进行中）
+
+- [baseline] 官方客户端 `26.1013.4894.0`，当前安装的 Codex Skin 引擎仍为 `1.0.3`，仓库源码为 `1.0.4`；不能把安装态截图作为本分支修复后的视觉验收。
+- [runtime-evidence] 当前真实任务页的可编辑节点在 `_ComposerLayoutRoot_5est5_2` 下；其内依次有 `_ComposerLayoutBody_`、`_ComposerLayoutFooter_`、`_ComposerLayoutInput_` 和 `_RichTextInput_`。旧 `composer-chrome`/`composer-toolbar` 选择器各命中 0，实际外壳和 Footer 均存在且非零尺寸。安装态外壳 `736x98`、背景 `rgba(11,26,32,.1)`；内层编辑带 `736x44`、背景 `rgba(11,26,32,.15)`。旧 fallback 的 `data-ds-part="composer"` 落在 `_RichTextInput_`，该层背景 `rgba(11,26,32,.86)`，并非外壳。
+- [source-fix] 共享选择器精确纳入 `_ComposerLayoutRoot_` 与 `_ComposerLayoutFooter_`，保留旧类；generic fallback 在已确认的输入节点祖先里优先选布局根，而不是较近的富文本编辑层。未扩大到普通文本框、搜索框或弹窗输入框。
+- [regression] `tools/renderer-runtime.test.mjs`、Windows/macOS renderer 测试、selector doctor 测试已通过；双端生成资产已同步。尚需把新源码实际应用到客户端，做外壳/编辑层透明度 A/B 视觉验收及其他窗口回归；此处不标为视觉通过。
+- [new-layer-evidence] 输入壳背后还存在两个 Codex 26.1013 原生纯装饰节点：`[data-thread-scroll-footer="true"]` 的直接子节点 `_background_… _surface_…`，`aria-hidden=true`、`pointer-events:none`、`932x114`、背景 `rgb(17,17,17)`；以及同一 thread 的 `.sticky` 直接子节点 `_background_… _fade_…`，`912x32`，背景图为从 `rgb(17,17,17)` 到透明的渐变。外壳仅改 .10→1.00 时，前者仍使底部黑块不透明；单独清除前者后，后者仍留黑色上缘。
+- [visual-ab] 运行态临时样式先仅清外壳背板，再同时清背板与 fade；两次截图人工对照确认两层独立贡献，临时样式已撤回。修复前截图保留为 `artifacts/codex-26-1013-composer-source-preview.png`；后续复测曾重写 A/B 脚本的同名截图，不把被重写文件误称为旧基线。随后把相同的精确规则限定在活动视频主题、真实 thread/composer 和 `aria-hidden` 装饰节点，未隐藏输入框、审批卡或真实内容。重新注入本分支源码后，未加临时样式的 computed 背板与 fade 均透明，真实截图 `artifacts/composer-backdrop-native.png` 显示视频在输入框后方连续可见。
+- [opacity-ab] 本分支源码运行态，`composerShell` 1.00/0.05 使 `736x98` 外壳计算背景分别为 `rgb(11,26,32)` / `rgba(11,26,32,.05)`；`composerEditor` 1.00/0.05 使 `736x44` 内层分别为相应 alpha。四张真实截图在 `artifacts/composer-*-alpha-*.png`；视频画面变化、输入框可见且底部黑板不再挡住外壳 A/B。所有临时变量均恢复原 inline 值与 `!important` 优先级。
+- [remaining] 这属于源码一次性注入的真实视觉验证，不代表正式安装包通过。仍需打包安装后复验、其他窗口与控制中心动作回归；当前安装引擎版本仍为 `1.0.3`。
+
+### 6.21 Codex 26.1013 新聊天输入框与缓存页面（2026-10-19）
+
+- [root-cause] 新版首页的首层容器为 `group/home-composer-layout`，第二层是 `display:contents`，第三层是 `group/home-takeover`。旧版首页的三级 `div:first-child` 装饰卡片规则因此意外命中 `home-takeover`，施加 `min-height:248px`、固定卡片背景和伪元素；其上游旧规则还对首层强制 `min-height:100%`、次层施加 440px flex 尺寸。实机对照确认旧样式下输入框下移并被底边裁切。
+- [fix] 只对这些旧首页结构规则增加首层 `:not([class~="group/home-composer-layout"])` 条件，包括主卡、伪元素、宽屏和窄屏分支；不改变真实输入框大小、内容和交互。同步 Windows/macOS CSS 资产。
+- [visual-verified] 在 Windows Codex `26.1013.4894.0` 上一次性注入本分支源码，点击“新聊天”后皮肤输入框 `x=170,y=734,width=1148,height=98,bottom=832`；暂时停用皮肤规则后的官方原生输入框矩形完全相同，视口 `1440x852`，没有滚动祖先。真实截图 `artifacts/codex-26-1013-home-source-preview.png` 显示输入框完整可见。此为源码运行态，不是已安装新包验收。
+- [cached-route] Codex 返回会话后仍保留隐藏首页和旧会话 DOM；按 `querySelector` 首个命中或仅按 `homePresent` 判断，会把活动 thread 错认成 home，并选择 0x0 的隐藏 main/composer，导致显示校验失败。共享 renderer 改为以 `checkVisibility` 判断首页活动状态；Windows/macOS 验证器在同一 selector 的候选中优先取可见节点，home gate 只随活动 scope 启用。重新注入后实机 `scope=thread`、`genericInput/main/shell.visible=true`、`pass=true`，再进入新聊天时 `scope=home`、L1 完整。
+- [remaining] 安装态仍为旧引擎 1.0.3。需要完成其他窗口/视频/浏览器/终端复验、Windows 全量测试和最新包安装后，再声称整体兼容完成。
+- [control-center-409] 在已安装 1.0.3 上实测暂停 HTTP 200，恢复 HTTP 409；直接运行该安装引擎 `--once` 得 exit 2，`scope=home` 而首页为隐藏节点、`genericMain/genericInput.visible=false`，虽当前真实会话可见。分支源码在同一会话 `--once` exit 0。已使用产品状态函数清除本次测试的暂停标记并重应用分支源码，皮肤和视频恢复；安装态控制中心仍需新包复验。
+
+### 6.22 Codex 26.1013 底部终端叠加透明度（2026-10-19，进行中）
+
+- [runtime-evidence] 用户展开 Codex 内置底部面板后，真实 renderer 中 `bottom-panel` 外壳为 `x290,y684,1146x164`，终端 controller 为 `x290,y725,1146x123`。截图 `artifacts/codex-26-1013-bottom-panel-expanded.png` 可见 PowerShell 页签、命令提示符和动态视频背景。外壳、正文 flex surface、内层 `h-full w-full flex-col` 三层背景均计算为 `rgba(11,26,32,.16)`；连续叠加的有效 alpha 高于用户设置的单层 `.16`。不存在缺失 marker 或正文不透明黑块。
+- [source-fix] 将外壳和最内层 terminal-content surface 设为透明，仅正文 flex surface 消费 `bottomPanel`；顶部工具栏继续独立消费 `bottomToolbar`。共享 CSS 已同步双端资产，renderer CSS 合同测试通过。一次性注入分支源码 `--once` 返回 `pass=true`，并已恢复用户原自定义主题；注入后的截图拍摄时用户已收起底部面板，不能据此声称终端修复的视觉对照通过。仍需在展开态重新截图、读取三层计算样式并核对视频/终端交互。
+- [bottom-visual] 用户重新展开后，实机终端正文截图 `artifacts/codex-26-1013-terminal-single-tint-expanded.png` 可见 PowerShell 内容；计算样式只剩中间正文层 `rgba(11,26,32,.16)`，外壳和内层不再叠加背景。`--verify` 使用原自定义主题返回 `pass=true`。这是源码运行态验收，尚非新安装包。
+
+### 6.23 Codex 26.1013 右侧终端与视频高光（2026-10-19，进行中）
+
+- [right-terminal-evidence] 右侧终端独立于右侧工具/浏览器面板，活动 tabpanel 为 `[data-app-shell-tab-panel-controller="right"][data-tab-id^="terminal:"]`，实机区域 `x895,y96,541x752`。其父级 `bg-[var(--app-shell-panel-background,var(--color-surface))]` 和内部 `[data-codex-terminal="true"]` 各为不透明 `rgb(17,17,17)`；已有 utility marker 未命中。修复前截图 `artifacts/codex-26-1013-right-terminal-before.png` 是黑色整块。
+- [right-terminal-fix] 仅为可见右侧 terminal tabpanel 标记 `right-terminal`；清除上述两层黑色背景，在 tabpanel 上单次消费独立 `rightTerminal` alpha。默认 `.72`，底部终端正文/工具栏新主题默认改为 `.68/.62`，均非完全透明。控制中心新增右侧终端滑块、预览目标和卡片；主题 schema 接受该可选键，旧主题不强制迁移。实机源码注入后，计算样式为 terminal `.72`、两层原生背景透明；截图 `artifacts/codex-26-1013-right-terminal-after-visible.png` 中视频和 PowerShell 同屏可见，`--verify` pass=true。浏览器 WebView 未在同一窗口同时打开，隔离回归仍需单独验证。
+- [glare-evidence] 用户当前主题 `--ds-theme-image-dim=.18`，但修复前视频计算滤镜 `brightness(1)` 且 opacity=1；静态背景的“背景压暗”未进入视频滤镜。临时 `brightness(.78)` 截图显示高光与白字的冲突明显降低，试验样式已撤回。
+- [glare-fix] 视频滤镜新增 `brightness(calc(1 - var(--ds-theme-image-dim, 0)))`，复用现有“背景压暗”数值，不增加遮罩层，也不更改保存的主题。源码实机应用后计算滤镜为 `brightness(1) brightness(.82)`、视频 `paused=false`，截图 `artifacts/codex-26-1013-video-dim-existing-control.png` 显示画面仍动态可见且高光缓和。仍需新安装包及控制中心调节的视觉回归。
+
+### 6.24 Codex 26.1013 新聊天输入区双层不透明底板（2026-10-20）
+
+- [installed-evidence] 用户安装 `1.0.4` 后，新聊天页输入框外壳 `rgba(11,26,32,.10)`、编辑层 `rgba(11,26,32,.15)`，但其内部直接子节点 `_ComposerLayoutBody_` 为不透明 `rgb(47,47,47)`；上方项目栏 `_rail_…_attached_` 内的 `_item_.bg-background-composer-action-bar` 为不透明 `rgb(33,33,33)`。普通会话的 `_ComposerLayoutBody_` 已透明。旧安装态截图：`artifacts/codex-26-1013-new-chat-before-20261020.png`。
+- [fix] 仅在 `[class~="group/home-composer-layout"]` 内，将 `_ComposerLayoutRoot_ > _ComposerLayoutBody_` 的背景清为透明，并让 `_rail_._attached_ > _item_.bg-background-composer-action-bar` 单层消费 `--ds-window-opacity-composer-shell`。不改编辑层、按钮或普通会话输入框。
+- [visual-ab] 可撤销 adopted stylesheet 临时应用两条精确规则后，Body 计算背景变为透明，项目栏背景变为 `rgba(11,26,32,.10)`；真实截图 `artifacts/codex-26-1013-new-chat-complete-hotfix-20261020.png` 显示项目栏与输入框底板均可透出动态视频，文字/按钮仍可见。临时 stylesheet 已清除，并复核旧安装态恢复为 `rgb(47,47,47)` / `rgb(33,33,33)`，不能把热覆盖当作已安装修复。
+- [regression] 共享源码、Windows/macOS 资产已同步；renderer 合同新增两层精确选择器断言，renderer、视频主题及同步校验通过。尚需包含该修复的新安装包、安装态视觉复验，以及底部/右侧终端和浏览器剩余实机验收。
+
+### 6.25 Codex 26.1013 新增浏览器首页、悬浮导航和问题卡（2026-10-20）
+
+- [browser evidence] 原生新标签／工具首页不是网页 WebView：当前 `browserContent` marker 缺失，右侧 tabpanel 中的 `bg-surface-canvas` 为不透明 `color(srgb .0653333...)`，48px 浏览器导航栏及其父底板均为 `rgb(17,17,17)`。`browserContent` 只调整真实网页宿主，不能解决该首页。独立 `browserStartPage` 标记仅在右侧 tabpanel 的原生 canvas 上，默认 `.66`；先清其不透明父底板，再让 canvas 单次消费该值。`browserToolbar` 标记在右侧 48px 导航条，默认 `.66`，不与通用 `utilityToolbar` 共用。地址输入胶囊是 Codex 控件，保留自己的可读背景。
+- [floating-sidebar evidence] 左侧 52px 图标轨道已由 `sidebar` 控制，展开悬浮菜单时真正不透明的是旁边子级 `.sidebar-navigation`，修复前背景 `color(srgb .14902...)`；运行时只在 `aside.app-shell-left-panel` 宽度不大于 72px 且存在嵌套导航时标记 `floating-sidebar`。独立 `floatingSidebar` 默认 `.72`，不改变展开态主侧栏或账户菜单。
+- [question evidence] “问题／回复／跳过”卡片外壳是 `@container/request-card`，修复前 `rgb(38,38,38)`，回复编辑层及其父级均透明。运行时再确认 `[contenteditable][aria-label="回复…"]` 后才标记 `question-card`，独立 `questionCard` 默认 `.72`；它不复用 `approvalSurface`，不调整输入框和操作按钮。
+- [visual A/B] 临时 adopted stylesheet 让新标签、导航条、悬浮导航和问题卡计算背景分别变成 `.66/.66/.72/.72`，截图 `artifacts/codex-26-1013-question-floating-browser-ab-20261020.png` 可见视频画面与可读文字。稍后的媒体审计显示 renderer 未置前时 `media=poster`、`video.paused=true`，因此该截图不证明视频持续播放。悬浮导航 `.48` 的早期试验因透出背后正文过多而弃用。临时覆盖已撤回；仍需安装源代码／新安装包的实际控制中心滑块与视觉复验，不得以 A/B 截图冒充正式安装通过。
+- [contracts] 新增四个可选 `windowOpacity` 键、Control Center 滑块与中间预览目标、renderer marker/CSS 测试和 API 保存／部分更新合并断言。共享资产已同步 Windows/macOS。优先级：悬浮导航高于图标轨道；浏览器导航栏、新标签 canvas、真实网页 WebView 分别独立；问题卡独立于审批卡。
+- [preview audit] 逐项比对 Control Center 既有滑块与预览，发现 `mainSurface`、`composerShell`、`composerEditor`、`environmentHeader` 缺中间目标；旧 composer 预览卡还指向不存在的 `window-opacity-composer`。已补四个独立预览区域/卡片并修正链接，测试现在要求每个非遗留 windowOpacity 默认键都有唯一滑块、可点击预览卡、中间目标和 CSS alpha 变量消费者。r3 包构建早于此修复，不能作为最终包。
+
+### 6.26 Codex 26.1013 右上角摘要与侧边聊天（2026-10-20，待安装态复验）
+
+- [入口分类] 三个顶部入口分别是 `aria-label="聊天操作"` 的菜单、`切换摘要面板固定状态` 的按钮和 `新建标签页`。中间按钮不会打开另一类浮层；右侧“＋”在当前情境下新建的是侧边聊天，不是浏览器新标签。不得用一个 slider 混调三种表面。
+- [摘要证据] 新版可见摘要面板根节点具有 `group/summary-panel bg-surface-elevated-secondary`，宽 300px，原计算背景 `rgb(38,38,38)`；既有 `[data-pip-home-surface="thread-summary-panel"]` 未命中。共享 CSS 增加该精确类组合并复用 `summaryPanel` 变量；临时 adopted stylesheet 将背景变为 `rgba(11,26,32,.72)`。热覆盖已清除。视觉截图时面板被切换隐藏，因此只能称计算样式 A/B，不能称摘要视觉通过。
+- [侧边聊天证据] “＋”打开的 side-chat 右侧 `aside` 内层 `relative flex ... bg-[var(--app-shell-panel-background,var(--color-surface))]`，宽约 432px，原背景 `rgb(17,17,17)`。运行时仅在包含“侧边聊天”的右侧 aside 内标记该大面积背景层为 `side-chat`，独立 `sideChat=.72` 单次消费。Control Center 新增滑块、预览卡与中间目标，schema 接受可选键。热覆盖 A/B 背景变 `rgba(11,26,32,.72)`，截图 `artifacts/codex-26-1013-side-chat-summary-hotfix.png` 显示侧边聊天文字和视频图像同时可见，热覆盖已清除。后续 r7 运行态还观察到右侧大面积 `rgb(33,33,33)` 节点实际是原生 `WEBVIEW`，不能把它当作此普通 CSS 内层或据此断言 sideChat 滑块无效；需独立核对 guest 所属面板及合成行为。
+- [聊天菜单证据] 通过一次 CDP 鼠标派发打开 `aria-label="聊天操作"` 按钮，触发器的 `aria-controls` 指向唯一 `role=menu`，菜单的 `aria-labelledby` 指回触发器。菜单根 `bg-surface-elevated-secondary/90` 原计算背景为 `oklab(... / .9)`；不是左下账户菜单。新增 `chatActionsMenu=.72`，仅双向 aria 关系满足时标记 `chat-actions-menu`。控制中心有独立滑块、预览卡和中央目标；不扩大到项目/账户/浏览器菜单。
+- [聊天菜单视觉 A/B] 临时 adopted stylesheet 将实际打开菜单的背景变为 `rgba(11,26,32,.72)`，截图 `artifacts/codex-26-1013-chat-actions-after-hotfix.png` 显示操作文字仍可读，背景视频图像可见，同时侧边聊天和问题卡未被覆盖。临时覆盖已清除；该截图是源码规则试验，不是 r4 安装态验收。r7 安装态通过 `聊天操作` 按钮与 aria 关联实际打开菜单，计算背景为同值，截图 `artifacts/codex-26-1013-chat-actions-installed-r7.png` 可读。
+- [悬浮侧栏双层修复，待视觉复验] r7 运行态收起左侧图标栏时，浮动导航子层标记 `floating-sidebar` 并计算 `rgba(11,26,32,.72)`；其直接父层 `.sidebar-navigation` 仍计算 `oklab(... / .65)`，构成非预期 alpha 叠加。共享 CSS 新增 `aside.app-shell-left-panel .sidebar-navigation:has(> [data-ds-part="floating-sidebar"])`，只清除该父层背景/图像/模糊，不影响左侧图标栏自己的 `sidebar` 滑块；双端同步与 renderer 合同测试已过。该改动尚未做热覆盖视觉 A/B，也未进入 r7 安装包，不得称完成验收。
+- [r8 安装态旧进程证据] 安装目录 CSS、renderer 哈希均与 r8 源码一致，但运行中 CSSOM 未含精确父层清除规则；收起栏宽 52px，子层 `floating-sidebar=.72`，父层仍约 `.65`。同规则热注入立即清零父层且不改子层和图标栏。安装目录 CSS 写入时间 2026-10-20 16:19，当前 Codex 进程在 16:12 启动，故该进程早于安装。`resume` 返回 `attempted:false`；须在保存未发送输入后用控制中心启动/重新应用重启，才可做 r8 的安装态视觉结论。热规则已清除、侧栏布局已恢复。
+- [r8 安装态视觉通过，范围限定] 用户确认保存输入后，控制中心 `start` 返回 200 rendered。运行 CSSOM 已包含父层清除规则；收起栏宽 52px，悬浮菜单真实展开。父层透明、菜单自身 `.72`、图标栏 `.11`；临时只改 `--ds-window-opacity-floating-sidebar` 为 `.95` 和 `.20`，截图 `artifacts/codex-26-1013-floating-sidebar-r8-0_95.png` 与 `...-0_20.png` 中背景透出明显变化且文字仍可读。临时变量已恢复，侧栏布局已恢复。此结论只证明该 CSS 控制链与画面，不代表控制中心保存/应用或其余滑块全部通过。
+- [视频主题单独缺陷] 本次重启后最初只找到隐藏且错误码 4 的 `file:` 视频节点（URL safety check 拒绝），误以为视频不存在。受校验的现有分块传输函数手动补传后，出现健康的 `data:` 节点，旧 `file:` 节点仍隐藏；健康节点 `readyState=4`、播放 450ms 从 2.757754s 到 3.214112s。实际两帧截图 `artifacts/codex-26-1013-r8-video-restored-a.png`、`...-b.png` 背景明显不同。诊断必须遍历全部 `[data-dream-skin-video]`，不能只读第一个。自动补传和旧节点清理已在源码实现，尚未进入 r8 安装包；不能据手动补传称下次启动也会自动恢复。
+- [边界/待验] 新的摘要、侧边聊天和聊天操作菜单源码不在已安装 r4；必须重打包并做真实安装态控件调节、计算样式和视觉对照。当前 renderer、Control Center 13/13、视频 renderer、双端同步及 diff 校验通过，完整 Windows suite 待最终变更后重跑。
+
+### 6.27 r9 安装态自动视频恢复（2026-10-21）
+
+- 用户确认 r9 覆盖安装后，安装目录的 injector/renderer 哈希与工作区资产相符，managed injector 为安装后的新进程。未经手动补传，当前真实 Codex 页面仅有一个可见 `data:` 视频节点，`readyState=4`、`paused=false`、无错误；450ms 播放时间 1.590409→2.045332 秒。`artifacts/codex-26-1013-r9-video-auto-a.png` 和 `...-b.png` 画面帧不同，主会话文字可见。
+- 此次右侧浏览器、终端未展开，`browserHost`/`webview` 均为空；视频自动恢复的安装态验收不能替代各窗口滑块保存/应用与视觉 A/B，也不能替代 WebView 同屏验收。后续按真实展开状态逐项验证，避免把隐藏 DOM、仅 CSS 变量变化或手动补传当成完成。
+- r9 实机右侧浏览器已展开，MasterGo WebView URL 非空，`artifacts/codex-26-1013-r9-browser-a.png` 显示真实网页与播放视频同屏。透明度 A/B 暴露三处新问题：`browserContent=0.05` 把整个原生 WebView 连同文字压暗，网页近乎黑色（`artifacts/window-opacity-visual/browserContent-0_05.png`），不能以宿主 `backgroundColor` 变化宣称有效；`browserToolbar=0.05` 自身背景变化但 tabpanel 父层仍为 `rgb(17,17,17)`，视觉黑条未消；`utilitySidePanel` 当前 selector 未命中。审计已恢复变量原值。修复时需保留 guest 可读性、厘清父子优先级并做真实画面 A/B，不能扩大到右侧终端或侧边聊天。
+- 修复后的优先级：`utilitySidePanel` 是右侧 tabs 外壳 P2，精确选择器不依赖已消失的原生背景类或旧 pressed 按钮，而要求 `absolute/top/bottom/left + border + tabs + right tabpanel` 且排除 bottom；其内原生实底清除规则排除 `[data-ds-part="browser-toolbar"]`。`browserToolbar` 是独立 P3，1/0.05 A/B 中导航栏本身由实底变透出视频；`browserContent` 仅是 WebView 宿主底色 P3，不再设置整个宿主 `opacity`，因此外部网页白底和文字不会被压黑。外部网页自身不受该滑块改变；该事实已写入控制中心说明，不能将其描述为网页内容透明度。
+- 源码热应用截图 `artifacts/window-opacity-visual/utilitySidePanel-1.png`、`utilitySidePanel-0_05.png`、`browserToolbar-1.png`、`browserToolbar-0_05.png`、`browserContent-1.png`、`browserContent-0_05.png`。最终 Windows 全量测试退出码 0；r10 本地包已构建但尚未安装，不能用热应用截图冒充安装态。热应用意外切到工作区海报主题后，已通过已安装控制中心 `resume` 恢复原视频且确认动态播放和 WebView URL 保持。
+- 用户安装 r10 后，安装引擎 CSS/renderer/selectors 和控制中心 HTML 哈希与本轮源码一致；右侧外壳 marker 实际命中。安装态截图 `artifacts/window-opacity-visual/r10-installed-utilitySidePanel-{1,0_05}.png`、`r10-installed-browserToolbar-{1,0_05}.png` 中外壳和导航栏分别有可见 A/B 差异；`r10-installed-browserContent-{1,0_05}.png` 中 WebView 网页仍完整可读。临时变量已恢复，WebView URL 未变。此处验证的是实际运行态 CSS 链和视觉，不是控制中心保存/应用的 HTTP/UI 闭环。
+- r10 前台双帧 `artifacts/codex-26-1013-r10-installed-browser-video-foreground-{a,b}.png` 显示视频帧变化且右侧真实 MasterGo 网页始终可读；运行态视频 450ms 从 1.275501s→1.738575s，`readyState=4`、未暂停、无错误。另以安装态控制中心真实 API 创建临时主题副本、保存外壳 alpha 0.35 并应用，活动主题 ID/alpha/视频均正确；随后应用原主题并删除临时副本，原主题 fingerprint 与 alpha 不变。此 API 闭环不能冒充控制中心 GUI 按钮点击测试。

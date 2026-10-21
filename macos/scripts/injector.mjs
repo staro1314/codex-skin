@@ -262,7 +262,8 @@ export function assessRendererVerification(renderer, nativeWindow, expected) {
   const viewportPass = hasReasonableDimensions(viewportWidth, viewportHeight);
   const documentVisible = result.documentVisibility === "visible";
   const settingsRoute = result.scope?.baseState === "settings";
-  const homeRoute = result.scope?.baseState === "home" || result.homeRoute || result.homePresent;
+  // Codex may retain hidden home DOM after returning to a thread.
+  const homeRoute = result.scope?.baseState === "home";
   const l1ScopePass = result.scope?.level === "L1" &&
     Array.isArray(result.scope?.missingL1) && result.scope.missingL1.length === 0;
   const genericStructurePass = Boolean(result.genericMain?.visible) &&
@@ -1303,6 +1304,10 @@ export async function verifySession(session, expectedThemeId = null, expectedRev
         visible: Boolean(node.isConnected !== false && cssVisible && intersectsViewport),
       };
     };
+    const visibleBox = (selector) => {
+      const candidates = [...document.querySelectorAll(selector)];
+      return candidates.map(box).find((item) => item?.visible) ?? box(candidates[0]);
+    };
     const homeIndicator = document.querySelector(${selectorLiteral("home-icon")});
     const homeSignal = homeIndicator ?? document.querySelector(${selectorLiteral("game-source")}) ??
       document.querySelector(${selectorLiteral("home-suggestions")});
@@ -1310,7 +1315,9 @@ export async function verifySession(session, expectedThemeId = null, expectedRev
     // Codex 26.721.x can render the home content before home-icon. Reuse the
     // already-resolved semantic home container so a healthy home session is
     // not rejected solely because the stricter home-icon selector is late.
-    const home = document.querySelector(${selectorLiteral("home-route")}) ?? homeRoute;
+    const homeCandidates = [...document.querySelectorAll(${selectorLiteral("home-route")})];
+    const home = homeCandidates.find((node) => box(node)?.visible) ??
+      homeCandidates[0] ?? homeRoute;
     const suggestions = home?.querySelector(${selectorLiteral("home-suggestions")}) ?? null;
     const cardButtons = suggestions ? [...suggestions.querySelectorAll('button')] : [];
     const cardBoxes = cardButtons.map(box);
@@ -1349,11 +1356,11 @@ export async function verifySession(session, expectedThemeId = null, expectedRev
       ?? siblingCandidates.find((item) => item?.visible)
       ?? box(boxableChain[boxableChain.length - 1]);
     const projectButton = box(home?.querySelector(${selectorLiteral("project-selector")} + " > button"));
-    const shell = box(document.querySelector(${selectorLiteral("shell-main")}));
-    const composer = box(document.querySelector(${selectorLiteral("composer-chrome")}));
-    const sidebar = box(document.querySelector(${selectorLiteral("left-panel")}));
-    const genericMain = box(document.querySelector('[data-ds-part="main"], [data-ds-part="home"]'));
-    const genericInput = box(document.querySelector('[data-ds-part="composer"]'));
+    const shell = visibleBox(${selectorLiteral("shell-main")});
+    const composer = visibleBox(${selectorLiteral("composer-chrome")});
+    const sidebar = visibleBox(${selectorLiteral("left-panel")});
+    const genericMain = visibleBox('[data-ds-part="main"], [data-ds-part="home"]');
+    const genericInput = visibleBox('[data-ds-part="composer"]');
     const settingsBoxes = [
       box(document.querySelector(${selectorLiteral("settings-panel")})),
       box(document.querySelector(${selectorLiteral("appearance-radio")})),

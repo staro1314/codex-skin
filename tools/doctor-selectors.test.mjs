@@ -1,19 +1,35 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import {
+  codexVersionFromState,
   extractCodexVersion,
   gradeDoctorResult,
   selectSelectorProfile,
+  selectMainCdpTarget,
   selectorMatchesScope,
 } from "./doctor-selectors.mjs";
 
 const contract = JSON.parse(await fs.readFile(new URL("./selectors.json", import.meta.url), "utf8"));
+const cdpTarget = (url, id) => ({ type: "page", url,
+  webSocketDebuggerUrl: `ws://127.0.0.1:9335/devtools/page/${id}` });
+assert.equal(selectMainCdpTarget([
+  cdpTarget("app://-/index.html?initialRoute=%2Favatar-overlay", "aux"),
+  cdpTarget("app://-/index.html", "main"),
+], 9335)?.url, "app://-/index.html", "Doctor must inspect the main renderer, not an auxiliary overlay.");
+assert.equal(selectMainCdpTarget([cdpTarget("app://-/index.html", "wrong-port")], 9341), null);
 const selectorFor = (key) => contract.selectors.find((entry) => entry.key === key)?.selector;
 assert.equal(
   extractCodexVersion({ Browser: "Codex/26.727.40816 Chrome/150.0" }),
   "26.727.40816",
 );
 assert.equal(extractCodexVersion({ Browser: "Chrome/150.0" }), null);
+assert.equal(extractCodexVersion({ Browser: "Chrome/155.0.8059.80" }), null);
+assert.equal(extractCodexVersion({ codexVersion: "26.1013.4894.0" }), "26.1013.4894.0");
+const browserEndpoint = { webSocketDebuggerUrl: "ws://127.0.0.1:9335/devtools/browser/current-id" };
+assert.equal(codexVersionFromState({ port: 9335, browserId: "current-id", codexVersion: "26.1013.4894.0" },
+  9335, browserEndpoint), "26.1013.4894.0");
+assert.equal(codexVersionFromState({ port: 9335, browserId: "old-id", codexVersion: "26.924.2738.0" },
+  9335, browserEndpoint), null, "A stale session must not supply the Codex version.");
 assert.equal(selectSelectorProfile(contract, "26.727.40816", "darwin").id, "codex-26.727-macos");
 assert.equal(selectSelectorProfile(contract, "26.727.40816", "win32").known, false);
 assert.equal(selectSelectorProfile(contract, "99.1.2", "darwin").mode, "conservative");
@@ -31,6 +47,8 @@ assert.match(selectorFor("shell-main"), /\[class\*=\"_MainContentSurface_\"\]/);
 assert.match(selectorFor("header-tint"), /\[class\*=\"_Header_\"\]/);
 assert.doesNotMatch(selectorFor("shell-main"), /_[A-Za-z]+_[a-z0-9]{4,}/);
 assert.doesNotMatch(selectorFor("header-tint"), /_[A-Za-z]+_[a-z0-9]{4,}/);
+assert.match(selectorFor("composer-chrome"), /_ComposerLayoutRoot_/);
+assert.match(selectorFor("composer-toolbar"), /_ComposerLayoutFooter_/);
 assert.equal(
   selectorFor("main-content-top-fade"),
   ':is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade][aria-hidden="true"], [class*="_MainContentTopFade_"])',

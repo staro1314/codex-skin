@@ -458,8 +458,15 @@ try {
 
   $clientPublishRoot = Join-Path $WorkingDirectory 'client-publish'
   & $dotnet publish $clientProjectPath --configuration Release --runtime win-x64 `
-    --self-contained true --output $clientPublishRoot --nologo
+    --self-contained true --output $clientPublishRoot --nologo `
+    "-p:AssemblyTitle=$($product.displayName)" "-p:Product=$($product.displayName)"
   if ($LASTEXITCODE -ne 0) { throw ".NET client publish failed with exit code $LASTEXITCODE." }
+  $publishedClient = Join-Path $clientPublishRoot 'CodexDreamSkin.Client.exe'
+  $clientVersionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($publishedClient)
+  if ($clientVersionInfo.FileDescription -cne $product.displayName -or
+    $clientVersionInfo.ProductName -cne $product.displayName) {
+    throw 'Published Windows client metadata does not match PRODUCT.json.'
+  }
   foreach ($runtimeFile in @('hostfxr.dll', 'hostpolicy.dll', 'coreclr.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $clientPublishRoot $runtimeFile) -PathType Leaf)) {
       throw ".NET client publish did not produce the self-contained runtime file: $runtimeFile"

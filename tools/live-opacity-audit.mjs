@@ -23,7 +23,7 @@ await new Promise((resolve, reject) => {
   ws.addEventListener("error", reject, { once: true });
 });
 const expression = `(() => {
-  const keys = ["main-surface","sidebar","profile-menu","summary-panel","environment-info-popover","environment-header","utility-side-panel","utility-toolbar","browser-content","composer","composer-shell","composer-editor","bottom-panel","bottom-toolbar","approval-surface","settings-page"];
+  const keys = ["main-surface","sidebar","floating-sidebar","profile-menu","summary-panel","environment-info-popover","environment-header","utility-side-panel","utility-toolbar","browser-content","browser-start-page","browser-toolbar","composer","composer-shell","composer-editor","bottom-panel","bottom-toolbar","approval-surface","question-card","settings-page"];
   const markerSelectors = {
     "main-surface": '[data-ds-part="main"]',
     "summary-panel": '[data-pip-home-surface="thread-summary-panel"]',

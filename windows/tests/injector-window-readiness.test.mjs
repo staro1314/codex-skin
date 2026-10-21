@@ -48,7 +48,10 @@ function makeElement({
     getBoundingClientRect: () => rect,
     checkVisibility: () => visible,
     querySelector: () => null,
-    querySelectorAll: () => [],
+    querySelectorAll(selector) {
+      const node = this.querySelector(selector);
+      return node ? [node] : [];
+    },
   };
   return element;
 }
@@ -89,6 +92,7 @@ function makeDomFixture({
   homeSignal = null,
   genericMain = null,
   genericInput = null,
+  hiddenCachedHome = null,
   settings = null,
   visibilityState = "visible",
   hidden = false,
@@ -120,7 +124,17 @@ function makeDomFixture({
       if (selector === selectors.settings || selector === selectors.themePreview) return settings;
       return null;
     },
-    querySelectorAll: () => [],
+    querySelectorAll(selector) {
+      const node = this.querySelector(selector);
+      if (selector === selectors.home && hiddenCachedHome) return [hiddenCachedHome, node].filter(Boolean);
+      if (selector === selectors.shell && hiddenCachedHome) return [makeElement({ rect: makeRect(0, 0) }), node].filter(Boolean);
+      if (selector === selectors.composer && hiddenCachedHome) return [makeElement({ rect: makeRect(0, 0) }), node].filter(Boolean);
+      if (selector === '[data-ds-part="main"], [data-ds-part="home"]' && hiddenCachedHome)
+        return [makeElement({ rect: makeRect(0, 0) }), node].filter(Boolean);
+      if (selector === '[data-ds-part="composer"]' && hiddenCachedHome)
+        return [makeElement({ rect: makeRect(0, 0) }), node].filter(Boolean);
+      return node ? [node] : [];
+    },
     getElementById: (id) => id === "codex-dream-skin-style" ? styleNode : null,
   };
   const window = {
@@ -197,6 +211,21 @@ test("normal L1 renderer requires and records the exact target window binding", 
     { method: "Browser.getWindowForTarget", params: { targetId: "page-main" } },
     { method: "Browser.getWindowBounds", params: { windowId: 41 } },
   ]);
+});
+
+test("hidden cached home and inactive duplicates do not invalidate a visible thread", async () => {
+  const { result } = await verify({
+    dom: makeDomFixture({
+      hiddenCachedHome: makeHome({ rect: makeRect(0, 0) }),
+      genericMain: makeElement({ rect: makeRect(900, 650, 20, 20) }),
+      genericInput: makeElement({ rect: makeRect(620, 80, 180, 620) }),
+    }),
+  });
+  assert.equal(result.scope.baseState, "thread");
+  assert.equal(result.homeSurface?.visible, false);
+  assert.equal(result.genericMain?.visible, true);
+  assert.equal(result.genericInput?.visible, true);
+  assert.equal(result.pass, true);
 });
 
 test("visible settings is the only L0 structure exception", async () => {
@@ -304,6 +333,7 @@ test("home verification matches macOS and does not require a fixed suggestion-ca
   };
   const homeWithOneSuggestion = await verify({
     dom: makeDomFixture({
+      scope: { level: "L1", baseState: "home", missingL1: [] },
       home: makeHome({
         rect: makeRect(900, 650, 20, 20),
         hero: { rect: makeRect(800, 260, 40, 60) },
@@ -326,6 +356,7 @@ test("home verification matches macOS and does not require a fixed suggestion-ca
   };
   const badHome = await verify({
     dom: makeDomFixture({
+      scope: { level: "L1", baseState: "home", missingL1: [] },
       home: makeHome({
         rect: makeRect(900, 650, 20, 20),
         hero: { rect: makeRect(800, 260, 40, 60) },

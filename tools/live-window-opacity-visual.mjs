@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 const selectors = {
   mainSurface: '[data-ds-part="main"]',
   sidebar: '[data-ds-part="sidebar"]',
+  floatingSidebar: '[data-ds-part="floating-sidebar"]',
   profileMenu: '[data-ds-part="profile-menu"]',
   summaryPanel: '[data-pip-home-surface="thread-summary-panel"]',
   environmentInfoPopover: '[data-ds-part="environment-info-popover"]',
@@ -10,11 +11,14 @@ const selectors = {
   utilitySidePanel: '[data-ds-part="utility-side-panel"]',
   utilityToolbar: '[data-ds-part="utility-side-panel"] [class~="h-toolbar"]',
   browserContent: '[data-ds-part="browser-content"]',
+  browserStartPage: '[data-ds-part="browser-start-page"]',
+  browserToolbar: '[data-ds-part="browser-toolbar"]',
   composerShell: '[class*="_ComposerLayoutRoot_"]',
   composerEditor: '[class*="_ComposerLayoutInput_"]',
   bottomPanel: '[data-ds-part="bottom-panel"]',
   bottomToolbar: '[data-ds-part="bottom-panel"] [class~="h-toolbar-pane"]',
   approvalSurface: '[data-codex-approval-surface]',
+  questionCard: '[data-ds-part="question-card"]',
   settingsPage: '[data-ds-part="settings-page"]',
 };
 const temporarilyHideBrowserGuest = new Set(["environmentInfoPopover", "environmentHeader", "summaryPanel", "approvalSurface"]);
@@ -91,7 +95,8 @@ for (const key of keys) {
       scale: 1,
     };
     const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false, clip });
-    const path = `artifacts/window-opacity-visual/${key}-${String(value).replace(".", "_")}.png`;
+    const runLabel = process.env.DREAM_SKIN_AUDIT_LABEL || "";
+    const path = `artifacts/window-opacity-visual/${runLabel}${key}-${String(value).replace(".", "_")}.png`;
     await fs.writeFile(path, Buffer.from(shot.data, "base64"));
     if (temporarilyHideBrowserGuest.has(key)) {
       await send("Runtime.evaluate", { expression: `(() => { for (const node of document.querySelectorAll('[data-browser-sidebar-webview], [data-browser-sidebar-webview] webview')) { const value = node.dataset.opacityAuditOpacity || ''; const priority = node.dataset.opacityAuditOpacityPriority || ''; if (value) node.style.setProperty('opacity', value, priority); else node.style.removeProperty('opacity'); delete node.dataset.opacityAuditOpacity; delete node.dataset.opacityAuditOpacityPriority; } })()` });

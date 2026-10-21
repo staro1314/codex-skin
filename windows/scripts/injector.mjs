@@ -996,6 +996,21 @@ export async function installVideoBlob(session, loadedPayload) {
   return true;
 }
 
+export async function rendererNeedsVideoTransfer(session, loadedPayload) {
+  if (!loadedPayload?.videoPath || !loadedPayload.theme?.video
+    || loadedPayload.theme.video.performance === "eco") return false;
+  return session.evaluate(`(() => {
+    if (document.visibilityState === "hidden"
+      || document.documentElement.getAttribute("data-dream-skin") !== "active"
+      || typeof window[${JSON.stringify(VIDEO_TRANSFER_KEY)}]?.begin !== "function") return false;
+    return ![...document.querySelectorAll("video[data-dream-skin-video]")].some((video) => {
+      const source = video.currentSrc || video.src || "";
+      return (source.startsWith("data:video/") || source.startsWith("blob:"))
+        && !video.error && getComputedStyle(video).display !== "none";
+    });
+  })()`);
+}
+
 async function applyLoadedPayload(session, loadedPayload) {
   await applyToSession(session, loadedPayload.payload);
   await installVideoBlob(session, loadedPayload);
@@ -1314,6 +1329,10 @@ export async function verifySession(
         visible: Boolean(node.isConnected !== false && cssVisible && intersectsViewport),
       };
     };
+    const visibleBox = (selector) => {
+      const candidates = [...document.querySelectorAll(selector)];
+      return candidates.map(box).find((item) => item?.visible) ?? box(candidates[0]);
+    };
     const homeIndicator = document.querySelector(${selectorLiteral("home-icon")});
     const homeSignal = homeIndicator ?? document.querySelector(${selectorLiteral("game-source")}) ??
       document.querySelector(${selectorLiteral("home-suggestions")});
@@ -1321,7 +1340,9 @@ export async function verifySession(
     // Codex 26.721.x can render the home content before home-icon. Reuse the
     // already-resolved semantic home container so a healthy home session is
     // not rejected solely because the stricter home-icon selector is late.
-    const home = document.querySelector(${selectorLiteral("home-route")}) ?? homeRoute;
+    const homeCandidates = [...document.querySelectorAll(${selectorLiteral("home-route")})];
+    const home = homeCandidates.find((node) => box(node)?.visible) ??
+      homeCandidates[0] ?? homeRoute;
     const suggestions = home?.querySelector(${selectorLiteral("home-suggestions")}) ?? null;
     const cardButtons = suggestions ? [...suggestions.querySelectorAll('button')] : [];
     const cards = cardButtons.map(box);
@@ -1388,11 +1409,11 @@ export async function verifySession(
       visibleCardCount: visibleCards.length,
       suggestionLabels,
       suggestionLabelColorsMatch,
-      composer: box(document.querySelector(${selectorLiteral("composer-chrome")})),
-      shell: box(document.querySelector(${selectorLiteral("shell-main")})),
-      sidebar: box(document.querySelector(${selectorLiteral("left-panel")})),
-      genericMain: box(document.querySelector('[data-ds-part="main"], [data-ds-part="home"]')),
-      genericInput: box(document.querySelector('[data-ds-part="composer"]')),
+      composer: visibleBox(${selectorLiteral("composer-chrome")}),
+      shell: visibleBox(${selectorLiteral("shell-main")}),
+      sidebar: visibleBox(${selectorLiteral("left-panel")}),
+      genericMain: visibleBox('[data-ds-part="main"], [data-ds-part="home"]'),
+      genericInput: visibleBox('[data-ds-part="composer"]'),
       nativeWindow: ${JSON.stringify(nativeWindow)},
       documentVisibility: document.visibilityState ?? null,
       documentHidden: document.hidden === true,
@@ -1402,7 +1423,9 @@ export async function verifySession(
         y: document.documentElement.scrollHeight > document.documentElement.clientHeight,
       },
     };
-    const homeScope = result.scope?.baseState === 'home' || result.homePresent;
+    // Cached, hidden home DOM may coexist with a live thread after navigating
+    // back from New Chat. Presence alone must not make verification home-only.
+    const homeScope = result.scope?.baseState === 'home';
     const l1ScopePass = result.scope?.level === 'L1' &&
       Array.isArray(result.scope?.missingL1) && result.scope.missingL1.length === 0;
     const genericStructurePass = Boolean(result.genericMain?.visible) &&
@@ -1660,6 +1683,7 @@ async function runWatch(options) {
   const fallbackTargets = new Map();
   const fallbackListeners = new Set();
   const targetFailures = new Map();
+  const nextVideoHealthCheckAt = new Map();
   let stopping = false;
   let listFailures = 0;
   let lastListErrorLogAt = 0;
@@ -1820,6 +1844,19 @@ async function runWatch(options) {
           session.close();
           sessions.delete(id);
           targetFailures.delete(id);
+          nextVideoHealthCheckAt.delete(id);
+        } else if (!paused && loadedPayload?.videoPath
+          && Date.now() >= (nextVideoHealthCheckAt.get(id) ?? 0)) {
+          nextVideoHealthCheckAt.set(id, Date.now() + 5000);
+          try {
+            if (await rendererNeedsVideoTransfer(session, loadedPayload)) {
+              await installVideoBlob(session, loadedPayload);
+              console.log(`[dream-skin] restored video source for ${id}`);
+            }
+          } catch (error) {
+            nextVideoHealthCheckAt.set(id, Date.now() + 30000);
+            console.error(`[dream-skin] video source restore failed for ${id}: ${error.message}`);
+          }
         }
       }
 

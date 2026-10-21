@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 const port = Number(process.env.CODEX_DREAM_SKIN_PORT || 9335);
 const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
 const target = targets.find((item) => item.type === "page" && item.url === "app://-/index.html");
@@ -23,6 +24,7 @@ await new Promise((resolve, reject) => {
   ws.addEventListener("open", resolve, { once: true });
   ws.addEventListener("error", reject, { once: true });
 });
+if (process.argv.includes('--bring-to-front')) await send('Page.bringToFront');
 
 const result = await send("Runtime.evaluate", {
   expression: `(async () => {
@@ -43,6 +45,11 @@ const result = await send("Runtime.evaluate", {
       return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
     });
     const webview = host?.querySelector('webview');
+    const activeVideo = [...document.querySelectorAll('[data-dream-skin-video]')].find((node) =>
+      getComputedStyle(node).display !== 'none' && !node.error);
+    const videoTimeBefore = activeVideo?.currentTime ?? null;
+    if (activeVideo) await new Promise((resolve) => setTimeout(resolve, 450));
+    const videoTimeAfter = activeVideo?.currentTime ?? null;
     const variables = ['main-surface', 'browser-content'].map((key) => {
       const name = '--ds-window-opacity-' + key;
       return [key, {
@@ -64,6 +71,12 @@ const result = await send("Runtime.evaluate", {
     return {
       href: location.href,
       media: root.getAttribute('data-dream-media'),
+      visibility: document.visibilityState,
+      hasFocus: document.hasFocus(),
+      videoAdvance: { before: videoTimeBefore, after: videoTimeAfter, duration: activeVideo?.duration ?? null },
+      allVideos: [...document.querySelectorAll('[data-dream-skin-video]')].map((node) => ({ srcKind:node.src?.split(':')[0], display:getComputedStyle(node).display, readyState:node.readyState, paused:node.paused, currentTime:node.currentTime, errorCode:node.error?.code ?? null })),
+      transferAvailable: typeof window.__CODEX_DREAM_SKIN_VIDEO_TRANSFER__?.begin === 'function',
+      transferPendingChunks: window.__CODEX_DREAM_SKIN_VIDEO_TRANSFER__?.chunks?.length ?? null,
       revision: root.getAttribute('data-dream-skin-revision'),
       adoptedSheets: [...document.adoptedStyleSheets].map((sheet, index) => {
         let text = ''; try { text = [...sheet.cssRules].map((rule) => rule.cssText).join('\\n'); } catch {}
@@ -92,5 +105,14 @@ const result = await send("Runtime.evaluate", {
   returnByValue: true,
 });
 if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text || "Runtime audit failed");
+if (process.argv.includes('--capture-frames')) {
+  await fs.mkdir('artifacts', { recursive: true });
+  const captureLabel = process.env.DREAM_SKIN_AUDIT_LABEL || (process.argv.includes('--capture-browser') ? 'browser' : 'video-auto');
+  for (const suffix of ['a', 'b']) {
+    const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+    await fs.writeFile(`artifacts/codex-26-1013-${captureLabel}-${suffix}.png`, Buffer.from(shot.data, 'base64'));
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+}
 console.log(JSON.stringify(result.result?.value, null, 2));
 ws.close();

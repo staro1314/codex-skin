@@ -75,12 +75,16 @@
     "--ds-theme-density-scale", "--ds-theme-motion-level",
     "--ds-art-size", "--ds-theme-image-veil",
     "--ds-window-opacity-main-surface", "--ds-window-opacity-sidebar", "--ds-window-opacity-profile-menu",
-    "--ds-window-opacity-summary-panel", "--ds-window-opacity-environment-info-popover",
+    "--ds-window-opacity-floating-sidebar", "--ds-window-opacity-browser-start-page",
+    "--ds-window-opacity-browser-toolbar",
+    "--ds-window-opacity-summary-panel", "--ds-window-opacity-side-chat", "--ds-window-opacity-chat-actions-menu", "--ds-window-opacity-environment-info-popover",
     "--ds-window-opacity-utility-side-panel", "--ds-window-opacity-utility-toolbar",
     "--ds-window-opacity-browser-content",
     "--ds-window-opacity-composer", "--ds-window-opacity-composer-shell",
     "--ds-window-opacity-composer-editor", "--ds-window-opacity-environment-header",
     "--ds-window-opacity-bottom-panel", "--ds-window-opacity-bottom-toolbar",
+    "--ds-window-opacity-right-terminal",
+    "--ds-window-opacity-question-card",
     "--ds-window-opacity-approval-surface", "--ds-window-opacity-settings-page",
     "--dream-state-color", "--dream-state-overlay-opacity",
     "--dream-state-media-opacity", "--dream-state-brightness",
@@ -181,6 +185,12 @@
   const setVideoStyle = (name, value) => {
     if (videoNode?.style?.setProperty) videoNode.style.setProperty(name, value);
   };
+  const removeSkinVideoNodes = () => {
+    for (const node of document.querySelectorAll?.('video[data-dream-skin-video]') || []) {
+      try { node.pause?.(); } catch {}
+      node.remove?.();
+    }
+  };
   const setPosterMedia = (root) => {
     setAttribute(root, "data-dream-media", "poster");
     setStyleProperty(root, "--dream-skin-art", `url("${artUrl}")`);
@@ -202,6 +212,7 @@
         markVideoFallback(root);
         return;
       }
+      removeSkinVideoNodes();
       videoNode = document.createElement("video");
       videoNode.setAttribute?.("data-dream-skin-video", "true");
       videoNode.setAttribute?.("aria-hidden", "true");
@@ -247,6 +258,7 @@
     videoNode?.pause?.();
     videoNode?.remove?.();
     videoNode = null;
+    removeSkinVideoNodes();
     ensure({ root: true });
     return true;
   };
@@ -300,18 +312,25 @@
   const WINDOW_OPACITY_DEFAULTS = Object.freeze({
     mainSurface: 0.10,
     sidebar: 0.10,
+    floatingSidebar: 0.72,
     profileMenu: 0.62,
     summaryPanel: 0.72,
+    sideChat: 0.72,
+    chatActionsMenu: 0.72,
     environmentInfoPopover: 0.56,
     utilitySidePanel: 0.56,
     utilityToolbar: 0.62,
     browserContent: 0.52,
+    browserStartPage: 0.66,
+    browserToolbar: 0.66,
     composer: 0.10,
     composerShell: 0.10,
     composerEditor: 0.10,
     environmentHeader: 0.56,
-    bottomPanel: 0,
-    bottomToolbar: 0,
+    bottomPanel: 0.68,
+    bottomToolbar: 0.62,
+    rightTerminal: 0.72,
+    questionCard: 0.72,
     approvalSurface: 0.56,
     settingsPage: 0,
   });
@@ -807,11 +826,24 @@
       }
       return false;
     };
+    const isOrphanSkinSheet = (rules) => {
+      let hasLayer = false;
+      let hasRoot = false;
+      for (const rule of rules || []) {
+        const cssText = typeof rule?.cssText === "string" ? rule.cssText : "";
+        if (cssText.startsWith("@layer dreamskin-accessibility, dreamskin-community")) hasLayer = true;
+        if (rule?.selectorText === ':root[data-dream-skin="active"]' &&
+          cssText.includes("--ds-bg:") && cssText.includes("--ds-panel:")) hasRoot = true;
+        if (hasLayer && hasRoot) return true;
+      }
+      return false;
+    };
     try {
       if ("adoptedStyleSheets" in document) {
         const current = [...document.adoptedStyleSheets];
         const retained = current.filter((candidate) => {
-          try { return !hasLegacyVideoPortalRule(candidate.cssRules); } catch { return true; }
+          try { return !hasLegacyVideoPortalRule(candidate.cssRules) &&
+            !isOrphanSkinSheet(candidate.cssRules); } catch { return true; }
         });
         if (retained.length !== current.length) document.adoptedStyleSheets = retained;
       }
@@ -905,6 +937,20 @@
     try { return Boolean(document.querySelector(selector)); } catch { return false; }
   };
 
+  const visibleSelectorHit = (key) => {
+    const selector = selectorByKey.get(key)?.selector;
+    if (!selector) return false;
+    try {
+      return [...document.querySelectorAll(selector)].some((node) => {
+        if (typeof node.checkVisibility === "function" &&
+          !node.checkVisibility({ checkVisibilityCSS: true })) return false;
+        if (typeof node.getClientRects !== "function") return true;
+        return [...node.getClientRects()].some((rect) => rect.width > 0 && rect.height > 0 &&
+          rect.right > 0 && rect.bottom > 0 && rect.left < innerWidth && rect.top < innerHeight);
+      });
+    } catch { return false; }
+  };
+
   const stableTestidHit = (testid) => {
     const selector = stableTestidSelector(testid);
     if (!selector) return false;
@@ -952,6 +998,8 @@
       const main = resolvedMainNode();
       for (const input of genericInputNodes()) {
         if (main && !main.contains?.(input)) continue;
+        const layoutRoot = input.closest?.('[class*="_ComposerLayoutRoot_"]');
+        if (layoutRoot && (!main || main.contains?.(layoutRoot))) return [layoutRoot];
         const owner = input.closest?.(
           '[data-testid*="composer" i], [data-testid*="prompt" i], ' +
           '[class*="composer" i], [class*="prompt" i]',
@@ -971,14 +1019,18 @@
       menu.getAttribute?.("aria-labelledby") !== triggerId) return [];
     return [menu];
   };
-  const pressedPanelTrigger = (...ariaLabels) => ariaLabels
-    .flatMap((ariaLabel) => genericNodes(`button[aria-label="${ariaLabel}"]`))
-    .find((node) => node.getAttribute?.("aria-pressed") === "true");
-  const utilitySidePanelNodes = () => pressedPanelTrigger(
-    "显示/隐藏侧边栏",
-    "显示/隐藏侧边面板",
-  )
-    ? selectorNodes("utility-side-panel") : [];
+  const chatActionsMenuNodes = () => {
+    const trigger = genericNodes('button[aria-label="聊天操作"],button[aria-label="Chat actions"]')
+      .find((node) => node.getAttribute?.("aria-expanded") === "true");
+    const triggerId = trigger?.getAttribute?.("id");
+    const menuId = trigger?.getAttribute?.("aria-controls");
+    if (!triggerId || !menuId) return [];
+    const menu = document.getElementById?.(menuId);
+    if (!menu || menu.getAttribute?.("role") !== "menu" ||
+      menu.getAttribute?.("aria-labelledby") !== triggerId) return [];
+    return [menu];
+  };
+  const utilitySidePanelNodes = () => selectorNodes("utility-side-panel");
   const browserContentNodes = () => selectorNodes("browser-sidebar-webview")
     .filter((node) => {
       const style = globalThis.getComputedStyle?.(node);
@@ -988,6 +1040,8 @@
         style?.pointerEvents !== "none" &&
         (width === undefined || width > 0) && (height === undefined || height > 0);
     });
+  const questionCardNodes = () => selectorNodes("question-request-card")
+    .filter((node) => node.querySelector?.('[contenteditable][aria-label="回复…"]'));
   const bottomPanelNodes = () => {
     const trigger = [
       'button[aria-label="切换底部面板显示"]',
@@ -1005,6 +1059,14 @@
       });
     return trigger ? selectorNodes("bottom-panel") : [];
   };
+  const rightTerminalNodes = () => genericNodes(
+    '[data-app-shell-tab-panel-controller="right"][data-tab-id^="terminal:"]',
+  ).filter((node) => node.checkVisibility?.() !== false &&
+    [...(node.getClientRects?.() || [])].some((rect) => rect.width > 0 && rect.height > 0));
+  const sideChatNodes = () => genericNodes('aside[class*="z-[41]"]')
+    .filter((aside) => String(aside.textContent || "").includes("侧边聊天"))
+    .flatMap((aside) => [...(aside.querySelectorAll?.('div[class~="bg-[var(--app-shell-panel-background,var(--color-surface))]"]') || [])])
+    .filter((node) => node.offsetWidth > 180 && node.offsetHeight > 200);
   const environmentInfoPopoverNodes = () => selectorNodes("environment-info-popover")
     .filter((node) => String(node.textContent || "").includes("环境信息"));
   const environmentInfoBackdropNodes = () => {
@@ -1042,6 +1104,12 @@
       ...selectorNodes("floating-left-panel"),
       ...fallbackSidebarNodes(),
     ]);
+    addPart(desired, "floating-sidebar", selectorNodes("floating-sidebar-surface")
+      .filter((node) => {
+        const rail = node.closest?.("aside.app-shell-left-panel");
+        const width = rail?.offsetWidth ?? rail?.clientWidth;
+        return width !== undefined && width <= 72;
+      }));
     addPart(desired, "header", selectorNodes("header-tint"));
     // Route-specific parts win when a generic shell collapses home and main
     // onto the same element.
@@ -1054,9 +1122,15 @@
     addPart(desired, "composer-toolbar", selectorNodes("composer-toolbar"));
     addPart(desired, "dialog", selectorNodes("overlay-dialog"));
     addPart(desired, "profile-menu", profileMenuNodes());
+    addPart(desired, "chat-actions-menu", chatActionsMenuNodes());
     addPart(desired, "utility-side-panel", utilitySidePanelNodes());
     addPart(desired, "browser-content", browserContentNodes());
+    addPart(desired, "browser-start-page", selectorNodes("browser-start-page"));
+    addPart(desired, "browser-toolbar", selectorNodes("browser-toolbar"));
+    addPart(desired, "question-card", questionCardNodes());
     addPart(desired, "bottom-panel", bottomPanelNodes());
+    addPart(desired, "right-terminal", rightTerminalNodes());
+    addPart(desired, "side-chat", sideChatNodes());
     addPart(desired, "environment-info-popover", environmentInfoPopoverNodes());
     addPart(desired, "environment-info-backdrop", environmentInfoBackdropNodes());
     addPart(desired, "settings-page", settingsPageNodes());
@@ -1100,7 +1174,7 @@
     let baseState = "thread";
     if (selectorHit("settings-page") || selectorHit("settings-panel") || selectorHit("appearance-radio") ||
       stableTestidHit("theme-preview")) baseState = "settings";
-    else if (selectorHit("home-icon") || selectorHit("home-route")) baseState = "home";
+    else if (visibleSelectorHit("home-icon") || visibleSelectorHit("home-route")) baseState = "home";
     else if (!selectorHit("shell-main") && !document.querySelector('main, [role="main"]')) baseState = "settings";
     const missingL1 = SELECTOR_CONTRACT.selectors
       .filter((entry) => entry.tier === "L1" && entry.required &&
@@ -1359,6 +1433,7 @@
     videoNode?.pause?.();
     videoNode?.remove?.();
     videoNode = null;
+    removeSkinVideoNodes();
     delete window[VIDEO_SOURCE_KEY];
     delete window[VIDEO_TRANSFER_KEY];
     delete window[STATE_KEY];

@@ -44,6 +44,7 @@ internal sealed class ClientApplicationContext : ApplicationContext
         _tray = new NotifyIcon
         {
             Text = options.Product.DisplayName,
+            BalloonTipTitle = options.Product.DisplayName,
             Visible = true,
             ContextMenuStrip = menu,
             Icon = LoadIcon(options),
@@ -85,6 +86,7 @@ internal sealed class ClientApplicationContext : ApplicationContext
             var message = result.RootElement.TryGetProperty("message", out var value)
                 ? value.GetString() : "操作已完成";
             if (!string.IsNullOrWhiteSpace(message)) _tray.BalloonTipText = message;
+            _tray.BalloonTipTitle = _options.Product.DisplayName;
             _tray.ShowBalloonTip(1800);
         }
         catch (Exception error)
