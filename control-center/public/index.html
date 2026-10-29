@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <div class="studio-atmosphere" aria-hidden="true"><img id="studio-atmosphere-image" alt=""></div>
   <header class="topbar">
     <div class="brand-lockup">
       <span class="brand-mark" aria-hidden="true">DS</span>
       <div>
         <strong>CODEX SKIN <em>STUDIO</em></strong>
-        <span>CODEX 外观工作台 / LOCAL ONLY</span>
+        <span>让工作空间更像你</span>
       </div>
     </div>
     <div class="topbar-context">
@@ -38,7 +39,7 @@
     <aside class="library panel-frame" aria-label="主题库">
       <div class="panel-heading">
         <div>
-          <span class="eyebrow">LIBRARY</span>
+          <span class="eyebrow">YOUR THEMES</span>
           <h2>主题库</h2>
         </div>
         <div class="panel-heading-actions">
@@ -75,7 +76,7 @@
     <section class="stage-column" aria-label="主题预览">
       <div class="stage-meta">
         <div class="stage-title">
-          <span class="eyebrow">LIVE PREVIEW</span>
+          <span class="eyebrow">主题预览</span>
           <div><h1 id="preview-name">未选择主题</h1><span id="preview-fingerprint">未载入主题数据</span></div>
         </div>
         <div class="stage-readout">
@@ -94,7 +95,7 @@
           <nav class="mock-rail" data-window-preview-target="sidebar" aria-hidden="true"><b>⌁</b><span></span><span></span><span></span><i></i><span></span></nav>
           <aside class="mock-sidebar glass-surface" data-window-preview-target="sidebar">
             <div class="mock-wordmark">CODEX <i></i></div>
-            <button class="mock-new-task">＋ <span>新对话</span></button>
+            <div class="mock-new-task" aria-hidden="true">＋ <span>新对话</span></div>
             <small>项目</small>
             <div class="mock-project active"><i></i><span>codex-skin</span><b>●</b></div>
             <div class="mock-project"><i></i><span>design-system</span></div>
@@ -109,12 +110,12 @@
           <section class="mock-main" data-window-preview-target="mainSurface">
             <div class="mock-windowbar"><span>任务 / codex-skin</span><div><i></i><i></i><i></i></div></div>
             <div class="mock-thread">
-              <div class="mock-chip">LOCAL THEME SESSION</div>
-              <h2>让工作界面拥有<br>属于你的视觉节奏。</h2>
-              <p>背景、玻璃表面和状态光效在这里同步调校。</p>
+              <div class="mock-chip">主题预览</div>
+              <h2>你的工作空间，<br>你的风格。</h2>
+              <p>调整右侧设置，预览会实时更新。</p>
               <div class="mock-response glass-surface"><span class="response-line long"></span><span class="response-line"></span><span class="response-line short"></span></div>
             </div>
-            <div class="mock-composer glass-surface" data-window-preview-target="composerShell"><span class="mock-composer-editor" data-window-preview-target="composerEditor">准备接收新任务</span><button>↑</button>
+            <div class="mock-composer glass-surface" data-window-preview-target="composerShell"><span class="mock-composer-editor" data-window-preview-target="composerEditor">准备接收新任务</span><span class="mock-send" aria-hidden="true">↑</span>
               <div class="mock-approval mock-window-target" data-window-preview-target="approvalSurface" aria-hidden="true"><b>需要批准此命令</b><span>运行主题应用操作</span></div>
             </div>
             <div class="mock-question-card mock-window-target" data-window-preview-target="questionCard" aria-hidden="true"><b>问题</b><span>请确认接下来的操作</span><i>回复…</i></div>
@@ -140,9 +141,9 @@
           <div class="mock-settings mock-window-target" data-window-preview-target="settingsPage" aria-hidden="true"><b>设置</b><span>常规</span><span>外观</span><span>快捷键</span></div>
         </div>
         <div class="scan-line" aria-hidden="true"></div>
-        <div class="stage-corner top-left">PREVIEW / 1440 × 900</div>
+        <div class="stage-corner top-left">实时预览</div>
         <div class="window-focus-readout" aria-live="polite"><span>WINDOW LINK</span><b id="window-focus-label">选择窗口项查看对应区域</b></div>
-        <div class="stage-corner bottom-right">RENDER SAFE</div>
+        <div class="stage-corner bottom-right">仅供预览</div>
       </div>
 
       <div class="state-console panel-frame">
@@ -156,13 +157,13 @@
 
     <aside class="inspector panel-frame" aria-label="主题编辑器">
       <div class="inspector-heading">
-        <div><span class="eyebrow">INSPECTOR</span><h2>编辑器</h2></div>
+        <div><span class="eyebrow">CUSTOMIZE</span><h2>主题设置</h2></div>
         <span class="live-badge"><i></i> LIVE</span>
       </div>
       <div class="draft-summary">
         <span class="summary-icon" aria-hidden="true">✦</span>
         <div><strong id="draft-summary">尚未选择主题</strong><span id="selection-note">选择主题后开始调校</span></div>
-        <button id="delete-theme-button" class="icon-button delete-button" type="button" title="删除当前已保存主题" disabled>×</button>
+        <button id="delete-theme-button" class="icon-button delete-button" type="button" title="删除当前已保存主题" hidden disabled>×</button>
       </div>
       <nav class="editor-tabs" aria-label="编辑分组">
         <button class="editor-tab active" type="button" data-editor-tab="media">构图</button>
@@ -311,13 +312,15 @@
       <button id="reset-button" class="button ghost" type="button">恢复草稿</button>
       <span class="dock-divider" aria-hidden="true"></span>
       <button id="pause-button" class="button ghost" type="button">暂停皮肤</button>
-      <button id="resume-button" class="button ghost" type="button">继续显示</button>
+      <button id="resume-button" class="button ghost" type="button" hidden>继续显示</button>
+      <details class="dock-more"><summary class="button ghost">更多操作</summary><div class="dock-menu">
       <button id="start-codex-button" class="button ghost" type="button">启动 / 重新应用 Codex</button>
       <button id="restore-button" class="button ghost" type="button">完整恢复官方外观</button>
-      <button id="apply-button" class="button secondary" type="button">应用所选主题</button>
+      <button id="export-button" class="button ghost" type="button">导出分享包</button>
+      </div></details>
+      <button id="apply-button" class="button primary" type="button">应用所选主题</button>
       <button id="save-button" class="button secondary" type="button">保存为新主题</button>
-      <button id="export-button" class="button secondary" type="button">导出分享包</button>
-      <button id="save-apply-button" class="button primary" type="button">保存并应用 <span aria-hidden="true">↗</span></button>
+      <button id="save-apply-button" class="button primary" type="button" hidden>保存并应用</button>
     </div>
   </footer>
 

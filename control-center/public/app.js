@@ -93,7 +93,7 @@ const elements = Object.fromEntries([
   "connection-dot", "system-status", "connection-banner", "connection-message", "retry-button",
   "theme-count", "theme-list", "theme-search", "library-match", "library-empty", "preview-name",
   "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "window-focus-label", "preview-image",
-  "preview-video", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
+  "preview-video", "studio-atmosphere-image", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
   "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "import-theme-button", "import-theme-file", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
   "effect-overlay", "effect-overlay-output", "effect-media", "effect-media-output", "effect-brightness",
   "effect-brightness-output", "effect-saturation", "effect-saturation-output", "effect-hue", "effect-hue-output",
@@ -299,6 +299,9 @@ function updateActionAvailability() {
   elements.applyButton.disabled = state.busy || !state.actionsEnabled || !savedSelected;
   elements.pauseButton.disabled = state.busy || !state.actionsEnabled || state.paused;
   elements.resumeButton.disabled = state.busy || !state.actionsEnabled || !state.paused;
+  elements.pauseButton.hidden = state.paused;
+  elements.resumeButton.hidden = !state.paused;
+  elements.applyButton.textContent = state.dirty && savedSelected ? "保存并应用" : "应用所选主题";
   elements.startCodexButton.disabled = state.busy || !state.actionsEnabled;
   elements.restoreButton.disabled = state.busy || !state.actionsEnabled;
   elements.saveButton.disabled = state.busy || !hasDraft;
@@ -526,6 +529,7 @@ function setPreviewMedia(theme, preserveLocal = false) {
   }
   elements.previewImage.src = state.localImageUrl
     || (state.mediaMode === "video" ? VIDEO_THEME_COVER_URL : mediaUrl(theme.imageMediaId));
+  elements.studioAtmosphereImage.src = elements.previewImage.src;
   elements.previewVideo.pause();
   elements.previewVideo.removeAttribute("src");
   elements.previewVideo.load();
@@ -814,6 +818,7 @@ async function upload(kind, file) {
     releaseObjectUrl(state.localVideoUrl);
     state.localVideoUrl = URL.createObjectURL(file);
     elements.previewImage.src = state.localImageUrl;
+    elements.studioAtmosphereImage.src = elements.previewImage.src;
     elements.previewVideo.src = state.localVideoUrl;
     elements.previewVideo.play().catch(() => {});
     markDirty();
@@ -835,6 +840,7 @@ async function upload(kind, file) {
   releaseObjectUrl(state.localImageUrl);
   state.localImageUrl = URL.createObjectURL(file);
   elements.previewImage.src = state.localImageUrl;
+  elements.studioAtmosphereImage.src = elements.previewImage.src;
   markDirty();
   renderPreview();
   toast("图片已校验，保存后写入主题库");
