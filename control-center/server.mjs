@@ -21,6 +21,7 @@ const STATIC_FILES = new Map([
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
   ["/video-theme-cover.png", ["video-theme-cover.png", "image/png"]],
   ["/studio-background.png", ["studio-background.png", "image/png"]],
+  ["/crystal-studio-background.png", ["crystal-studio-background.png", "image/png"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
 ]);
 const SECURITY_HEADERS = Object.freeze({

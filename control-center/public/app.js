@@ -81,6 +81,7 @@ const state = {
   importEnabled: false,
   exports: {},
   themeFilter: "all",
+  libraryMedia: "image",
   themeQuery: "",
   editorTab: "media",
   mediaMode: "image",
@@ -92,7 +93,7 @@ const state = {
 const elements = Object.fromEntries([
   "connection-dot", "system-status", "connection-banner", "connection-message", "retry-button",
   "theme-count", "theme-list", "theme-search", "library-match", "library-empty", "preview-name",
-  "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "window-focus-label", "preview-image",
+  "preview-fingerprint", "preview-mode", "preview-state-name", "preview-stage", "window-focus-label", "preview-image", "gallery-caption", "gallery-description", "gallery-kind", "gallery-media",
   "preview-video", "studio-atmosphere-image", "state-strip", "theme-name", "draft-summary", "selection-note", "action-help",
   "image-upload", "image-upload-label", "image-upload-hint", "video-upload", "inherit-video", "media-mode-image", "media-mode-video", "new-theme-button", "import-theme-button", "import-theme-file", "delete-theme-button", "effect-state-label", "effect-color", "effect-motion",
   "effect-overlay", "effect-overlay-output", "effect-media", "effect-media-output", "effect-brightness",
@@ -512,7 +513,14 @@ function renderPreview() {
   style.setProperty("--effect-hue", `${effect.hueRotate}deg`);
   elements.previewStage.dataset.motion = state.draft.controls.motionLevel;
   elements.previewStage.dataset.effectMotion = effect.motion;
-  elements.previewName.textContent = state.draft.name;
+  elements.previewName.textContent = cleanThemeName(state.draft.name);
+  const description = theme?.theme?.quote;
+  elements.galleryDescription.textContent = typeof description === "string" ? description : "";
+  elements.galleryDescription.hidden = !elements.galleryDescription.textContent;
+  const tagline = theme?.theme?.tagline;
+  elements.galleryCaption.textContent = tagline && tagline !== "Visual theme created in Control Center." ? tagline : "选择喜欢的主题，让工作空间焕然一新。";
+  elements.galleryKind.textContent = theme ? kindLabel(theme.kind) : "未保存草稿";
+  elements.galleryMedia.textContent = state.mediaMode === "video" ? "视频主题" : "图片主题";
   elements.previewStateName.textContent = state.currentState.toUpperCase();
   const videoActive = state.mediaMode === "video"
     && (state.localVideoUrl || (theme?.videoMediaId && elements.inheritVideo.checked));
@@ -542,23 +550,125 @@ function setPreviewMedia(theme, preserveLocal = false) {
   }
 }
 
+const videoThumbCache = new Map();
+let disposeLibraryVideos = () => {};
+
+// Decode only visible cards, one at a time. Generated frames stay separate from
+// theme artwork; failures leave the original poster intact.
+function attachLibraryVideoPreviews() {
+  let disposed = false;
+  let active = null;
+  const queue = [];
+  const cleanups = [];
+  let decoding = false;
+  async function drain() {
+    if (decoding || disposed) return;
+    decoding = true;
+    while (queue.length && !disposed) {
+      const item = queue.shift();
+      if (!item.visible) continue;
+      await item.capture();
+    }
+    decoding = false;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const item = entry.target.videoPreview;
+      item.visible = entry.isIntersecting;
+      if (!item.visible) item.release();
+      else if (!videoThumbCache.has(item.key)) { queue.push(item); drain(); }
+    }
+  }, { root: elements.themeList });
+  for (const card of elements.themeList.querySelectorAll('[data-video-preview]')) {
+    const key = card.dataset.videoPreview;
+    const image = card.querySelector('.theme-thumb');
+    const video = document.createElement('video');
+    video.className = 'theme-video-preview';
+    video.muted = true; video.playsInline = true; video.loop = true;
+    video.preload = 'none'; video.setAttribute('aria-hidden', 'true');
+    card.querySelector('.theme-card-main').prepend(video);
+    if (videoThumbCache.has(key)) image.src = videoThumbCache.get(key);
+    let timer;
+    let cancelCapture = () => {};
+    const stop = () => {
+      clearTimeout(timer); video.pause(); card.classList.remove('video-playing');
+      if (active === stop) active = null;
+    };
+    const item = { key, visible: false, stop, release: () => { stop(); video.removeAttribute('src'); video.load(); }, capture: () => new Promise((resolve) => {
+      if (disposed || videoThumbCache.has(key)) return resolve();
+      const decoder = document.createElement('video');
+      decoder.muted = true; decoder.preload = 'auto';
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true; clearTimeout(timeout); decoder.removeAttribute('src'); decoder.load(); resolve();
+      };
+      cancelCapture = finish;
+      const timeout = setTimeout(finish, 8000);
+      decoder.onerror = finish;
+      decoder.onloadedmetadata = () => { decoder.currentTime = Math.min(1, Math.max(0, decoder.duration / 3)); };
+      decoder.onseeked = () => {
+        if (!disposed && decoder.videoWidth && decoder.videoHeight) {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 320; canvas.height = Math.max(1, Math.round(320 * decoder.videoHeight / decoder.videoWidth));
+            canvas.height = Math.min(canvas.height, 320);
+            canvas.getContext('2d').drawImage(decoder, 0, 0, canvas.width, canvas.height);
+            const frame = canvas.toDataURL('image/jpeg', .75);
+            if (videoThumbCache.size >= 32) videoThumbCache.delete(videoThumbCache.keys().next().value);
+            videoThumbCache.set(key, frame); image.src = frame;
+          } catch { /* Keep the original theme poster if extraction fails. */ }
+        }
+        finish();
+      };
+      decoder.src = mediaUrl(key);
+    }) };
+    card.videoPreview = item;
+    const start = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        if (disposed || !item.visible || document.hidden) return;
+        active?.(); active = stop;
+        video.src ||= mediaUrl(key);
+        try { await video.play(); if (active === stop) card.classList.add('video-playing'); else video.pause(); } catch { stop(); }
+      }, 500);
+    };
+    card.addEventListener('pointerenter', start);
+    card.addEventListener('pointerleave', stop);
+    card.addEventListener('focusin', start);
+    card.addEventListener('focusout', stop);
+    observer.observe(card);
+    cleanups.push(() => { stop(); cancelCapture(); video.removeAttribute('src'); video.load(); });
+  }
+  const hide = () => { if (document.hidden) active?.(); };
+  document.addEventListener('visibilitychange', hide);
+  disposeLibraryVideos = () => {
+    disposed = true; observer.disconnect(); queue.length = 0;
+    cleanups.forEach((cleanup) => cleanup());
+    document.removeEventListener('visibilitychange', hide);
+  };
+}
+
 function renderThemeList() {
-  elements.themeCount.textContent = String(state.themes.length).padStart(2, "0");
+  disposeLibraryVideos();
+  const mediaThemes = state.themes.filter((theme) => Boolean(theme.videoMediaId) === (state.libraryMedia === "video"));
+  elements.themeCount.textContent = String(mediaThemes.length).padStart(2, "0");
   const queryText = state.themeQuery.trim().toLocaleLowerCase();
-  const visibleThemes = state.themes.filter((theme) => {
+  const visibleThemes = mediaThemes.filter((theme) => {
     const matchesQuery = !queryText || theme.name.toLocaleLowerCase().includes(queryText);
     const matchesFilter = state.themeFilter === "all"
       || (state.themeFilter === "active" && theme.id === state.selectedId)
       || theme.kind === state.themeFilter;
     return matchesQuery && matchesFilter;
   });
-  elements.libraryMatch.textContent = `${visibleThemes.length} / ${state.themes.length}`;
+  elements.libraryMatch.textContent = `${visibleThemes.length} / ${mediaThemes.length}`;
   elements.libraryEmpty.hidden = visibleThemes.length > 0;
   elements.themeList.hidden = visibleThemes.length === 0;
   elements.themeList.replaceChildren(...visibleThemes.map((theme) => {
     const card = document.createElement("div");
     card.className = `theme-card${theme.id === state.selectedId ? " selected" : ""}`;
     card.dataset.themeId = theme.id;
+    if (theme.videoMediaId) card.dataset.videoPreview = theme.videoMediaId;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "theme-card-main";
@@ -570,7 +680,7 @@ function renderThemeList() {
     const title = document.createElement("b");
     title.textContent = cleanThemeName(theme.name);
     const meta = document.createElement("small");
-    meta.textContent = `${kindLabel(theme.kind)} / ${theme.theme.video ? "视频主题 / 统一封面" : "图片背景"}`;
+    meta.textContent = `${kindLabel(theme.kind)} / ${theme.videoMediaId ? "▶ 视频 · 悬停预览" : "图片背景"}`;
     copy.append(title, meta);
     if (theme.kind === "saved") {
       const badge = document.createElement("span");
@@ -597,6 +707,7 @@ function renderThemeList() {
     }
     return card;
   }));
+  attachLibraryVideoPreviews();
 }
 
 function selectTheme(id) {
@@ -650,6 +761,7 @@ function buildStateStrip() {
 
 function setEditorTab(tab) {
   state.editorTab = tab;
+  document.body.dataset.editorTab = tab;
   for (const button of document.querySelectorAll("[data-editor-tab]")) {
     const active = button.dataset.editorTab === tab;
     button.classList.toggle("active", active);
@@ -1062,6 +1174,16 @@ for (const tab of document.querySelectorAll("[data-editor-tab]")) {
   tab.addEventListener("click", () => setEditorTab(tab.dataset.editorTab));
 }
 
+for (const tab of document.querySelectorAll("[data-library-media]")) {
+  tab.addEventListener("click", () => {
+    state.libraryMedia = tab.dataset.libraryMedia;
+    for (const item of document.querySelectorAll("[data-library-media]")) {
+      item.classList.toggle("active", item === tab);
+      item.setAttribute("aria-pressed", String(item === tab));
+    }
+    renderThemeList();
+  });
+}
 elements.themeSearch.addEventListener("input", () => {
   state.themeQuery = elements.themeSearch.value;
   renderThemeList();

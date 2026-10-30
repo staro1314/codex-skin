@@ -1,5 +1,10 @@
 # Codex Skin 窗口透明度调整记录
 
+## 2026-10-30 控制中心玻璃面板
+
+- 范围是控制中心页面本身，并非 Codex 运行时窗口；仅调整 `control-center/public/styles.css` 中 `.panel-frame`、`.stage-column`、`.state-console` 和 `.action-dock`，不改变 runtime、窗口透明度滑杆或选择器。
+- 浏览器真实页面核对：主题库和设置区渐变 alpha 为 0.36/0.61/0.66，预览容器为 0.35/0.55/0.60，底栏为 0.67/0.34/0.69；均使用 `blur(12px) saturate(115%)`，保留半透明描边。实际截图检查了真实主题加载后的三个面板与底栏；安装版原生窗口尚未验证。
+
 ## 2026-10-20 Codex 26.1013 摘要浮层内层实机复核
 
 - 安装 r6 后若未执行“启动／重新应用 Codex”，现有进程可能仍使用旧的 adopted stylesheet；磁盘文件哈希一致不代表内存样式已更新。重启后 CSSOM 才包含新的 `group/summary-panel` 规则，外壳计算背景为 `rgba(11,26,32,.72)`。

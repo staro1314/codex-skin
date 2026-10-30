@@ -33,6 +33,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     assert.equal(shellResponse.status, 200);
     const shellHtml = await shellResponse.text();
     assert.match(shellHtml, /CODEX SKIN/);
+    const studioBackground = await fetch(`${center.origin}/crystal-studio-background.png`);
+    assert.equal(studioBackground.status, 200);
+    assert.match(studioBackground.headers.get("content-type") ?? "", /^image\/png/);
+    assert.ok((await studioBackground.arrayBuffer()).byteLength > 0);
     const cookie = shellResponse.headers.get("set-cookie");
     assert.match(cookie ?? "", /dream_skin_control_token=/);
     const cookieBootstrapResponse = await fetch(`${center.origin}/api/bootstrap`, {
@@ -56,6 +60,10 @@ test("control center serves an authenticated theme editor and saves immutable dr
     const windowsSectionHtml = shellHtml.slice(windowsSectionStart, effectsSectionStart);
     const appSource = await fs.readFile(path.join(projectRoot, "control-center", "public", "app.js"), "utf8");
     const previewCss = await fs.readFile(path.join(projectRoot, "control-center", "public", "styles.css"), "utf8");
+    assert.match(shellHtml, /id="preview-image" class="[^"]*\bpreview-image\b/);
+    assert.match(shellHtml, /id="preview-video" class="[^"]*\bpreview-video\b/);
+    assert.match(previewCss, /\.preview-video\[src\]:not\(\[src=""\]\)/,
+      "Only a video with a nonempty source should replace the image preview.");
     const defaultsBody = appSource.match(/const FALLBACK_WINDOW_OPACITY = \{([\s\S]*?)\};/)?.[1] ?? "";
     const defaultKeys = [...defaultsBody.matchAll(/^\s+([A-Za-z]+):/gm)].map((match) => match[1])
       .filter((key) => key !== "composer"); // Legacy alias uses composerShell's slider.

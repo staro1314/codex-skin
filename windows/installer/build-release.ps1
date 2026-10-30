@@ -524,6 +524,7 @@ try {
     'control-center\public\styles.css',
     'control-center\public\video-theme-cover.png',
     'control-center\public\studio-background.png',
+    'control-center\public\crystal-studio-background.png',
     'runtime\image-metadata.mjs',
     'runtime\product.json',
     'runtime\product.mjs',

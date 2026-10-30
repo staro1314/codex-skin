@@ -40,7 +40,7 @@
       <div class="panel-heading">
         <div>
           <span class="eyebrow">YOUR THEMES</span>
-          <h2>主题库</h2>
+          <h2><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v13a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V6A1.5 1.5 0 0 1 5 4.5Z"/><path d="M7 2.5h10M3.5 9h17M8 9v11"/><path d="m13 12 1 2 2.2.3-1.6 1.6.4 2.1-2-1-2 1 .4-2.1L9.8 14.3 12 14Z"/></svg>主题库</h2>
         </div>
         <div class="panel-heading-actions">
           <span class="count-badge"><b id="theme-count">00</b> 个</span>
@@ -48,6 +48,10 @@
           <input id="import-theme-file" type="file" accept=".zip,application/zip" hidden>
           <button id="new-theme-button" class="icon-button" type="button" title="新建主题">+</button>
         </div>
+      </div>
+      <div class="library-media-tabs" role="group" aria-label="主题媒体分类">
+        <button class="filter-button active" type="button" data-library-media="image" aria-pressed="true">图片库</button>
+        <button class="filter-button" type="button" data-library-media="video" aria-pressed="false">动态视频库</button>
       </div>
       <label class="search-field">
         <span aria-hidden="true">⌕</span>
@@ -74,10 +78,15 @@
     </aside>
 
     <section class="stage-column" aria-label="主题预览">
+      <div class="gallery-header"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg>主题预览</div>
       <div class="stage-meta">
         <div class="stage-title">
           <span class="eyebrow">主题预览</span>
           <div><h1 id="preview-name">未选择主题</h1><span id="preview-fingerprint">未载入主题数据</span></div>
+          <p id="gallery-caption" class="gallery-caption">选择喜欢的主题，让工作空间焕然一新。</p>
+          <p id="gallery-description" class="gallery-description" hidden></p>
+          <div class="gallery-tags" aria-label="主题信息"><span id="gallery-kind">主题</span><span id="gallery-media">图片背景</span></div>
+          <button id="apply-button" class="button primary gallery-apply" type="button">应用所选主题</button>
         </div>
         <div class="stage-readout">
           <span class="readout-chip" id="preview-mode">IMAGE / AMBIENT</span>
@@ -87,8 +96,9 @@
       </div>
 
       <div id="preview-stage" class="preview-stage" data-motion="standard">
-        <img id="preview-image" class="preview-media" alt="主题背景预览">
-        <video id="preview-video" class="preview-media" muted loop playsinline></video>
+        <img id="preview-image" class="preview-media preview-image" alt="主题背景预览">
+        <video id="preview-video" class="preview-media preview-video" muted loop playsinline></video>
+        <div class="meteor-sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="preview-veil"></div>
         <div class="state-aura"></div>
         <div class="mock-app">
@@ -157,7 +167,7 @@
 
     <aside class="inspector panel-frame" aria-label="主题编辑器">
       <div class="inspector-heading">
-        <div><span class="eyebrow">CUSTOMIZE</span><h2>主题设置</h2></div>
+        <div><span class="eyebrow">CUSTOMIZE</span><h2><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="15" width="6" height="6" rx="1.5"/><path d="M18 14v8m-4-4h8M12 6h1M6 12v1"/></svg>主题设置</h2></div>
         <span class="live-badge"><i></i> LIVE</span>
       </div>
       <div class="draft-summary">
@@ -176,6 +186,12 @@
         <section class="control-section open active" data-section="media">
           <button class="section-title" type="button"><span>01 / 媒体与构图</span><i>−</i></button>
           <div class="section-body">
+            <div class="subsection-label">画面定位</div>
+            <label class="range-field"><span>水平焦点 <output data-output="art.focusX"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusX"></label>
+            <label class="range-field"><span>垂直焦点 <output data-output="art.focusY"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusY"></label>
+            <label class="range-field"><span>背景缩放 <output data-output="controls.imageZoom"></output></span><input type="range" min="1" max="1.2" step="0.01" data-path="controls.imageZoom"></label>
+            <label class="range-field"><span>背景压暗 <output data-output="controls.imageDim"></output></span><input type="range" min="0" max="0.65" step="0.01" data-path="controls.imageDim"></label>
+            <details class="media-source-details"><summary>素材与主题名称</summary><div class="media-source-body">
             <label class="text-field"><span>主题名称</span><input id="theme-name" maxlength="80" autocomplete="off" placeholder="给这套视觉取个名字"></label>
             <div class="media-mode" role="radiogroup" aria-label="媒体类型">
               <label class="media-option"><input id="media-mode-image" name="media-mode" type="radio" value="image" checked><span>图片主题</span><small>静态背景，性能更稳</small></label>
@@ -186,25 +202,20 @@
               <label class="upload-button"><span>添加视频</span><small>MP4 / WEBM</small><input id="video-upload" type="file" accept="video/mp4,video/webm"></label>
             </div>
             <label class="toggle-row"><span><b>继承母版视频</b><small>没有新视频时沿用原素材</small></span><input id="inherit-video" type="checkbox" checked><i></i></label>
+            </div></details>
             <div class="field-grid">
               <label class="select-field"><span>界面明暗</span><select data-path="appearance"><option value="auto">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></label>
               <label class="select-field"><span>视频性能</span><select data-path="videoPerformance"><option value="eco">节能</option><option value="balanced">平衡</option><option value="immersive">沉浸</option></select></label>
               <label class="select-field"><span>画面安全区</span><select data-path="art.safeArea"><option value="left">左侧留白</option><option value="right">右侧留白</option><option value="none">不限定</option></select></label>
               <label class="select-field"><span>任务页强度</span><select data-path="art.taskMode"><option value="ambient">氛围</option><option value="full">完整</option><option value="off">关闭</option></select></label>
             </div>
-            <div class="subsection-label">画面定位</div>
-            <label class="range-field"><span>水平焦点 <output data-output="art.focusX"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusX"></label>
-            <label class="range-field"><span>垂直焦点 <output data-output="art.focusY"></output></span><input type="range" min="0" max="1" step="0.01" data-path="art.focusY"></label>
-            <label class="range-field"><span>背景缩放 <output data-output="controls.imageZoom"></output></span><input type="range" min="1" max="1.2" step="0.01" data-path="controls.imageZoom"></label>
-            <label class="range-field"><span>背景压暗 <output data-output="controls.imageDim"></output></span><input type="range" min="0" max="0.65" step="0.01" data-path="controls.imageDim"></label>
           </div>
         </section>
 
         <section class="control-section" data-section="surface">
           <button class="section-title" type="button"><span>02 / 玻璃表面</span><i>+</i></button>
           <div class="section-body">
-            <div class="control-intro"><strong>让内容浮在背景之上</strong><span>调整界面层的透明度、模糊和圆角。</span></div>
-            <label class="range-field"><span>不透明度 <output data-output="controls.surfaceOpacity"></output></span><input type="range" min="0.55" max="1" step="0.01" data-path="controls.surfaceOpacity"></label>
+            <div class="control-intro"><strong>让内容浮在背景之上</strong><span>调整模糊、圆角和颜色；各区域透明度请在“窗口”中设置。</span></div>
             <label class="range-field"><span>模糊半径 <output data-output="controls.surfaceBlur"></output></span><input type="range" min="0" max="32" step="1" data-path="controls.surfaceBlur"></label>
             <label class="range-field"><span>圆角尺度 <output data-output="controls.surfaceRadius"></output></span><input type="range" min="8" max="28" step="1" data-path="controls.surfaceRadius"></label>
             <label class="select-field"><span>动态级别</span><select data-path="controls.motionLevel"><option value="reduced">克制</option><option value="standard">标准</option><option value="expressive">强化</option></select></label>
@@ -318,7 +329,6 @@
       <button id="restore-button" class="button ghost" type="button">完整恢复官方外观</button>
       <button id="export-button" class="button ghost" type="button">导出分享包</button>
       </div></details>
-      <button id="apply-button" class="button primary" type="button">应用所选主题</button>
       <button id="save-button" class="button secondary" type="button">保存为新主题</button>
       <button id="save-apply-button" class="button primary" type="button" hidden>保存并应用</button>
     </div>
