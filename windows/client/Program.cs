@@ -19,7 +19,6 @@ internal static class Program
             }
 
             ApplicationConfiguration.Initialize();
-            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.Run(new ClientApplicationContext(options));
         }
         catch (Exception error)
